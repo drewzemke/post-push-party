@@ -16,7 +16,9 @@ pub enum Command {
         branch: Option<String>,
     },
     /// called by git hook (not user-facing)
+    #[command(hide = true)]
     Hook,
     /// print state for debugging
+    #[command(hide = true)]
     Dump,
 }

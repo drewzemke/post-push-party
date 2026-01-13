@@ -1,4 +1,5 @@
 mod cli;
+mod hook;
 mod init;
 mod state;
 
@@ -49,7 +50,26 @@ fn cmd_init(_branch: Option<String>) {
 }
 
 fn cmd_hook() {
-    todo!("hook")
+    let cwd = std::env::current_dir().expect("could not get current directory");
+
+    if let Some(result) = hook::detect_push(&cwd) {
+        // award points
+        let mut state = state::load();
+        state.party_points += result.points_earned;
+        if let Err(e) = state::save(&state) {
+            eprintln!("warning: could not save state: {e}");
+        }
+
+        // base party
+        println!();
+        println!("🎉 You earned {} party points!", result.points_earned);
+        if result.commits > 1 {
+            println!("   ({} commits × {} points each)", result.commits, state.points_per_commit());
+        }
+        println!();
+        println!("Run `party` to see your total!");
+        println!();
+    }
 }
 
 fn cmd_dump() {

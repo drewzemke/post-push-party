@@ -155,15 +155,42 @@ pub struct PushResult {
 }
 
 pub fn detect_push(repo_path: &Path) -> Option<PushResult> {
-    let remote_url = get_remote_url(repo_path)?;
-    let branch = get_trunk_branch(repo_path)?;
-    let current_ref = get_remote_ref(repo_path, &branch)?;
+    crate::debug_log!("hook: detect_push called for {:?}", repo_path);
+
+    let remote_url = match get_remote_url(repo_path) {
+        Some(url) => url,
+        None => {
+            crate::debug_log!("hook: no remote url found");
+            return None;
+        }
+    };
+    crate::debug_log!("hook: remote_url = {}", remote_url);
+
+    let branch = match get_trunk_branch(repo_path) {
+        Some(b) => b,
+        None => {
+            crate::debug_log!("hook: no trunk branch found");
+            return None;
+        }
+    };
+    crate::debug_log!("hook: branch = {}", branch);
+
+    let current_ref = match get_remote_ref(repo_path, &branch) {
+        Some(r) => r,
+        None => {
+            crate::debug_log!("hook: no remote ref found for branch {}", branch);
+            return None;
+        }
+    };
+    crate::debug_log!("hook: current_ref = {}", current_ref);
 
     let mut refs = load_refs();
     let last_ref = refs.repos.get(&remote_url).cloned();
+    crate::debug_log!("hook: last_ref = {:?}", last_ref);
 
     // if same as before, no push happened (or it's a fetch)
     if last_ref.as_ref() == Some(&current_ref) {
+        crate::debug_log!("hook: ref unchanged, no push detected");
         return None;
     }
 
@@ -194,6 +221,8 @@ pub fn detect_push(repo_path: &Path) -> Option<PushResult> {
 
     let state = crate::state::load();
     let points_earned = commits * state.points_per_commit();
+
+    crate::debug_log!("hook: push detected! {} commits, {} points", commits, points_earned);
 
     Some(PushResult {
         commits,

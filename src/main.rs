@@ -1,6 +1,7 @@
 mod cli;
 mod hook;
 mod init;
+mod log;
 mod state;
 mod tui;
 

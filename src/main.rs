@@ -2,6 +2,7 @@ mod cli;
 mod hook;
 mod init;
 mod state;
+mod tui;
 
 use clap::Parser;
 use cli::{Cli, Command};
@@ -21,8 +22,10 @@ fn main() {
 }
 
 fn cmd_points() {
-    let state = state::load();
-    println!("🎉 You have {} party points!", state.party_points);
+    if let Err(e) = tui::run() {
+        eprintln!("error running TUI: {e}");
+        std::process::exit(1);
+    }
 }
 
 fn cmd_status() {

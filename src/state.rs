@@ -37,7 +37,8 @@ impl State {
     }
 
     pub fn upgrade_cost(&self) -> u64 {
-        10u64.pow(self.commit_value_level)
+        // 25 → 100 → 400 → 1600 ...
+        25 * 4u64.pow(self.commit_value_level - 1)
     }
 
     pub fn party_level_name(&self) -> &'static str {
@@ -118,15 +119,15 @@ mod tests {
     }
 
     #[test]
-    fn upgrade_cost_is_exponential() {
+    fn upgrade_cost_scales() {
         let mut state = State::default();
-        assert_eq!(state.upgrade_cost(), 10); // 10^1
+        assert_eq!(state.upgrade_cost(), 25); // 25 * 4^0
 
         state.commit_value_level = 2;
-        assert_eq!(state.upgrade_cost(), 100); // 10^2
+        assert_eq!(state.upgrade_cost(), 100); // 25 * 4^1
 
         state.commit_value_level = 3;
-        assert_eq!(state.upgrade_cost(), 1000); // 10^3
+        assert_eq!(state.upgrade_cost(), 400); // 25 * 4^2
     }
 
     #[test]

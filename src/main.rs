@@ -62,6 +62,8 @@ fn cmd_upgrade() {
     println!("remaining points: {}", state.party_points);
 }
 
+const STARTER_POINTS: u64 = 10;
+
 fn cmd_init(_branch: Option<String>) {
     let cwd = std::env::current_dir().expect("could not get current directory");
 
@@ -86,6 +88,16 @@ fn cmd_init(_branch: Option<String>) {
             eprintln!("not a git or jj repository");
             std::process::exit(1);
         }
+    }
+
+    // give starter points on first init
+    let mut s = state::load();
+    if s == state::State::default() {
+        s.party_points = STARTER_POINTS;
+        let _ = state::save(&s);
+        println!();
+        println!("🎁 You got {} starter party points!", STARTER_POINTS);
+        println!("Run `party` to spend them!");
     }
 }
 

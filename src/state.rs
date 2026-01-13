@@ -5,6 +5,8 @@ use std::path::PathBuf;
 pub struct State {
     pub party_points: u64,
     pub commit_value_level: u32,
+    #[serde(default)]
+    pub party_level: u32,
 }
 
 impl Default for State {
@@ -12,8 +14,21 @@ impl Default for State {
         Self {
             party_points: 0,
             commit_value_level: 1,
+            party_level: 0,
         }
     }
+}
+
+pub const PARTY_LEVELS: &[PartyLevel] = &[
+    PartyLevel { name: "Basic", cost: 0 },
+    PartyLevel { name: "Colorful", cost: 15 },
+    PartyLevel { name: "Quotes", cost: 50 },
+    PartyLevel { name: "Big Text", cost: 150 },
+];
+
+pub struct PartyLevel {
+    pub name: &'static str,
+    pub cost: u64,
 }
 
 impl State {
@@ -23,6 +38,21 @@ impl State {
 
     pub fn upgrade_cost(&self) -> u64 {
         10u64.pow(self.commit_value_level)
+    }
+
+    pub fn party_level_name(&self) -> &'static str {
+        PARTY_LEVELS
+            .get(self.party_level as usize)
+            .map(|l| l.name)
+            .unwrap_or("Max")
+    }
+
+    pub fn next_party_level(&self) -> Option<&'static PartyLevel> {
+        PARTY_LEVELS.get(self.party_level as usize + 1)
+    }
+
+    pub fn party_upgrade_cost(&self) -> Option<u64> {
+        self.next_party_level().map(|l| l.cost)
     }
 }
 
@@ -107,6 +137,7 @@ mod tests {
         let state = State {
             party_points: 42,
             commit_value_level: 3,
+            party_level: 1,
         };
 
         save_to_path(&state, &path).unwrap();

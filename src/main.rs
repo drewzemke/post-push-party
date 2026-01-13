@@ -2,6 +2,7 @@ mod cli;
 mod hook;
 mod init;
 mod log;
+mod party;
 mod state;
 mod tui;
 
@@ -138,15 +139,8 @@ fn cmd_hook() {
             eprintln!("warning: could not save state: {e}");
         }
 
-        // base party
-        println!();
-        println!("🎉 You earned {} party points!", result.points_earned);
-        if result.commits > 1 {
-            println!("   ({} commits × {} points each)", result.commits, state.points_per_commit());
-        }
-        println!();
-        println!("Run `party` to see your total!");
-        println!();
+        // show party based on unlocked level
+        party::display(&state, result.commits, result.points_earned);
     }
 }
 

@@ -11,6 +11,7 @@ fn main() {
 
     match cli.command {
         Some(Command::Init { branch }) => cmd_init(branch),
+        Some(Command::Uninit) => cmd_uninit(),
         Some(Command::Status) => cmd_status(),
         Some(Command::Upgrade) => cmd_upgrade(),
         Some(Command::Hook) => cmd_hook(),
@@ -78,6 +79,45 @@ fn cmd_init(_branch: Option<String>) {
         }
         None => {
             eprintln!("not a git or jj repository");
+            std::process::exit(1);
+        }
+    }
+}
+
+fn cmd_uninit() {
+    let cwd = std::env::current_dir().expect("could not get current directory");
+
+    let result = match init::detect_repo_type(&cwd) {
+        Some(init::RepoType::Jj) => init::uninstall_jj_alias(&cwd),
+        Some(init::RepoType::Git) => init::uninstall_git_hook(&cwd),
+        None => {
+            eprintln!("not a git or jj repository");
+            std::process::exit(1);
+        }
+    };
+
+    match result {
+        Ok(init::UninstallResult::Removed) => {
+            println!("removed party hook");
+        }
+        Ok(init::UninstallResult::NotInstalled) => {
+            println!("party hook not installed in this repo");
+        }
+        Ok(init::UninstallResult::ManualRemovalRequired) => {
+            eprintln!("hook has been modified, please remove manually");
+            match init::detect_repo_type(&cwd) {
+                Some(init::RepoType::Jj) => {
+                    eprintln!("  edit: {}", init::jj_config_path(&cwd).display());
+                }
+                Some(init::RepoType::Git) => {
+                    eprintln!("  edit: {}", init::git_hook_path(&cwd).display());
+                }
+                _ => {}
+            }
+            std::process::exit(1);
+        }
+        Err(e) => {
+            eprintln!("error removing hook: {e}");
             std::process::exit(1);
         }
     }

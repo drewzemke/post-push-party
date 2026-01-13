@@ -15,6 +15,8 @@ pub enum Command {
         #[arg(long)]
         branch: Option<String>,
     },
+    /// remove hook from current repo
+    Uninit,
     /// show current level and upgrade cost
     Status,
     /// buy the next commit value upgrade

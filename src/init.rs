@@ -57,6 +57,45 @@ pub fn install_jj_alias(repo_path: &Path) -> std::io::Result<()> {
     std::fs::write(&path, JJ_ALIAS)
 }
 
+#[derive(Debug)]
+pub enum UninstallResult {
+    Removed,
+    NotInstalled,
+    ManualRemovalRequired,
+}
+
+pub fn uninstall_git_hook(repo_path: &Path) -> std::io::Result<UninstallResult> {
+    let path = git_hook_path(repo_path);
+
+    if !path.exists() {
+        return Ok(UninstallResult::NotInstalled);
+    }
+
+    let content = std::fs::read_to_string(&path)?;
+    if content == GIT_HOOK_SCRIPT {
+        std::fs::remove_file(&path)?;
+        Ok(UninstallResult::Removed)
+    } else {
+        Ok(UninstallResult::ManualRemovalRequired)
+    }
+}
+
+pub fn uninstall_jj_alias(repo_path: &Path) -> std::io::Result<UninstallResult> {
+    let path = jj_config_path(repo_path);
+
+    if !path.exists() {
+        return Ok(UninstallResult::NotInstalled);
+    }
+
+    let content = std::fs::read_to_string(&path)?;
+    if content == JJ_ALIAS {
+        std::fs::remove_file(&path)?;
+        Ok(UninstallResult::Removed)
+    } else {
+        Ok(UninstallResult::ManualRemovalRequired)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -118,5 +157,65 @@ mod tests {
         let content = fs::read_to_string(jj_config_path(dir.path())).unwrap();
         assert!(content.contains("[aliases]"));
         assert!(content.contains("party hook"));
+    }
+
+    #[test]
+    fn uninstall_git_hook_removes_party_hook() {
+        let dir = tempdir().unwrap();
+        let hooks_dir = dir.path().join(".git/hooks");
+        fs::create_dir_all(&hooks_dir).unwrap();
+
+        install_git_hook(dir.path()).unwrap();
+        assert!(git_hook_path(dir.path()).exists());
+
+        let result = uninstall_git_hook(dir.path()).unwrap();
+        assert!(matches!(result, UninstallResult::Removed));
+        assert!(!git_hook_path(dir.path()).exists());
+    }
+
+    #[test]
+    fn uninstall_git_hook_not_installed() {
+        let dir = tempdir().unwrap();
+        fs::create_dir_all(dir.path().join(".git/hooks")).unwrap();
+
+        let result = uninstall_git_hook(dir.path()).unwrap();
+        assert!(matches!(result, UninstallResult::NotInstalled));
+    }
+
+    #[test]
+    fn uninstall_git_hook_manual_removal() {
+        let dir = tempdir().unwrap();
+        let hooks_dir = dir.path().join(".git/hooks");
+        fs::create_dir_all(&hooks_dir).unwrap();
+
+        // write a modified hook
+        fs::write(git_hook_path(dir.path()), "#!/bin/sh\nparty hook\nsome_other_command\n").unwrap();
+
+        let result = uninstall_git_hook(dir.path()).unwrap();
+        assert!(matches!(result, UninstallResult::ManualRemovalRequired));
+        assert!(git_hook_path(dir.path()).exists());
+    }
+
+    #[test]
+    fn uninstall_jj_alias_removes_config() {
+        let dir = tempdir().unwrap();
+        let jj_repo_dir = dir.path().join(".jj/repo");
+        fs::create_dir_all(&jj_repo_dir).unwrap();
+
+        install_jj_alias(dir.path()).unwrap();
+        assert!(jj_config_path(dir.path()).exists());
+
+        let result = uninstall_jj_alias(dir.path()).unwrap();
+        assert!(matches!(result, UninstallResult::Removed));
+        assert!(!jj_config_path(dir.path()).exists());
+    }
+
+    #[test]
+    fn uninstall_jj_alias_not_installed() {
+        let dir = tempdir().unwrap();
+        fs::create_dir_all(dir.path().join(".jj/repo")).unwrap();
+
+        let result = uninstall_jj_alias(dir.path()).unwrap();
+        assert!(matches!(result, UninstallResult::NotInstalled));
     }
 }

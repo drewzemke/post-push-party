@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::path::Path;
 use std::process::Command;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
@@ -9,8 +10,50 @@ pub struct RepoRefs {
     pub repos: HashMap<String, String>, // remote_url -> last_known_sha
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PushLogEntry {
+    pub timestamp: u64, // unix timestamp
+    pub remote_url: String,
+    pub branch: String,
+    pub commits: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PushLog {
+    pub entries: Vec<PushLogEntry>,
+}
+
+impl PushLog {
+    pub fn add(&mut self, entry: PushLogEntry) {
+        self.entries.push(entry);
+    }
+}
+
 pub fn refs_path() -> Option<std::path::PathBuf> {
     crate::state::state_dir().map(|d| d.join("refs.bin"))
+}
+
+pub fn log_path() -> Option<std::path::PathBuf> {
+    crate::state::state_dir().map(|d| d.join("log.json"))
+}
+
+pub fn load_log() -> PushLog {
+    log_path()
+        .and_then(|p| std::fs::read_to_string(&p).ok())
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+pub fn save_log(log: &PushLog) -> std::io::Result<()> {
+    let path = log_path().ok_or_else(|| {
+        std::io::Error::new(std::io::ErrorKind::NotFound, "could not determine home directory")
+    })?;
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let json = serde_json::to_string_pretty(log)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+    std::fs::write(path, json)
 }
 
 pub fn load_refs() -> RepoRefs {
@@ -132,8 +175,22 @@ pub fn detect_push(repo_path: &Path) -> Option<PushResult> {
     };
 
     // update stored refs
-    refs.repos.insert(remote_url, current_ref);
+    refs.repos.insert(remote_url.clone(), current_ref);
     let _ = save_refs(&refs);
+
+    // log the push
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let mut log = load_log();
+    log.add(PushLogEntry {
+        timestamp,
+        remote_url,
+        branch,
+        commits,
+    });
+    let _ = save_log(&log);
 
     let state = crate::state::load();
     let points_earned = commits * state.points_per_commit();
@@ -163,5 +220,29 @@ mod tests {
     fn empty_refs_deserializes() {
         let refs = RepoRefs::default();
         assert!(refs.repos.is_empty());
+    }
+
+    #[test]
+    fn push_log_roundtrips() {
+        let mut log = PushLog::default();
+        log.add(PushLogEntry {
+            timestamp: 1234567890,
+            remote_url: "git@github.com:user/repo.git".to_string(),
+            branch: "main".to_string(),
+            commits: 5,
+        });
+
+        let json = serde_json::to_string(&log).unwrap();
+        let decoded: PushLog = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(decoded.entries.len(), 1);
+        assert_eq!(decoded.entries[0].commits, 5);
+        assert_eq!(decoded.entries[0].branch, "main");
+    }
+
+    #[test]
+    fn empty_push_log() {
+        let log = PushLog::default();
+        assert!(log.entries.is_empty());
     }
 }

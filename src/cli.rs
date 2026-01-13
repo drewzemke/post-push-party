@@ -15,6 +15,10 @@ pub enum Command {
         #[arg(long)]
         branch: Option<String>,
     },
+    /// show current level and upgrade cost
+    Status,
+    /// buy the next commit value upgrade
+    Upgrade,
     /// called by git hook (not user-facing)
     #[command(hide = true)]
     Hook,

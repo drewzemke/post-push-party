@@ -23,8 +23,6 @@ pub const GIT_HOOK_SCRIPT: &str = r#"#!/bin/sh
 party hook "$@"
 "#;
 
-pub const GIT_HOOK_LINE: &str = "party hook \"$@\"";
-
 pub fn git_hook_path(repo_path: &Path) -> std::path::PathBuf {
     repo_path.join(".git/hooks/reference-transaction")
 }

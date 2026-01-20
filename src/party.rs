@@ -86,7 +86,7 @@ fn display_quotes(commits: u64, points_earned: u64) {
         println!("   ({} commits)", commits);
     }
     println!();
-    println!("{}\"{}\"{}",  "\x1b[3m", quote, RESET); // italic
+    println!("\x1b[3m\"{}\"{}", quote, RESET); // italic
     println!();
 }
 
@@ -109,6 +109,6 @@ fn display_big_text(commits: u64, points_earned: u64) {
         println!("   ({} commits)", commits);
     }
     println!();
-    println!("{}\"{}\"{}",  "\x1b[3m", quote, RESET);
+    println!("\x1b[3m\"{}\"{}", quote, RESET);
     println!();
 }

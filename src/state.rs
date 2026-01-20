@@ -20,10 +20,22 @@ impl Default for State {
 }
 
 pub const PARTY_LEVELS: &[PartyLevel] = &[
-    PartyLevel { name: "Basic", cost: 0 },
-    PartyLevel { name: "Colorful", cost: 15 },
-    PartyLevel { name: "Quotes", cost: 50 },
-    PartyLevel { name: "Big Text", cost: 150 },
+    PartyLevel {
+        name: "Basic",
+        cost: 0,
+    },
+    PartyLevel {
+        name: "Colorful",
+        cost: 15,
+    },
+    PartyLevel {
+        name: "Quotes",
+        cost: 50,
+    },
+    PartyLevel {
+        name: "Big Text",
+        cost: 150,
+    },
 ];
 
 pub struct PartyLevel {
@@ -71,7 +83,10 @@ pub fn load() -> State {
 
 pub fn save(state: &State) -> std::io::Result<()> {
     let path = state_path().ok_or_else(|| {
-        std::io::Error::new(std::io::ErrorKind::NotFound, "could not determine home directory")
+        std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "could not determine home directory",
+        )
     })?;
     save_to_path(state, &path)
 }
@@ -87,8 +102,7 @@ pub fn save_to_path(state: &State, path: &std::path::Path) -> std::io::Result<()
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    let encoded = bincode::serialize(state)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+    let encoded = bincode::serialize(state).map_err(std::io::Error::other)?;
     std::fs::write(path, encoded)
 }
 

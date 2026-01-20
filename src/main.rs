@@ -31,10 +31,7 @@ fn cmd_points() {
 
 fn cmd_status() {
     let state = state::load();
-    println!("party points: {}", state.party_points);
-    println!();
-    println!("commit value: {} (level {})", state.points_per_commit(), state.commit_value_level);
-    println!("next upgrade: {} points", state.upgrade_cost());
+    println!("You have {} party points.", state.party_points);
 }
 
 const STARTER_POINTS: u64 = 10;

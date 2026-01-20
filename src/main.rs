@@ -16,7 +16,6 @@ fn main() {
         Some(Command::Init { branch }) => cmd_init(branch),
         Some(Command::Uninit) => cmd_uninit(),
         Some(Command::Status) => cmd_status(),
-        Some(Command::Upgrade) => cmd_upgrade(),
         Some(Command::Hook) => cmd_hook(),
         Some(Command::Dump) => cmd_dump(),
         None => cmd_points(),
@@ -36,30 +35,6 @@ fn cmd_status() {
     println!();
     println!("commit value: {} (level {})", state.points_per_commit(), state.commit_value_level);
     println!("next upgrade: {} points", state.upgrade_cost());
-}
-
-fn cmd_upgrade() {
-    let mut state = state::load();
-    let cost = state.upgrade_cost();
-
-    if state.party_points < cost {
-        println!("not enough points!");
-        println!("you have {} points, but the upgrade costs {}", state.party_points, cost);
-        std::process::exit(1);
-    }
-
-    state.party_points -= cost;
-    state.commit_value_level += 1;
-
-    if let Err(e) = state::save(&state) {
-        eprintln!("error saving state: {e}");
-        std::process::exit(1);
-    }
-
-    println!("🎉 Upgraded commit value to {}!", state.points_per_commit());
-    println!("each commit now earns {} points", state.points_per_commit());
-    println!();
-    println!("remaining points: {}", state.party_points);
 }
 
 const STARTER_POINTS: u64 = 10;

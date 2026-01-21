@@ -25,4 +25,11 @@ pub enum Command {
     /// print state for debugging
     #[command(hide = true)]
     Dump,
+    /// add or remove party points (dev only)
+    #[cfg(feature = "dev")]
+    #[command(hide = true, allow_negative_numbers = true)]
+    Cheat {
+        /// amount to add (can be negative)
+        amount: i64,
+    },
 }

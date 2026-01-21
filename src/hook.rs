@@ -46,13 +46,15 @@ pub fn load_log() -> PushLog {
 
 pub fn save_log(log: &PushLog) -> std::io::Result<()> {
     let path = log_path().ok_or_else(|| {
-        std::io::Error::new(std::io::ErrorKind::NotFound, "could not determine home directory")
+        std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "could not determine home directory",
+        )
     })?;
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    let json = serde_json::to_string_pretty(log)
-        .map_err(std::io::Error::other)?;
+    let json = serde_json::to_string_pretty(log).map_err(std::io::Error::other)?;
     std::fs::write(path, json)
 }
 
@@ -65,13 +67,15 @@ pub fn load_refs() -> RepoRefs {
 
 pub fn save_refs(refs: &RepoRefs) -> std::io::Result<()> {
     let path = refs_path().ok_or_else(|| {
-        std::io::Error::new(std::io::ErrorKind::NotFound, "could not determine home directory")
+        std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "could not determine home directory",
+        )
     })?;
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    let encoded = bincode::serialize(refs)
-        .map_err(std::io::Error::other)?;
+    let encoded = bincode::serialize(refs).map_err(std::io::Error::other)?;
     std::fs::write(path, encoded)
 }
 
@@ -100,12 +104,18 @@ pub fn get_trunk_branch(repo_path: &Path) -> Option<String> {
     if output.status.success() {
         let full_ref = String::from_utf8_lossy(&output.stdout).trim().to_string();
         // refs/remotes/origin/main -> main
-        full_ref.strip_prefix("refs/remotes/origin/").map(|s| s.to_string())
+        full_ref
+            .strip_prefix("refs/remotes/origin/")
+            .map(|s| s.to_string())
     } else {
         // fallback to main or master
         for branch in ["main", "master"] {
             let check = Command::new("git")
-                .args(["rev-parse", "--verify", &format!("refs/remotes/origin/{branch}")])
+                .args([
+                    "rev-parse",
+                    "--verify",
+                    &format!("refs/remotes/origin/{branch}"),
+                ])
                 .current_dir(repo_path)
                 .output()
                 .ok()?;
@@ -139,10 +149,7 @@ pub fn count_commits(repo_path: &Path, old_sha: &str, new_sha: &str) -> Option<u
         .ok()?;
 
     if output.status.success() {
-        String::from_utf8_lossy(&output.stdout)
-            .trim()
-            .parse()
-            .ok()
+        String::from_utf8_lossy(&output.stdout).trim().parse().ok()
     } else {
         None
     }
@@ -154,7 +161,21 @@ pub struct PushResult {
     pub points_earned: u64,
 }
 
-pub fn detect_push(repo_path: &Path) -> Option<PushResult> {
+pub fn run() {
+    let cwd = std::env::current_dir().expect("could not get current directory");
+
+    if let Some(result) = detect_push(&cwd) {
+        let mut state = crate::state::load();
+        state.party_points += result.points_earned;
+        if let Err(e) = crate::state::save(&state) {
+            eprintln!("warning: could not save state: {e}");
+        }
+
+        crate::party::display(&state, result.commits, result.points_earned);
+    }
+}
+
+fn detect_push(repo_path: &Path) -> Option<PushResult> {
     crate::debug_log!("hook: detect_push called for {:?}", repo_path);
 
     let remote_url = match get_remote_url(repo_path) {
@@ -222,7 +243,11 @@ pub fn detect_push(repo_path: &Path) -> Option<PushResult> {
     let state = crate::state::load();
     let points_earned = commits * state.points_per_commit();
 
-    crate::debug_log!("hook: push detected! {} commits, {} points", commits, points_earned);
+    crate::debug_log!(
+        "hook: push detected! {} commits, {} points",
+        commits,
+        points_earned
+    );
 
     Some(PushResult {
         commits,
@@ -237,12 +262,18 @@ mod tests {
     #[test]
     fn repo_refs_roundtrips() {
         let mut refs = RepoRefs::default();
-        refs.repos.insert("git@github.com:user/repo.git".to_string(), "abc123".to_string());
+        refs.repos.insert(
+            "git@github.com:user/repo.git".to_string(),
+            "abc123".to_string(),
+        );
 
         let encoded = bincode::serialize(&refs).unwrap();
         let decoded: RepoRefs = bincode::deserialize(&encoded).unwrap();
 
-        assert_eq!(decoded.repos.get("git@github.com:user/repo.git"), Some(&"abc123".to_string()));
+        assert_eq!(
+            decoded.repos.get("git@github.com:user/repo.git"),
+            Some(&"abc123".to_string())
+        );
     }
 
     #[test]

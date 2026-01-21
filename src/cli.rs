@@ -25,6 +25,7 @@ pub enum Command {
     /// print state for debugging
     #[command(hide = true)]
     Dump,
+
     /// add or remove party points (dev only)
     #[cfg(feature = "dev")]
     #[command(allow_negative_numbers = true)]

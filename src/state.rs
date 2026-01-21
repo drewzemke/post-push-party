@@ -107,6 +107,19 @@ pub fn save(state: &State) -> std::io::Result<()> {
     save_to_path(state, &path)
 }
 
+pub fn status() {
+    let state = load();
+    println!("You have {} party points.", state.party_points);
+}
+
+pub fn dump() {
+    let state = load();
+    println!("party_points: {}", state.party_points);
+    println!("commit_value_level: {}", state.commit_value_level);
+    println!("points_per_commit: {}", state.points_per_commit());
+    println!("upgrade_cost: {}", state.upgrade_cost());
+}
+
 pub fn load_from_path(path: &std::path::Path) -> State {
     match std::fs::read(path) {
         Ok(bytes) => bincode::deserialize(&bytes).unwrap_or_default(),

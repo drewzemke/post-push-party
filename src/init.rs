@@ -100,7 +100,10 @@ pub fn detect_repo_type(path: &Path) -> Option<RepoType> {
 }
 
 pub const GIT_HOOK_SCRIPT: &str = r#"#!/bin/sh
-party hook "$@"
+# only run after refs are committed, not on prepare or abort
+if [ "$1" = "committed" ]; then
+    party hook
+fi
 "#;
 
 pub fn git_hook_path(repo_path: &Path) -> std::path::PathBuf {

@@ -1,9 +1,89 @@
 use std::path::Path;
 
+use crate::state;
+
+const STARTER_POINTS: u64 = 10;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum RepoType {
     Git,
     Jj,
+}
+
+pub fn run(_branch: Option<String>) {
+    let cwd = std::env::current_dir().expect("could not get current directory");
+
+    match detect_repo_type(&cwd) {
+        Some(RepoType::Jj) => {
+            if let Err(e) = install_jj_alias(&cwd) {
+                eprintln!("error installing jj alias: {e}");
+                std::process::exit(1);
+            }
+            println!("installed jj push alias");
+            println!("use `jj push` instead of `jj git push` to earn party points!");
+        }
+        Some(RepoType::Git) => {
+            if let Err(e) = install_git_hook(&cwd) {
+                eprintln!("error installing git hook: {e}");
+                std::process::exit(1);
+            }
+            println!("installed git reference-transaction hook");
+            println!("push code to earn party points!");
+        }
+        None => {
+            eprintln!("not a git or jj repository");
+            std::process::exit(1);
+        }
+    }
+
+    // give starter points on first init
+    let mut s = state::load();
+    if s == state::State::default() {
+        s.party_points = STARTER_POINTS;
+        let _ = state::save(&s);
+        println!();
+        println!("🎁 You got {} starter party points!", STARTER_POINTS);
+        println!("Run `party` to spend them!");
+    }
+}
+
+pub fn run_uninit() {
+    let cwd = std::env::current_dir().expect("could not get current directory");
+
+    let result = match detect_repo_type(&cwd) {
+        Some(RepoType::Jj) => uninstall_jj_alias(&cwd),
+        Some(RepoType::Git) => uninstall_git_hook(&cwd),
+        None => {
+            eprintln!("not a git or jj repository");
+            std::process::exit(1);
+        }
+    };
+
+    match result {
+        Ok(UninstallResult::Removed) => {
+            println!("removed party hook");
+        }
+        Ok(UninstallResult::NotInstalled) => {
+            println!("party hook not installed in this repo");
+        }
+        Ok(UninstallResult::ManualRemovalRequired) => {
+            eprintln!("hook has been modified, please remove manually");
+            match detect_repo_type(&cwd) {
+                Some(RepoType::Jj) => {
+                    eprintln!("  edit: {}", jj_config_path(&cwd).display());
+                }
+                Some(RepoType::Git) => {
+                    eprintln!("  edit: {}", git_hook_path(&cwd).display());
+                }
+                _ => {}
+            }
+            std::process::exit(1);
+        }
+        Err(e) => {
+            eprintln!("error removing hook: {e}");
+            std::process::exit(1);
+        }
+    }
 }
 
 pub fn detect_repo_type(path: &Path) -> Option<RepoType> {

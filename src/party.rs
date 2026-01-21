@@ -31,12 +31,8 @@ const RESET: &str = "\x1b[0m";
 const BOLD: &str = "\x1b[1m";
 
 fn random_pick<T>(items: &[T]) -> &T {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let seed = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_nanos() as usize)
-        .unwrap_or(0);
-    &items[seed % items.len()]
+    use rand::prelude::IndexedRandom;
+    items.choose(&mut rand::rng()).unwrap()
 }
 
 pub fn display(state: &State, commits: u64, points_earned: u64) {

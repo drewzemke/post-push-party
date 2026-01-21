@@ -86,6 +86,9 @@ impl State {
 }
 
 pub fn state_dir() -> Option<PathBuf> {
+    if let Ok(dir) = std::env::var("PARTY_STATE_DIR") {
+        return Some(PathBuf::from(dir));
+    }
     dirs::home_dir().map(|h| h.join(".post-push-party"))
 }
 

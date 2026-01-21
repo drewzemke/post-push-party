@@ -22,6 +22,8 @@ fn main() {
         Some(Command::Cheat { amount }) => cmd_cheat(amount),
         #[cfg(feature = "dev")]
         Some(Command::Push { commits }) => cmd_push(commits),
+        #[cfg(feature = "dev")]
+        Some(Command::Reset) => cmd_reset(),
         None => cmd_points(),
     }
 }
@@ -51,6 +53,16 @@ fn cmd_push(commits: u64) {
         eprintln!("warning: could not save state: {e}");
     }
     party::display(&state, commits, points_earned);
+}
+
+#[cfg(feature = "dev")]
+fn cmd_reset() {
+    let state = state::State::default();
+    if let Err(e) = state::save(&state) {
+        eprintln!("error saving state: {e}");
+        std::process::exit(1);
+    }
+    println!("state reset to defaults");
 }
 
 fn cmd_points() {

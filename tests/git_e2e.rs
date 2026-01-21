@@ -80,8 +80,16 @@ impl TestEnv {
     }
 
     fn git(&self, args: &[&str]) -> String {
+        // prepend our test binary's directory to PATH so the hook finds it
+        let party_bin = Self::party_bin();
+        let party_dir = std::path::Path::new(&party_bin).parent().unwrap();
+        let path = std::env::var("PATH").unwrap_or_default();
+        let new_path = format!("{}:{}", party_dir.display(), path);
+
         run(Command::new("git")
             .args(args)
+            .env("PATH", new_path)
+            .env("PARTY_STATE_DIR", self.state_dir.path())
             .current_dir(self.repo_dir.path()))
     }
 
@@ -93,6 +101,7 @@ impl TestEnv {
         self.git(&["commit", "-m", message]);
     }
 
+    /// Push to origin (hook triggers automatically)
     fn push(&self) {
         self.git(&["push", "-u", "origin", "main"]);
     }
@@ -112,20 +121,18 @@ impl TestEnv {
 fn happy_path_single_commit_awards_one_point() {
     let env = TestEnv::new();
 
-    // initial commit and push
+    // init party first (installs git hook)
+    env.party(&["init"]);
+
+    // first commit and push
     env.commit_file("README.md", "# Test", "initial commit");
     env.git(&["branch", "-M", "main"]);
     env.push();
 
-    // first hook call: detects initial push, awards 1 point, records baseline
-    env.party(&["hook"]);
-    assert_eq!(env.get_points(), 1, "should have 1 point after initial push");
-
     // second commit and push
     env.commit_file("src.rs", "fn main() {}", "add source file");
     env.push();
-    env.party(&["hook"]);
 
-    // should have 2 points total (1 initial + 1 second)
-    assert_eq!(env.get_points(), 2);
+    // 10 starter + 1 first push + 1 second push = 12 points
+    assert_eq!(env.get_points(), 12);
 }

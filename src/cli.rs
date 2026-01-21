@@ -32,4 +32,11 @@ pub enum Command {
         /// amount to add (can be negative)
         amount: i64,
     },
+    /// simulate pushing N commits (dev only)
+    #[cfg(feature = "dev")]
+    #[command(hide = true)]
+    Push {
+        /// number of commits to simulate
+        commits: u64,
+    },
 }

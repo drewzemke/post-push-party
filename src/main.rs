@@ -20,6 +20,8 @@ fn main() {
         Some(Command::Dump) => cmd_dump(),
         #[cfg(feature = "dev")]
         Some(Command::Cheat { amount }) => cmd_cheat(amount),
+        #[cfg(feature = "dev")]
+        Some(Command::Push { commits }) => cmd_push(commits),
         None => cmd_points(),
     }
 }
@@ -38,6 +40,17 @@ fn cmd_cheat(amount: i64) {
         std::process::exit(1);
     }
     println!("{} → {} party points", old, state.party_points);
+}
+
+#[cfg(feature = "dev")]
+fn cmd_push(commits: u64) {
+    let mut state = state::load();
+    let points_earned = commits * state.points_per_commit();
+    state.party_points += points_earned;
+    if let Err(e) = state::save(&state) {
+        eprintln!("warning: could not save state: {e}");
+    }
+    party::display(&state, commits, points_earned);
 }
 
 fn cmd_points() {

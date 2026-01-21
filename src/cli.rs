@@ -27,16 +27,18 @@ pub enum Command {
     Dump,
     /// add or remove party points (dev only)
     #[cfg(feature = "dev")]
-    #[command(hide = true, allow_negative_numbers = true)]
+    #[command(allow_negative_numbers = true)]
     Cheat {
         /// amount to add (can be negative)
         amount: i64,
     },
     /// simulate pushing N commits (dev only)
     #[cfg(feature = "dev")]
-    #[command(hide = true)]
     Push {
         /// number of commits to simulate
         commits: u64,
     },
+    /// reset all state to defaults (dev only)
+    #[cfg(feature = "dev")]
+    Reset,
 }

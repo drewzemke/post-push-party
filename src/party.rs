@@ -40,75 +40,56 @@ fn random_pick<T>(items: &[T]) -> &T {
 }
 
 pub fn display(state: &State, commits: u64, points_earned: u64) {
-    match state.party_level {
-        0 => display_basic(commits, points_earned),
-        1 => display_colorful(commits, points_earned),
-        2 => display_quotes(commits, points_earned),
-        _ => display_big_text(commits, points_earned),
+    let use_color = state.party_level >= 1 && state.show_colorful;
+    let use_quotes = state.party_level >= 2 && state.show_quotes;
+    let use_big_text = state.party_level >= 3 && state.show_big_text;
+
+    let color = if use_color { random_pick(COLORS) } else { "" };
+    let reset = if use_color { RESET } else { "" };
+    let bold = if use_color { BOLD } else { "" };
+
+    println!();
+
+    // big text or exclamation
+    if use_big_text {
+        println!("{}{}", color, bold);
+        println!(" ███╗   ██╗██╗ ██████╗███████╗██╗");
+        println!(" ████╗  ██║██║██╔════╝██╔════╝██║");
+        println!(" ██╔██╗ ██║██║██║     █████╗  ██║");
+        println!(" ██║╚██╗██║██║██║     ██╔══╝  ╚═╝");
+        println!(" ██║ ╚████║██║╚██████╗███████╗██╗");
+        println!(" ╚═╝  ╚═══╝╚═╝ ╚═════╝╚══════╝╚═╝");
+        println!("{}", reset);
+        println!();
+    } else if use_color {
+        let exclaim = random_pick(EXCLAMATIONS);
+        println!("{}{}{} {}", bold, color, exclaim, reset);
+        println!();
     }
-}
 
-fn display_basic(commits: u64, points_earned: u64) {
-    println!();
-    println!("🎉 You earned {} party points!", points_earned);
-    if commits > 1 {
-        println!("   ({} commits)", commits);
+    // summary
+    if state.show_summary {
+        if use_big_text {
+            println!("🎉 +{} party points!", points_earned);
+        } else {
+            println!("{}🎉 You earned {} party points!{}", color, points_earned, reset);
+        }
+        if commits > 1 {
+            println!("   ({} commits)", commits);
+        }
+        println!();
     }
-    println!();
-    println!("Run `party` to see your total!");
-    println!();
-}
 
-fn display_colorful(commits: u64, points_earned: u64) {
-    let color = random_pick(COLORS);
-    let exclaim = random_pick(EXCLAMATIONS);
-
-    println!();
-    println!("{}{}{} {}", BOLD, color, exclaim, RESET);
-    println!();
-    println!("{}🎉 You earned {} party points!{}", color, points_earned, RESET);
-    if commits > 1 {
-        println!("   ({} commits)", commits);
+    // quote
+    if use_quotes {
+        let quote = random_pick(QUOTES);
+        println!("\x1b[3m\"{}\"\x1b[0m", quote);
+        println!();
     }
-    println!();
-}
 
-fn display_quotes(commits: u64, points_earned: u64) {
-    let color = random_pick(COLORS);
-    let exclaim = random_pick(EXCLAMATIONS);
-    let quote = random_pick(QUOTES);
-
-    println!();
-    println!("{}{}{} {}", BOLD, color, exclaim, RESET);
-    println!();
-    println!("{}🎉 You earned {} party points!{}", color, points_earned, RESET);
-    if commits > 1 {
-        println!("   ({} commits)", commits);
+    // call to action (only if no other output or just summary)
+    if !use_color && !use_quotes && !use_big_text && state.show_summary {
+        println!("Run `party` to see your total!");
+        println!();
     }
-    println!();
-    println!("\x1b[3m\"{}\"{}", quote, RESET); // italic
-    println!();
-}
-
-fn display_big_text(commits: u64, points_earned: u64) {
-    let color = random_pick(COLORS);
-    let quote = random_pick(QUOTES);
-
-    println!();
-    println!("{}{}", color, BOLD);
-    println!(" ███╗   ██╗██╗ ██████╗███████╗██╗");
-    println!(" ████╗  ██║██║██╔════╝██╔════╝██║");
-    println!(" ██╔██╗ ██║██║██║     █████╗  ██║");
-    println!(" ██║╚██╗██║██║██║     ██╔══╝  ╚═╝");
-    println!(" ██║ ╚████║██║╚██████╗███████╗██╗");
-    println!(" ╚═╝  ╚═══╝╚═╝ ╚═════╝╚══════╝╚═╝");
-    println!("{}", RESET);
-    println!();
-    println!("🎉 +{} party points!", points_earned);
-    if commits > 1 {
-        println!("   ({} commits)", commits);
-    }
-    println!();
-    println!("\x1b[3m\"{}\"{}", quote, RESET);
-    println!();
 }

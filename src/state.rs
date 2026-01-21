@@ -7,6 +7,18 @@ pub struct State {
     pub commit_value_level: u32,
     #[serde(default)]
     pub party_level: u32,
+    #[serde(default = "default_true")]
+    pub show_summary: bool,
+    #[serde(default = "default_true")]
+    pub show_colorful: bool,
+    #[serde(default = "default_true")]
+    pub show_quotes: bool,
+    #[serde(default = "default_true")]
+    pub show_big_text: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 impl Default for State {
@@ -15,6 +27,10 @@ impl Default for State {
             party_points: 0,
             commit_value_level: 1,
             party_level: 0,
+            show_summary: true,
+            show_colorful: true,
+            show_quotes: true,
+            show_big_text: true,
         }
     }
 }
@@ -153,6 +169,7 @@ mod tests {
             party_points: 42,
             commit_value_level: 3,
             party_level: 1,
+            ..State::default()
         };
 
         save_to_path(&state, &path).unwrap();

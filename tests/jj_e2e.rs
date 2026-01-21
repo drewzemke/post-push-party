@@ -73,8 +73,16 @@ impl TestEnv {
     }
 
     fn jj(&self, args: &[&str]) -> String {
+        // prepend our test binary's directory to PATH so the alias finds it
+        let party_bin = Self::party_bin();
+        let party_dir = std::path::Path::new(&party_bin).parent().unwrap();
+        let path = std::env::var("PATH").unwrap_or_default();
+        let new_path = format!("{}:{}", party_dir.display(), path);
+
         run(Command::new("jj")
             .args(args)
+            .env("PATH", new_path)
+            .env("PARTY_STATE_DIR", self.state_dir.path())
             .current_dir(self.repo_dir.path()))
     }
 
@@ -86,8 +94,9 @@ impl TestEnv {
         self.jj(&["bookmark", "set", "main", "-r", "@-"]);
     }
 
+    /// Push using the jj push alias (which calls party hook automatically)
     fn push(&self) {
-        self.jj(&["git", "push", "--allow-new", "-b", "main"]);
+        self.jj(&["push", "--allow-new", "-b", "main"]);
         self.jj(&["git", "fetch"]);
     }
 
@@ -106,18 +115,17 @@ impl TestEnv {
 fn happy_path_single_commit_awards_one_point() {
     let env = TestEnv::new();
 
-    // initial commit and push (before party init)
+    // init party first (installs jj push alias)
+    env.party(&["init"]);
+
+    // first commit and push
     env.commit_file("README.md", "# Test", "initial commit");
     env.push();
-
-    // init party
-    env.party(&["init"]);
 
     // second commit and push
     env.commit_file("src.rs", "fn main() {}", "add source file");
     env.push();
-    env.party(&["hook"]);
 
-    // 10 starter points + 1 point for the commit
-    assert_eq!(env.get_points(), 11);
+    // 10 starter + 1 first push + 1 second push = 12 points
+    assert_eq!(env.get_points(), 12);
 }

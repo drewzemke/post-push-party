@@ -141,6 +141,20 @@ pub fn get_remote_ref(repo_path: &Path, branch: &str) -> Option<String> {
     }
 }
 
+pub fn get_local_ref(repo_path: &Path, branch: &str) -> Option<String> {
+    let output = Command::new("git")
+        .args(["rev-parse", &format!("refs/heads/{branch}")])
+        .current_dir(repo_path)
+        .output()
+        .ok()?;
+
+    if output.status.success() {
+        Some(String::from_utf8_lossy(&output.stdout).trim().to_string())
+    } else {
+        None
+    }
+}
+
 pub fn count_commits(repo_path: &Path, old_sha: &str, new_sha: &str) -> Option<u64> {
     let output = Command::new("git")
         .args(["rev-list", "--count", &format!("{old_sha}..{new_sha}")])
@@ -204,6 +218,14 @@ fn detect_push(repo_path: &Path) -> Option<PushResult> {
         }
     };
     crate::debug_log!("hook: current_ref = {}", current_ref);
+
+    // check if local branch matches remote - if not, this was a fetch, not a push
+    let local_ref = get_local_ref(repo_path, &branch);
+    crate::debug_log!("hook: local_ref = {:?}", local_ref);
+    if local_ref.as_ref() != Some(&current_ref) {
+        crate::debug_log!("hook: local ref doesn't match remote, not a push");
+        return None;
+    }
 
     let mut refs = load_refs();
     let last_ref = refs.repos.get(&remote_url).cloned();

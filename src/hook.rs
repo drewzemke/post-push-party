@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use std::path::Path;
-use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
+
+use crate::git;
 
 use serde::{Deserialize, Serialize};
 
@@ -79,96 +80,6 @@ pub fn save_refs(refs: &RepoRefs) -> std::io::Result<()> {
     std::fs::write(path, encoded)
 }
 
-pub fn get_remote_url(repo_path: &Path) -> Option<String> {
-    let output = Command::new("git")
-        .args(["remote", "get-url", "origin"])
-        .current_dir(repo_path)
-        .output()
-        .ok()?;
-
-    if output.status.success() {
-        Some(String::from_utf8_lossy(&output.stdout).trim().to_string())
-    } else {
-        None
-    }
-}
-
-pub fn get_trunk_branch(repo_path: &Path) -> Option<String> {
-    // try to get the default branch from origin
-    let output = Command::new("git")
-        .args(["symbolic-ref", "refs/remotes/origin/HEAD"])
-        .current_dir(repo_path)
-        .output()
-        .ok()?;
-
-    if output.status.success() {
-        let full_ref = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        // refs/remotes/origin/main -> main
-        full_ref
-            .strip_prefix("refs/remotes/origin/")
-            .map(|s| s.to_string())
-    } else {
-        // fallback to main or master
-        for branch in ["main", "master"] {
-            let check = Command::new("git")
-                .args([
-                    "rev-parse",
-                    "--verify",
-                    &format!("refs/remotes/origin/{branch}"),
-                ])
-                .current_dir(repo_path)
-                .output()
-                .ok()?;
-            if check.status.success() {
-                return Some(branch.to_string());
-            }
-        }
-        None
-    }
-}
-
-pub fn get_remote_ref(repo_path: &Path, branch: &str) -> Option<String> {
-    let output = Command::new("git")
-        .args(["rev-parse", &format!("refs/remotes/origin/{branch}")])
-        .current_dir(repo_path)
-        .output()
-        .ok()?;
-
-    if output.status.success() {
-        Some(String::from_utf8_lossy(&output.stdout).trim().to_string())
-    } else {
-        None
-    }
-}
-
-pub fn get_local_ref(repo_path: &Path, branch: &str) -> Option<String> {
-    let output = Command::new("git")
-        .args(["rev-parse", &format!("refs/heads/{branch}")])
-        .current_dir(repo_path)
-        .output()
-        .ok()?;
-
-    if output.status.success() {
-        Some(String::from_utf8_lossy(&output.stdout).trim().to_string())
-    } else {
-        None
-    }
-}
-
-pub fn count_commits(repo_path: &Path, old_sha: &str, new_sha: &str) -> Option<u64> {
-    let output = Command::new("git")
-        .args(["rev-list", "--count", &format!("{old_sha}..{new_sha}")])
-        .current_dir(repo_path)
-        .output()
-        .ok()?;
-
-    if output.status.success() {
-        String::from_utf8_lossy(&output.stdout).trim().parse().ok()
-    } else {
-        None
-    }
-}
-
 #[derive(Debug)]
 pub struct PushResult {
     pub commits: u64,
@@ -192,7 +103,7 @@ pub fn run() {
 fn detect_push(repo_path: &Path) -> Option<PushResult> {
     crate::debug_log!("hook: detect_push called for {:?}", repo_path);
 
-    let remote_url = match get_remote_url(repo_path) {
+    let remote_url = match git::get_remote_url(repo_path) {
         Some(url) => url,
         None => {
             crate::debug_log!("hook: no remote url found");
@@ -201,7 +112,7 @@ fn detect_push(repo_path: &Path) -> Option<PushResult> {
     };
     crate::debug_log!("hook: remote_url = {}", remote_url);
 
-    let branch = match get_trunk_branch(repo_path) {
+    let branch = match git::get_trunk_branch(repo_path) {
         Some(b) => b,
         None => {
             crate::debug_log!("hook: no trunk branch found");
@@ -210,7 +121,7 @@ fn detect_push(repo_path: &Path) -> Option<PushResult> {
     };
     crate::debug_log!("hook: branch = {}", branch);
 
-    let current_ref = match get_remote_ref(repo_path, &branch) {
+    let current_ref = match git::get_remote_ref(repo_path, &branch) {
         Some(r) => r,
         None => {
             crate::debug_log!("hook: no remote ref found for branch {}", branch);
@@ -220,7 +131,7 @@ fn detect_push(repo_path: &Path) -> Option<PushResult> {
     crate::debug_log!("hook: current_ref = {}", current_ref);
 
     // check if local branch matches remote - if not, this was a fetch, not a push
-    let local_ref = get_local_ref(repo_path, &branch);
+    let local_ref = git::get_local_ref(repo_path, &branch);
     crate::debug_log!("hook: local_ref = {:?}", local_ref);
     if local_ref.as_ref() != Some(&current_ref) {
         crate::debug_log!("hook: local ref doesn't match remote, not a push");
@@ -238,7 +149,7 @@ fn detect_push(repo_path: &Path) -> Option<PushResult> {
     }
 
     let commits = if let Some(old_sha) = &last_ref {
-        count_commits(repo_path, old_sha, &current_ref).unwrap_or(1)
+        git::count_commits(repo_path, old_sha, &current_ref).unwrap_or(1)
     } else {
         // first time seeing this repo, count as 1
         1

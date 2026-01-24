@@ -1,6 +1,7 @@
 mod cli;
 #[cfg(feature = "dev")]
 mod dev;
+mod git;
 mod hook;
 mod init;
 mod log;

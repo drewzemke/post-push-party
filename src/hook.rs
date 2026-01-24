@@ -30,22 +30,22 @@ impl PushLog {
     }
 }
 
-pub fn refs_path() -> Option<std::path::PathBuf> {
+fn refs_path() -> Option<std::path::PathBuf> {
     crate::state::state_dir().map(|d| d.join("refs.bin"))
 }
 
-pub fn log_path() -> Option<std::path::PathBuf> {
+fn log_path() -> Option<std::path::PathBuf> {
     crate::state::state_dir().map(|d| d.join("log.json"))
 }
 
-pub fn load_log() -> PushLog {
+fn load_log() -> PushLog {
     log_path()
         .and_then(|p| std::fs::read_to_string(&p).ok())
         .and_then(|s| serde_json::from_str(&s).ok())
         .unwrap_or_default()
 }
 
-pub fn save_log(log: &PushLog) -> std::io::Result<()> {
+fn save_log(log: &PushLog) -> std::io::Result<()> {
     let path = log_path().ok_or_else(|| {
         std::io::Error::new(
             std::io::ErrorKind::NotFound,
@@ -59,14 +59,14 @@ pub fn save_log(log: &PushLog) -> std::io::Result<()> {
     std::fs::write(path, json)
 }
 
-pub fn load_refs() -> RepoRefs {
+fn load_refs() -> RepoRefs {
     refs_path()
         .and_then(|p| std::fs::read(&p).ok())
         .and_then(|bytes| bincode::deserialize(&bytes).ok())
         .unwrap_or_default()
 }
 
-pub fn save_refs(refs: &RepoRefs) -> std::io::Result<()> {
+fn save_refs(refs: &RepoRefs) -> std::io::Result<()> {
     let path = refs_path().ok_or_else(|| {
         std::io::Error::new(
             std::io::ErrorKind::NotFound,
@@ -80,27 +80,21 @@ pub fn save_refs(refs: &RepoRefs) -> std::io::Result<()> {
     std::fs::write(path, encoded)
 }
 
+/// Result of detecting a push - just the commit count.
+/// Points calculation happens in the caller.
 #[derive(Debug)]
-pub struct PushResult {
+pub struct PushInfo {
     pub commits: u64,
-    pub points_earned: u64,
 }
 
-pub fn run() {
+/// Entry point called by git hook or jj alias.
+/// Returns push info if a push was detected, None otherwise.
+pub fn run() -> Option<PushInfo> {
     let cwd = std::env::current_dir().expect("could not get current directory");
-
-    if let Some(result) = detect_push(&cwd) {
-        let mut state = crate::state::load();
-        state.party_points += result.points_earned;
-        if let Err(e) = crate::state::save(&state) {
-            eprintln!("warning: could not save state: {e}");
-        }
-
-        crate::party::display(&state, result.commits, result.points_earned);
-    }
+    detect_push(&cwd)
 }
 
-fn detect_push(repo_path: &Path) -> Option<PushResult> {
+fn detect_push(repo_path: &Path) -> Option<PushInfo> {
     crate::debug_log!("hook: detect_push called for {:?}", repo_path);
 
     let remote_url = match git::get_remote_url(repo_path) {
@@ -142,50 +136,49 @@ fn detect_push(repo_path: &Path) -> Option<PushResult> {
     let last_ref = refs.repos.get(&remote_url).cloned();
     crate::debug_log!("hook: last_ref = {:?}", last_ref);
 
-    // if same as before, no push happened (or it's a fetch)
+    // if same as before, no push happened
     if last_ref.as_ref() == Some(&current_ref) {
         crate::debug_log!("hook: ref unchanged, no push detected");
         return None;
     }
 
-    let commits = if let Some(old_sha) = &last_ref {
-        git::count_commits(repo_path, old_sha, &current_ref).unwrap_or(1)
-    } else {
-        // first time seeing this repo, count as 1
-        1
+    let commits = match &last_ref {
+        Some(old_sha) => git::count_commits(repo_path, old_sha, &current_ref).unwrap_or(1),
+        None => 1, // first time seeing this repo
     };
 
-    // update stored refs
-    refs.repos.insert(remote_url.clone(), current_ref);
-    let _ = save_refs(&refs);
+    record_push(&mut refs, &remote_url, &branch, &current_ref, commits);
 
-    // log the push
+    crate::debug_log!("hook: push detected! {} commits", commits);
+
+    Some(PushInfo { commits })
+}
+
+/// Update refs.bin and append to log.json
+fn record_push(
+    refs: &mut RepoRefs,
+    remote_url: &str,
+    branch: &str,
+    current_ref: &str,
+    commits: u64,
+) {
+    refs.repos
+        .insert(remote_url.to_string(), current_ref.to_string());
+    let _ = save_refs(refs);
+
     let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs())
         .unwrap_or(0);
+
     let mut log = load_log();
     log.add(PushLogEntry {
         timestamp,
-        remote_url,
-        branch,
+        remote_url: remote_url.to_string(),
+        branch: branch.to_string(),
         commits,
     });
     let _ = save_log(&log);
-
-    let state = crate::state::load();
-    let points_earned = commits * state.points_per_commit();
-
-    crate::debug_log!(
-        "hook: push detected! {} commits, {} points",
-        commits,
-        points_earned
-    );
-
-    Some(PushResult {
-        commits,
-        points_earned,
-    })
 }
 
 #[cfg(test)]

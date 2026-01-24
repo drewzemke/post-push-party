@@ -10,11 +10,7 @@ pub struct Cli {
 #[derive(Subcommand)]
 pub enum Command {
     /// install hook in current repo
-    Init {
-        /// branch to track (defaults to trunk)
-        #[arg(long)]
-        branch: Option<String>,
-    },
+    Init,
     /// remove hook from current repo
     Uninit,
     /// show current level and upgrade cost

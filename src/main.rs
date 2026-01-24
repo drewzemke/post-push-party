@@ -17,7 +17,7 @@ fn main() {
     let cli = Cli::parse();
 
     match cli.command {
-        Some(Command::Init { branch }) => init::run(branch),
+        Some(Command::Init) => init::run(),
         Some(Command::Uninit) => init::run_uninit(),
         Some(Command::Status) => state::status(),
         Some(Command::Hook) => {

@@ -10,7 +10,7 @@ pub enum RepoType {
     Jj,
 }
 
-pub fn run(_branch: Option<String>) {
+pub fn run() {
     let cwd = std::env::current_dir().expect("could not get current directory");
 
     match detect_repo_type(&cwd) {

@@ -19,7 +19,17 @@ fn main() {
         Some(Command::Init { branch }) => init::run(branch),
         Some(Command::Uninit) => init::run_uninit(),
         Some(Command::Status) => state::status(),
-        Some(Command::Hook) => hook::run(),
+        Some(Command::Hook) => {
+            if let Some(push) = hook::run() {
+                let mut s = state::load();
+                let points_earned = push.commits * s.points_per_commit();
+                s.party_points += points_earned;
+                if let Err(e) = state::save(&s) {
+                    eprintln!("warning: could not save state: {e}");
+                }
+                party::display(&s, push.commits, points_earned);
+            }
+        }
         Some(Command::Dump) => state::dump(),
         None => tui::run().unwrap_or_else(|e| {
             eprintln!("error running TUI: {e}");

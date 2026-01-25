@@ -69,7 +69,12 @@ pub fn run() -> Option<PushInfo> {
             continue; // no change
         }
 
-        crate::debug_log!("hook: branch {} pushed ({:?} -> {})", branch, old_sha, new_sha);
+        crate::debug_log!(
+            "hook: branch {} pushed ({:?} -> {})",
+            branch,
+            old_sha,
+            new_sha
+        );
         if pushed_branch.is_none() {
             pushed_branch = Some(branch.clone());
         }

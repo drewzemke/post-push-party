@@ -19,11 +19,7 @@ pub fn log(message: &str) {
         .map(|d| d.as_secs())
         .unwrap_or(0);
 
-    let Ok(mut file) = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&path)
-    else {
+    let Ok(mut file) = OpenOptions::new().create(true).append(true).open(&path) else {
         return;
     };
 

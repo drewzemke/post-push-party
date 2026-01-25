@@ -272,7 +272,11 @@ mod tests {
         fs::create_dir_all(&hooks_dir).unwrap();
 
         // write a modified hook
-        fs::write(git_hook_path(dir.path()), "#!/bin/sh\nparty hook\nsome_other_command\n").unwrap();
+        fs::write(
+            git_hook_path(dir.path()),
+            "#!/bin/sh\nparty hook\nsome_other_command\n",
+        )
+        .unwrap();
 
         let result = uninstall_git_hook(dir.path()).unwrap();
         assert!(matches!(result, UninstallResult::ManualRemovalRequired));

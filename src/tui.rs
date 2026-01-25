@@ -86,9 +86,15 @@ impl App {
             self.state.party_points -= cost;
             self.state.commit_value_level += 1;
             let _ = state::save(&self.state);
-            self.message = Some(format!("Commit value now {}!", self.state.points_per_commit()));
+            self.message = Some(format!(
+                "Commit value now {}!",
+                self.state.points_per_commit()
+            ));
         } else {
-            self.message = Some(format!("Need {} more points", cost - self.state.party_points));
+            self.message = Some(format!(
+                "Need {} more points",
+                cost - self.state.party_points
+            ));
         }
     }
 
@@ -100,7 +106,10 @@ impl App {
                 let _ = state::save(&self.state);
                 self.message = Some(format!("Unlocked {} party!", self.state.party_level_name()));
             } else {
-                self.message = Some(format!("Need {} more points", cost - self.state.party_points));
+                self.message = Some(format!(
+                    "Need {} more points",
+                    cost - self.state.party_points
+                ));
             }
         } else {
             self.message = Some("Party maxed out!".to_string());
@@ -173,13 +182,15 @@ pub fn run() -> io::Result<()> {
             if key.kind == KeyEventKind::Press {
                 match key.code {
                     KeyCode::Char('q') | KeyCode::Esc => break,
-                    KeyCode::Char('u') | KeyCode::Enter | KeyCode::Char(' ') => {
-                        match app.tab {
-                            Tab::Store => app.handle_store_action(),
-                            Tab::Config => app.handle_config_action(),
-                        }
-                    }
-                    KeyCode::Tab | KeyCode::Left | KeyCode::Right | KeyCode::Char('h') | KeyCode::Char('l') => {
+                    KeyCode::Char('u') | KeyCode::Enter | KeyCode::Char(' ') => match app.tab {
+                        Tab::Store => app.handle_store_action(),
+                        Tab::Config => app.handle_config_action(),
+                    },
+                    KeyCode::Tab
+                    | KeyCode::Left
+                    | KeyCode::Right
+                    | KeyCode::Char('h')
+                    | KeyCode::Char('l') => {
                         app.tab = match app.tab {
                             Tab::Store => Tab::Config,
                             Tab::Config => Tab::Store,
@@ -220,7 +231,11 @@ fn render(frame: &mut Frame, app: &App) {
         Tab::Config => 1,
     };
     let tabs = Tabs::new(tab_titles)
-        .block(Block::default().title(" 🎉 POST-PUSH PARTY ").borders(Borders::ALL))
+        .block(
+            Block::default()
+                .title(" 🎉 POST-PUSH PARTY ")
+                .borders(Borders::ALL),
+        )
         .select(selected_tab)
         .style(Style::default().fg(Color::DarkGray))
         .highlight_style(Style::default().fg(Color::White).bold());
@@ -228,8 +243,8 @@ fn render(frame: &mut Frame, app: &App) {
 
     // points display
     let points_text = format!(" {} party points", app.state.party_points);
-    let points = Paragraph::new(points_text)
-        .block(Block::default().title(" Points ").borders(Borders::ALL));
+    let points =
+        Paragraph::new(points_text).block(Block::default().title(" Points ").borders(Borders::ALL));
     frame.render_widget(points, chunks[1]);
 
     // tab content
@@ -312,10 +327,7 @@ fn render_store(frame: &mut Frame, app: &App, area: Rect) {
             next.cost
         )
     } else {
-        format!(
-            " Party Style: {} (MAX)",
-            app.state.party_level_name()
-        )
+        format!(" Party Style: {} (MAX)", app.state.party_level_name())
     };
     let pl_block = if pl_selected {
         Block::default().title(" ▶ Upgrade ").borders(Borders::ALL)
@@ -338,24 +350,74 @@ fn render_config(frame: &mut Frame, app: &App, area: Rect) {
         ])
         .split(area);
 
-    render_toggle(frame, app, chunks[0], ConfigSelection::Summary,
-        "Point Summary", app.state.show_summary, true);
-    render_toggle(frame, app, chunks[1], ConfigSelection::Colorful,
-        "Colorful Text", app.state.show_colorful, app.state.party_level >= 1);
-    render_toggle(frame, app, chunks[2], ConfigSelection::Quotes,
-        "Quotes", app.state.show_quotes, app.state.party_level >= 2);
-    render_toggle(frame, app, chunks[3], ConfigSelection::BigText,
-        "Big Text", app.state.show_big_text, app.state.party_level >= 3);
+    render_toggle(
+        frame,
+        app,
+        chunks[0],
+        ConfigSelection::Summary,
+        "Point Summary",
+        app.state.show_summary,
+        true,
+    );
+    render_toggle(
+        frame,
+        app,
+        chunks[1],
+        ConfigSelection::Colorful,
+        "Colorful Text",
+        app.state.show_colorful,
+        app.state.party_level >= 1,
+    );
+    render_toggle(
+        frame,
+        app,
+        chunks[2],
+        ConfigSelection::Quotes,
+        "Quotes",
+        app.state.show_quotes,
+        app.state.party_level >= 2,
+    );
+    render_toggle(
+        frame,
+        app,
+        chunks[3],
+        ConfigSelection::BigText,
+        "Big Text",
+        app.state.show_big_text,
+        app.state.party_level >= 3,
+    );
 }
 
-fn render_toggle(frame: &mut Frame, app: &App, area: Rect, item: ConfigSelection, name: &str, enabled: bool, unlocked: bool) {
+fn render_toggle(
+    frame: &mut Frame,
+    app: &App,
+    area: Rect,
+    item: ConfigSelection,
+    name: &str,
+    enabled: bool,
+    unlocked: bool,
+) {
     let selected = app.config_selection == item;
     let (status, style) = if !unlocked {
         ("🔒 locked", Style::default().fg(Color::DarkGray))
     } else if enabled {
-        ("✓ on", if selected { Style::default().fg(Color::Green).bold() } else { Style::default().fg(Color::Green) })
+        (
+            "✓ on",
+            if selected {
+                Style::default().fg(Color::Green).bold()
+            } else {
+                Style::default().fg(Color::Green)
+            },
+        )
     } else {
-        ("✗ off", if selected { Style::default().fg(Color::Red).bold() } else { Style::default().fg(Color::Red) })
+        (
+            "✗ off",
+            if selected {
+                Style::default().fg(Color::Red).bold()
+            } else {
+                Style::default().fg(Color::Red)
+            },
+        )
     };
     let text = format!(" {} [{}]", name, status);
     let block = if selected {

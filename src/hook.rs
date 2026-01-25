@@ -34,6 +34,26 @@ fn save_refs(refs: &BranchRefs) -> std::io::Result<()> {
     std::fs::write(path, encoded)
 }
 
+/// Snapshot current remote refs so future pushes are calculated correctly.
+/// Called during init to avoid crediting pre-existing commits.
+pub fn snapshot_refs(repo_path: &std::path::Path) {
+    let Some(remote_url) = git::get_remote_url(repo_path) else {
+        return;
+    };
+
+    let current_refs = git::get_all_remote_refs(repo_path);
+    if current_refs.is_empty() {
+        return;
+    }
+
+    let mut branch_refs = load_refs();
+    let stored = branch_refs.repos.entry(remote_url).or_default();
+    for (branch, sha) in current_refs {
+        stored.insert(branch, sha);
+    }
+    let _ = save_refs(&branch_refs);
+}
+
 #[derive(Debug)]
 pub struct PushInfo {
     pub commits_pushed: u64,

@@ -7,6 +7,7 @@ mod hook;
 mod init;
 mod log;
 mod party;
+mod patch_ids;
 mod state;
 mod tui;
 

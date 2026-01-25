@@ -19,7 +19,8 @@ fn happy_path_awards_points_for_main() {
     env.vcs.ensure_main();
     env.vcs.push();
 
-    env.vcs.commit_file("src.rs", "fn main() {}", "add source file");
+    env.vcs
+        .commit_file("src.rs", "fn main() {}", "add source file");
     env.vcs.push();
 
     // 10 starter + 1 first push + 1 second push = 12 points
@@ -27,7 +28,7 @@ fn happy_path_awards_points_for_main() {
 }
 
 #[test]
-fn pushing_feature_branch_awards_no_points() {
+fn pushing_feature_branch_awards_points() {
     let env = git_env();
     env.party(&["init"]);
 
@@ -37,13 +38,14 @@ fn pushing_feature_branch_awards_no_points() {
     let points_after_main = env.get_points();
 
     env.vcs.create_feature_branch("feature");
-    env.vcs.commit_file("feature.rs", "// feature", "feature work");
+    env.vcs
+        .commit_file("feature.rs", "// feature", "feature work");
     env.vcs.push_branch("feature");
 
     assert_eq!(
         env.get_points(),
-        points_after_main,
-        "pushing feature branch should not award points"
+        points_after_main + 1,
+        "pushing feature branch should award points for new content"
     );
 }
 
@@ -56,7 +58,8 @@ fn pushing_main_after_feature_awards_points() {
     env.vcs.commit_file("base.rs", "// base", "base commit");
     env.vcs.ensure_main();
     env.vcs.create_feature_branch("feature");
-    env.vcs.commit_file("feature.rs", "// feature", "feature work");
+    env.vcs
+        .commit_file("feature.rs", "// feature", "feature work");
     env.vcs.push_branch("feature");
     let points_after_feature = env.get_points();
 
@@ -87,15 +90,78 @@ fn fetch_does_not_award_points() {
 
     // I fetch their changes
     env.vcs.fetch();
+    let points_after_fetch = env.get_points();
 
-    // I push a feature branch
+    // fetching should not award points
+    assert_eq!(
+        points_after_fetch, points_after_my_push,
+        "fetching others' commits should not award points"
+    );
+
+    // I push a feature branch - this DOES award points now (new content)
     env.vcs.create_feature_branch("feature");
-    env.vcs.commit_file("feature.rs", "// feature", "my feature");
+    env.vcs
+        .commit_file("feature.rs", "// feature", "my feature");
     env.vcs.push_branch("feature");
 
     assert_eq!(
         env.get_points(),
-        points_after_my_push,
-        "fetching others' commits then pushing feature should not award points"
+        points_after_my_push + 1,
+        "pushing feature branch should award points for my new commit"
+    );
+}
+
+#[test]
+fn rebase_and_force_push_awards_no_points() {
+    let env = git_env();
+    env.party(&["init"]);
+
+    env.vcs.commit_file("README.md", "# Test", "initial commit");
+    env.vcs.ensure_main();
+    env.vcs.push();
+
+    env.vcs.create_feature_branch("feature");
+    env.vcs
+        .commit_file("feature.rs", "// feature", "feature work");
+    env.vcs.push_branch("feature");
+    let points_after_feature = env.get_points();
+
+    // rebase onto main (creates new SHA but same content)
+    env.vcs.cmd(&["rebase", "main"]);
+    env.vcs.cmd(&["push", "--force", "origin", "feature"]);
+
+    assert_eq!(
+        env.get_points(),
+        points_after_feature,
+        "rebasing and force pushing should not award points (same patch-id)"
+    );
+}
+
+#[test]
+fn pushing_same_content_to_different_branch_awards_no_points() {
+    let env = git_env();
+    env.party(&["init"]);
+
+    env.vcs.commit_file("README.md", "# Test", "initial commit");
+    env.vcs.ensure_main();
+    env.vcs.push();
+
+    env.vcs.create_feature_branch("feature-a");
+    env.vcs
+        .commit_file("feature.rs", "// feature", "feature work");
+    env.vcs.push_branch("feature-a");
+    let points_after_feature_a = env.get_points();
+
+    // create another branch from main with the same commit content
+    env.vcs.checkout("main");
+    env.vcs.create_feature_branch("feature-b");
+    env.vcs
+        .commit_file("feature.rs", "// feature", "feature work");
+    env.vcs.push_branch("feature-b");
+
+    assert_eq!(
+        env.get_points(),
+        points_after_feature_a,
+        "pushing same content to different branch should not award points"
     );
 }

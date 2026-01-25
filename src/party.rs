@@ -43,7 +43,7 @@ fn random_pick<T>(items: &[T]) -> &T {
     items.choose(&mut rand::rng()).unwrap()
 }
 
-pub fn display(state: &State, commits: u64, points_earned: u64) {
+pub fn display(state: &State, commits_pushed: u64, commits_counted: u64, points_earned: u64) {
     let use_color = state.party_level >= 1 && state.show_colorful;
     let use_quotes = state.party_level >= 2 && state.show_quotes;
     let use_big_text = state.party_level >= 3 && state.show_big_text;
@@ -81,8 +81,13 @@ pub fn display(state: &State, commits: u64, points_earned: u64) {
                 color, points_earned, reset
             );
         }
-        if commits > 1 {
-            println!("   ({} commits)", commits);
+        if commits_pushed != commits_counted {
+            println!(
+                "   ({} commits pushed, {} counted)",
+                commits_pushed, commits_counted
+            );
+        } else if commits_counted > 1 {
+            println!("   ({} commits)", commits_counted);
         }
         println!();
     }

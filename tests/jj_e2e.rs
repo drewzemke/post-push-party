@@ -18,7 +18,8 @@ fn happy_path_awards_points_for_main() {
     env.vcs.commit_file("README.md", "# Test", "initial commit");
     env.vcs.push();
 
-    env.vcs.commit_file("src.rs", "fn main() {}", "add source file");
+    env.vcs
+        .commit_file("src.rs", "fn main() {}", "add source file");
     env.vcs.push();
 
     // 10 starter + 1 first push + 1 second push = 12 points
@@ -26,7 +27,7 @@ fn happy_path_awards_points_for_main() {
 }
 
 #[test]
-fn pushing_feature_branch_awards_no_points() {
+fn pushing_feature_branch_awards_points() {
     let env = jj_env();
     env.party(&["init"]);
 
@@ -35,14 +36,15 @@ fn pushing_feature_branch_awards_no_points() {
     let points_after_main = env.get_points();
 
     env.vcs.cmd(&["new", "main"]);
-    env.vcs.commit_file("feature.rs", "// feature", "feature work");
+    env.vcs
+        .commit_file("feature.rs", "// feature", "feature work");
     env.vcs.cmd(&["bookmark", "create", "feature", "-r", "@-"]);
     env.vcs.push_branch("feature");
 
     assert_eq!(
         env.get_points(),
-        points_after_main,
-        "pushing feature branch should not award points"
+        points_after_main + 1,
+        "pushing feature branch should award points for new content"
     );
 }
 
@@ -51,7 +53,8 @@ fn pushing_main_after_feature_awards_points() {
     let env = jj_env();
     env.party(&["init"]);
 
-    env.vcs.commit_file("feature.rs", "// feature", "feature work");
+    env.vcs
+        .commit_file("feature.rs", "// feature", "feature work");
     env.vcs.cmd(&["bookmark", "create", "feature", "-r", "@-"]);
     env.vcs.push_branch("feature");
     let points_after_feature = env.get_points();
@@ -67,22 +70,23 @@ fn pushing_main_after_feature_awards_points() {
 }
 
 #[test]
-fn pushing_main_and_feature_together_awards_one_point() {
+fn pushing_main_and_feature_together_awards_points_for_all() {
     let env = jj_env();
     env.party(&["init"]);
 
     env.vcs.commit_file("README.md", "# Test", "initial commit");
-    env.vcs.commit_file("feature.rs", "// feature", "feature work");
+    env.vcs
+        .commit_file("feature.rs", "// feature", "feature work");
     env.vcs.cmd(&["bookmark", "create", "feature", "-r", "@-"]);
 
-    env.vcs.cmd(&["push", "--allow-new", "-b", "main", "-b", "feature"]);
-    env.vcs.cmd(&["git", "fetch"]);
+    env.vcs
+        .cmd(&["push", "--allow-new", "-b", "main", "-b", "feature"]);
 
-    // 10 starter + 1 for main only
+    // 10 starter + 2 for both commits (new content, regardless of branch)
     assert_eq!(
         env.get_points(),
-        11,
-        "pushing main+feature together should only award points for main"
+        12,
+        "pushing main+feature together should award points for all new content"
     );
 }
 
@@ -95,12 +99,14 @@ fn rebasing_feature_onto_updated_main() {
     env.vcs.push();
 
     env.vcs.cmd(&["new", "main"]);
-    env.vcs.commit_file("feature.rs", "// feature", "feature work");
+    env.vcs
+        .commit_file("feature.rs", "// feature", "feature work");
     env.vcs.cmd(&["bookmark", "create", "feature", "-r", "@-"]);
     env.vcs.push_branch("feature");
 
     env.vcs.cmd(&["new", "main"]);
-    env.vcs.commit_file("main2.rs", "// main2", "more main work");
+    env.vcs
+        .commit_file("main2.rs", "// main2", "more main work");
     env.vcs.cmd(&["bookmark", "set", "main", "-r", "@-"]);
     env.vcs.push();
     let points_after_main_update = env.get_points();
@@ -129,16 +135,55 @@ fn fetch_does_not_award_points() {
 
     // I fetch their changes
     env.vcs.fetch();
+    let points_after_fetch = env.get_points();
 
-    // I push a feature branch
+    // fetching should not award points
+    assert_eq!(
+        points_after_fetch, points_after_my_push,
+        "fetching others' commits should not award points"
+    );
+
+    // I push a feature branch - this DOES award points now (new content)
     env.vcs.cmd(&["new", "main"]);
-    env.vcs.commit_file("feature.rs", "// feature", "my feature");
+    env.vcs
+        .commit_file("feature.rs", "// feature", "my feature");
     env.vcs.cmd(&["bookmark", "create", "feature", "-r", "@-"]);
     env.vcs.push_branch("feature");
 
     assert_eq!(
         env.get_points(),
-        points_after_my_push,
-        "fetching others' commits then pushing feature should not award points"
+        points_after_my_push + 1,
+        "pushing feature branch should award points for my new commit"
+    );
+}
+
+#[test]
+fn pushing_same_content_to_different_branch_awards_no_points() {
+    let env = jj_env();
+    env.party(&["init"]);
+
+    env.vcs.commit_file("README.md", "# Test", "initial commit");
+    env.vcs.push();
+
+    env.vcs.cmd(&["new", "main"]);
+    env.vcs
+        .commit_file("feature.rs", "// feature", "feature work");
+    env.vcs
+        .cmd(&["bookmark", "create", "feature-a", "-r", "@-"]);
+    env.vcs.push_branch("feature-a");
+    let points_after_feature_a = env.get_points();
+
+    // create another branch from main with the same commit content
+    env.vcs.cmd(&["new", "main"]);
+    env.vcs
+        .commit_file("feature.rs", "// feature", "feature work");
+    env.vcs
+        .cmd(&["bookmark", "create", "feature-b", "-r", "@-"]);
+    env.vcs.push_branch("feature-b");
+
+    assert_eq!(
+        env.get_points(),
+        points_after_feature_a,
+        "pushing same content to different branch should not award points"
     );
 }

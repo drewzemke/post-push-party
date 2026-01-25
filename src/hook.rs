@@ -1,33 +1,32 @@
+//! Hook entry point for detecting pushes and counting new commits.
+
 use std::collections::HashMap;
-use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
 use crate::git;
+use crate::patch_ids;
 
+/// Tracks last-known SHA per branch per repo.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-struct RepoRefs {
-    repos: HashMap<String, String>, // remote_url -> last_known_sha
+struct BranchRefs {
+    repos: HashMap<String, HashMap<String, String>>,
 }
 
 fn refs_path() -> Option<std::path::PathBuf> {
     crate::state::state_dir().map(|d| d.join("refs.bin"))
 }
 
-fn load_refs() -> RepoRefs {
+fn load_refs() -> BranchRefs {
     refs_path()
         .and_then(|p| std::fs::read(&p).ok())
         .and_then(|bytes| bincode::deserialize(&bytes).ok())
         .unwrap_or_default()
 }
 
-fn save_refs(refs: &RepoRefs) -> std::io::Result<()> {
-    let path = refs_path().ok_or_else(|| {
-        std::io::Error::new(
-            std::io::ErrorKind::NotFound,
-            "could not determine home directory",
-        )
-    })?;
+fn save_refs(refs: &BranchRefs) -> std::io::Result<()> {
+    let path = refs_path()
+        .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "no state directory"))?;
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
     }
@@ -35,109 +34,107 @@ fn save_refs(refs: &RepoRefs) -> std::io::Result<()> {
     std::fs::write(path, encoded)
 }
 
-/// Result of detecting a push - just the commit count.
-/// Points calculation happens in the caller.
 #[derive(Debug)]
 pub struct PushInfo {
     pub commits: u64,
 }
 
-/// Entry point called by git hook or jj alias.
-/// Detects if a push occurred and returns commit count if so.
 pub fn run() -> Option<PushInfo> {
     let repo_path = std::env::current_dir().expect("could not get current directory");
-    run_in(&repo_path)
-}
 
-fn run_in(repo_path: &Path) -> Option<PushInfo> {
-    crate::debug_log!("hook: run called for {:?}", repo_path);
-
-    let remote_url = match git::get_remote_url(repo_path) {
-        Some(url) => url,
-        None => {
-            crate::debug_log!("hook: no remote url found");
-            return None;
-        }
-    };
+    let remote_url = git::get_remote_url(&repo_path)?;
     crate::debug_log!("hook: remote_url = {}", remote_url);
 
-    let branch = match git::get_trunk_branch(repo_path) {
-        Some(b) => b,
-        None => {
-            crate::debug_log!("hook: no trunk branch found");
-            return None;
-        }
-    };
-    crate::debug_log!("hook: branch = {}", branch);
+    let current_refs = git::get_all_remote_refs(&repo_path);
+    crate::debug_log!("hook: current_refs = {:?}", current_refs);
 
-    let current_ref = match git::get_remote_ref(repo_path, &branch) {
-        Some(r) => r,
-        None => {
-            crate::debug_log!("hook: no remote ref found for branch {}", branch);
-            return None;
-        }
-    };
-    crate::debug_log!("hook: current_ref = {}", current_ref);
+    let mut branch_refs = load_refs();
+    let stored = branch_refs.repos.entry(remote_url.clone()).or_default();
 
-    // if local doesn't match remote, this was a fetch, not a push
-    let local_ref = git::get_local_ref(repo_path, &branch);
-    crate::debug_log!("hook: local_ref = {:?}", local_ref);
-    if local_ref.as_ref() != Some(&current_ref) {
-        crate::debug_log!("hook: local ref doesn't match remote, not a push");
+    let mut patch_store = patch_ids::load();
+    let mut seen = patch_store.get_set(&remote_url);
+
+    // collect commits from pushed branches
+    let mut commits = Vec::new();
+    let mut first_time_branches = Vec::new();
+    let mut pushed_branch = None;
+
+    for (branch, new_sha) in &current_refs {
+        let local_sha = git::get_local_ref(&repo_path, branch);
+        if local_sha.as_ref() != Some(new_sha) {
+            continue; // fetch, not push
+        }
+        let old_sha = stored.get(branch);
+        if old_sha == Some(new_sha) {
+            continue; // no change
+        }
+
+        crate::debug_log!("hook: branch {} pushed ({:?} -> {})", branch, old_sha, new_sha);
+        if pushed_branch.is_none() {
+            pushed_branch = Some(branch.clone());
+        }
+
+        match old_sha {
+            Some(old) => {
+                // update: get exact range (fast)
+                commits.extend(git::list_commits_in_range(&repo_path, old, new_sha));
+            }
+            None => {
+                // first-time push: need to process with other first-time branches
+                first_time_branches.push(branch.as_str());
+            }
+        }
+    }
+
+    // first-time pushes processed together to handle shared history
+    if !first_time_branches.is_empty() {
+        commits.extend(git::list_unique_commits(&repo_path, &first_time_branches));
+    }
+
+    if commits.is_empty() {
+        for (branch, sha) in &current_refs {
+            stored.insert(branch.clone(), sha.clone());
+        }
+        let _ = save_refs(&branch_refs);
         return None;
     }
 
-    let mut refs = load_refs();
-    let last_ref = refs.repos.get(&remote_url).cloned();
-    crate::debug_log!("hook: last_ref = {:?}", last_ref);
+    crate::debug_log!("hook: {} commits to check", commits.len());
 
-    // if same as before, no push happened
-    if last_ref.as_ref() == Some(&current_ref) {
-        crate::debug_log!("hook: ref unchanged, no push detected");
+    let mut new_patch_ids = Vec::new();
+    for sha in commits {
+        if let Some(patch_id) = git::get_patch_id(&repo_path, &sha) {
+            if !seen.contains(&patch_id) {
+                crate::debug_log!("hook: new commit {} ({})", sha, patch_id);
+                seen.insert(patch_id.clone());
+                new_patch_ids.push(patch_id);
+            }
+        }
+    }
+
+    // update stored refs
+    for (branch, sha) in &current_refs {
+        stored.insert(branch.clone(), sha.clone());
+    }
+    let _ = save_refs(&branch_refs);
+
+    if new_patch_ids.is_empty() {
         return None;
     }
 
-    let commits = match &last_ref {
-        Some(old_sha) => git::count_commits(repo_path, old_sha, &current_ref).unwrap_or(1),
-        None => 1, // first time seeing this repo
-    };
+    // persist new patch-ids
+    patch_store.record(&remote_url, &new_patch_ids);
+    let _ = patch_ids::save(&patch_store);
 
-    // update refs
-    refs.repos.insert(remote_url.clone(), current_ref);
-    let _ = save_refs(&refs);
+    let commit_count = new_patch_ids.len() as u64;
 
-    // record in history
-    crate::history::record(&remote_url, &branch, commits);
-
-    crate::debug_log!("hook: push detected! {} commits", commits);
-
-    Some(PushInfo { commits })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn repo_refs_roundtrips() {
-        let mut refs = RepoRefs::default();
-        refs.repos.insert(
-            "git@github.com:user/repo.git".to_string(),
-            "abc123".to_string(),
-        );
-
-        let encoded = bincode::serialize(&refs).unwrap();
-        let decoded: RepoRefs = bincode::deserialize(&encoded).unwrap();
-
-        assert_eq!(
-            decoded.repos.get("git@github.com:user/repo.git"),
-            Some(&"abc123".to_string())
-        );
+    if let Some(branch) = pushed_branch {
+        crate::history::record(&remote_url, &branch, commit_count);
     }
 
-    #[test]
-    fn empty_refs_deserializes() {
-        let refs = RepoRefs::default();
-        assert!(refs.repos.is_empty());
-    }
+    crate::debug_log!("hook: {} new commits", commit_count);
+
+    Some(PushInfo {
+        commits: commit_count,
+    })
 }

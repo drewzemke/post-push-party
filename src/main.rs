@@ -25,14 +25,14 @@ fn main() {
             if let Some(push) = hook::run() {
                 let mut s = state::load();
 
-                let points_earned = push.commits * s.points_per_commit();
+                let points_earned = push.commits_counted * s.points_per_commit();
                 s.party_points += points_earned;
 
                 if let Err(e) = state::save(&s) {
                     eprintln!("warning: could not save state: {e}");
                 }
 
-                party::display(&s, push.commits, points_earned);
+                party::display(&s, push.commits_pushed, push.commits_counted, points_earned);
             }
         }
         Some(Command::Dump) => state::dump(),

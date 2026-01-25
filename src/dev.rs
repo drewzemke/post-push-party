@@ -22,7 +22,7 @@ pub fn push(commits: u64) {
     if let Err(e) = state::save(&state) {
         eprintln!("warning: could not save state: {e}");
     }
-    party::display(&state, commits, points_earned);
+    party::display(&state, commits, commits, points_earned);
 }
 
 pub fn reset() {

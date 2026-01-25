@@ -36,7 +36,8 @@ fn save_refs(refs: &BranchRefs) -> std::io::Result<()> {
 
 #[derive(Debug)]
 pub struct PushInfo {
-    pub commits: u64,
+    pub commits_pushed: u64,
+    pub commits_counted: u64,
 }
 
 pub fn run() -> Option<PushInfo> {
@@ -104,7 +105,8 @@ pub fn run() -> Option<PushInfo> {
         return None;
     }
 
-    crate::debug_log!("hook: {} commits to check", commits.len());
+    let total_commits = commits.len();
+    crate::debug_log!("hook: {} commits to check", total_commits);
 
     let mut new_patch_ids = Vec::new();
     for sha in commits {
@@ -131,15 +133,16 @@ pub fn run() -> Option<PushInfo> {
     patch_store.record(&remote_url, &new_patch_ids);
     let _ = patch_ids::save(&patch_store);
 
-    let commit_count = new_patch_ids.len() as u64;
+    let commits_counted = new_patch_ids.len() as u64;
 
     if let Some(branch) = pushed_branch {
-        crate::history::record(&remote_url, &branch, commit_count);
+        crate::history::record(&remote_url, &branch, commits_counted);
     }
 
-    crate::debug_log!("hook: {} new commits", commit_count);
+    crate::debug_log!("hook: {} new commits", commits_counted);
 
     Some(PushInfo {
-        commits: commit_count,
+        commits_pushed: total_commits as u64,
+        commits_counted,
     })
 }

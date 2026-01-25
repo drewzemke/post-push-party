@@ -1,8 +1,16 @@
 use crate::state::State;
 
 const EXCLAMATIONS: &[&str] = &[
-    "NICE!", "AWESOME!", "GREAT JOB!", "FANTASTIC!", "WOOHOO!",
-    "AMAZING!", "BRILLIANT!", "SUPERB!", "EXCELLENT!", "WONDERFUL!",
+    "NICE!",
+    "AWESOME!",
+    "GREAT JOB!",
+    "FANTASTIC!",
+    "WOOHOO!",
+    "AMAZING!",
+    "BRILLIANT!",
+    "SUPERB!",
+    "EXCELLENT!",
+    "WONDERFUL!",
 ];
 
 const QUOTES: &[&str] = &[
@@ -68,7 +76,10 @@ pub fn display(state: &State, commits: u64, points_earned: u64) {
         if use_big_text {
             println!("🎉 +{} party points!", points_earned);
         } else {
-            println!("{}🎉 You earned {} party points!{}", color, points_earned, reset);
+            println!(
+                "{}🎉 You earned {} party points!{}",
+                color, points_earned, reset
+            );
         }
         if commits > 1 {
             println!("   ({} commits)", commits);

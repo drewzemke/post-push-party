@@ -10,7 +10,7 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph, Tabs},
 };
 
-use crate::state::{self, State};
+use crate::state::{self, feature_cost, PartyFeature, State, PARTY_FEATURES};
 
 #[derive(Clone, Copy, PartialEq)]
 enum Tab {
@@ -18,26 +18,12 @@ enum Tab {
     Config,
 }
 
-#[derive(Clone, Copy, PartialEq)]
-enum StoreSelection {
-    CommitValue,
-    PartyLevel,
-}
-
-#[derive(Clone, Copy, PartialEq)]
-enum ConfigSelection {
-    Summary,
-    Colorful,
-    Quotes,
-    BigText,
-}
-
 pub struct App {
     state: State,
     message: Option<String>,
     tab: Tab,
-    store_selection: StoreSelection,
-    config_selection: ConfigSelection,
+    store_selection: usize, // 0 = commit value, 1+ = feature index
+    config_selection: usize, // index into PARTY_FEATURES
 }
 
 impl App {
@@ -46,38 +32,33 @@ impl App {
             state: state::load(),
             message: None,
             tab: Tab::Store,
-            store_selection: StoreSelection::CommitValue,
-            config_selection: ConfigSelection::Summary,
+            store_selection: 0,
+            config_selection: 0,
         }
     }
 
+    fn store_item_count(&self) -> usize {
+        1 + PARTY_FEATURES.len() // commit value + features
+    }
+
     fn handle_store_action(&mut self) {
-        match self.store_selection {
-            StoreSelection::CommitValue => self.upgrade_commit_value(),
-            StoreSelection::PartyLevel => self.upgrade_party_level(),
+        if self.store_selection == 0 {
+            self.upgrade_commit_value();
+        } else {
+            let feature_idx = self.store_selection - 1;
+            if let Some(&feature) = PARTY_FEATURES.get(feature_idx) {
+                self.unlock_feature(feature);
+            }
         }
     }
 
     fn handle_config_action(&mut self) {
-        match self.config_selection {
-            ConfigSelection::Summary => self.state.show_summary = !self.state.show_summary,
-            ConfigSelection::Colorful => {
-                if self.state.party_level >= 1 {
-                    self.state.show_colorful = !self.state.show_colorful;
-                }
-            }
-            ConfigSelection::Quotes => {
-                if self.state.party_level >= 2 {
-                    self.state.show_quotes = !self.state.show_quotes;
-                }
-            }
-            ConfigSelection::BigText => {
-                if self.state.party_level >= 3 {
-                    self.state.show_big_text = !self.state.show_big_text;
-                }
+        if let Some(&feature) = PARTY_FEATURES.get(self.config_selection) {
+            if self.state.is_unlocked(feature) {
+                self.state.toggle_feature(feature);
+                let _ = state::save(&self.state);
             }
         }
-        let _ = state::save(&self.state);
     }
 
     fn upgrade_commit_value(&mut self) {
@@ -98,50 +79,47 @@ impl App {
         }
     }
 
-    fn upgrade_party_level(&mut self) {
-        if let Some(cost) = self.state.party_upgrade_cost() {
-            if self.state.party_points >= cost {
-                self.state.party_points -= cost;
-                self.state.party_level += 1;
-                let _ = state::save(&self.state);
-                self.message = Some(format!("Unlocked {} party!", self.state.party_level_name()));
-            } else {
-                self.message = Some(format!(
-                    "Need {} more points",
-                    cost - self.state.party_points
-                ));
-            }
+    fn unlock_feature(&mut self, feature: PartyFeature) {
+        if self.state.is_unlocked(feature) {
+            self.message = Some(format!("{} already unlocked!", feature.name()));
+            return;
+        }
+
+        let cost = feature_cost(feature);
+        if self.state.party_points >= cost {
+            self.state.party_points -= cost;
+            self.state.unlock_feature(feature);
+            let _ = state::save(&self.state);
+            self.message = Some(format!("Unlocked {}!", feature.name()));
         } else {
-            self.message = Some("Party maxed out!".to_string());
+            self.message = Some(format!(
+                "Need {} more points",
+                cost - self.state.party_points
+            ));
         }
     }
 
     fn can_afford_selected(&self) -> bool {
-        match self.store_selection {
-            StoreSelection::CommitValue => self.state.party_points >= self.state.upgrade_cost(),
-            StoreSelection::PartyLevel => self
-                .state
-                .party_upgrade_cost()
-                .map(|c| self.state.party_points >= c)
-                .unwrap_or(false),
+        if self.store_selection == 0 {
+            self.state.party_points >= self.state.upgrade_cost()
+        } else {
+            let feature_idx = self.store_selection - 1;
+            PARTY_FEATURES.get(feature_idx).map_or(false, |&feature| {
+                !self.state.is_unlocked(feature)
+                    && self.state.party_points >= feature_cost(feature)
+            })
         }
     }
 
     fn move_selection_up(&mut self) {
         match self.tab {
             Tab::Store => {
-                self.store_selection = match self.store_selection {
-                    StoreSelection::CommitValue => StoreSelection::PartyLevel,
-                    StoreSelection::PartyLevel => StoreSelection::CommitValue,
-                };
+                let count = self.store_item_count();
+                self.store_selection = (self.store_selection + count - 1) % count;
             }
             Tab::Config => {
-                self.config_selection = match self.config_selection {
-                    ConfigSelection::Summary => ConfigSelection::BigText,
-                    ConfigSelection::Colorful => ConfigSelection::Summary,
-                    ConfigSelection::Quotes => ConfigSelection::Colorful,
-                    ConfigSelection::BigText => ConfigSelection::Quotes,
-                };
+                let count = PARTY_FEATURES.len();
+                self.config_selection = (self.config_selection + count - 1) % count;
             }
         }
         self.message = None;
@@ -150,18 +128,10 @@ impl App {
     fn move_selection_down(&mut self) {
         match self.tab {
             Tab::Store => {
-                self.store_selection = match self.store_selection {
-                    StoreSelection::CommitValue => StoreSelection::PartyLevel,
-                    StoreSelection::PartyLevel => StoreSelection::CommitValue,
-                };
+                self.store_selection = (self.store_selection + 1) % self.store_item_count();
             }
             Tab::Config => {
-                self.config_selection = match self.config_selection {
-                    ConfigSelection::Summary => ConfigSelection::Colorful,
-                    ConfigSelection::Colorful => ConfigSelection::Quotes,
-                    ConfigSelection::Quotes => ConfigSelection::BigText,
-                    ConfigSelection::BigText => ConfigSelection::Summary,
-                };
+                self.config_selection = (self.config_selection + 1) % PARTY_FEATURES.len();
             }
         }
         self.message = None;
@@ -274,17 +244,19 @@ fn render(frame: &mut Frame, app: &App) {
 }
 
 fn render_store(frame: &mut Frame, app: &App, area: Rect) {
+    let mut constraints = vec![Constraint::Length(4)]; // commit value
+    for _ in PARTY_FEATURES {
+        constraints.push(Constraint::Length(3)); // each feature
+    }
+    constraints.push(Constraint::Min(0)); // spacer
+
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(4), // commit value
-            Constraint::Length(4), // party level
-            Constraint::Min(0),    // spacer
-        ])
+        .constraints(constraints)
         .split(area);
 
     // commit value upgrade
-    let cv_selected = app.store_selection == StoreSelection::CommitValue;
+    let cv_selected = app.store_selection == 0;
     let cv_affordable = app.state.party_points >= app.state.upgrade_cost();
     let cv_style = match (cv_selected, cv_affordable) {
         (true, true) => Style::default().fg(Color::Green).bold(),
@@ -305,126 +277,83 @@ fn render_store(frame: &mut Frame, app: &App, area: Rect) {
     let commit_value = Paragraph::new(cv_text).style(cv_style).block(cv_block);
     frame.render_widget(commit_value, chunks[0]);
 
-    // party level upgrade
-    let pl_selected = app.store_selection == StoreSelection::PartyLevel;
-    let pl_affordable = app
-        .state
-        .party_upgrade_cost()
-        .map(|c| app.state.party_points >= c)
-        .unwrap_or(false);
-    let pl_maxed = app.state.party_upgrade_cost().is_none();
-    let pl_style = match (pl_selected, pl_affordable, pl_maxed) {
-        (_, _, true) => Style::default().fg(Color::DarkGray),
-        (true, true, _) => Style::default().fg(Color::Green).bold(),
-        (true, false, _) => Style::default().fg(Color::Yellow).bold(),
-        (false, _, _) => Style::default().fg(Color::DarkGray),
-    };
-    let pl_text = if let Some(next) = app.state.next_party_level() {
-        format!(
-            " Party Style: {}\n Next: {} ({} points)",
-            app.state.party_level_name(),
-            next.name,
-            next.cost
-        )
-    } else {
-        format!(" Party Style: {} (MAX)", app.state.party_level_name())
-    };
-    let pl_block = if pl_selected {
-        Block::default().title(" ▶ Upgrade ").borders(Borders::ALL)
-    } else {
-        Block::default().title("   Upgrade ").borders(Borders::ALL)
-    };
-    let party_level = Paragraph::new(pl_text).style(pl_style).block(pl_block);
-    frame.render_widget(party_level, chunks[1]);
+    // feature unlocks
+    for (i, &feature) in PARTY_FEATURES.iter().enumerate() {
+        let selected = app.store_selection == i + 1;
+        let unlocked = app.state.is_unlocked(feature);
+        let cost = feature_cost(feature);
+        let affordable = app.state.party_points >= cost;
+
+        let (text, style) = if unlocked {
+            (
+                format!(" {} [✓ Unlocked]", feature.name()),
+                Style::default().fg(Color::DarkGray),
+            )
+        } else {
+            let style = match (selected, affordable) {
+                (true, true) => Style::default().fg(Color::Green).bold(),
+                (true, false) => Style::default().fg(Color::Yellow).bold(),
+                (false, _) => Style::default().fg(Color::DarkGray),
+            };
+            (format!(" {} [{} points]", feature.name(), cost), style)
+        };
+
+        let block = if selected {
+            Block::default().title(" ▶ Unlock ").borders(Borders::ALL)
+        } else {
+            Block::default().title("   Unlock ").borders(Borders::ALL)
+        };
+        let widget = Paragraph::new(text).style(style).block(block);
+        frame.render_widget(widget, chunks[i + 1]);
+    }
 }
 
 fn render_config(frame: &mut Frame, app: &App, area: Rect) {
+    let mut constraints = vec![];
+    for _ in PARTY_FEATURES {
+        constraints.push(Constraint::Length(3));
+    }
+    constraints.push(Constraint::Min(0)); // spacer
+
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3), // summary
-            Constraint::Length(3), // colorful
-            Constraint::Length(3), // quotes
-            Constraint::Length(3), // big text
-            Constraint::Min(0),    // spacer
-        ])
+        .constraints(constraints)
         .split(area);
 
-    render_toggle(
-        frame,
-        app,
-        chunks[0],
-        ConfigSelection::Summary,
-        "Point Summary",
-        app.state.show_summary,
-        true,
-    );
-    render_toggle(
-        frame,
-        app,
-        chunks[1],
-        ConfigSelection::Colorful,
-        "Colorful Text",
-        app.state.show_colorful,
-        app.state.party_level >= 1,
-    );
-    render_toggle(
-        frame,
-        app,
-        chunks[2],
-        ConfigSelection::Quotes,
-        "Quotes",
-        app.state.show_quotes,
-        app.state.party_level >= 2,
-    );
-    render_toggle(
-        frame,
-        app,
-        chunks[3],
-        ConfigSelection::BigText,
-        "Big Text",
-        app.state.show_big_text,
-        app.state.party_level >= 3,
-    );
-}
+    for (i, &feature) in PARTY_FEATURES.iter().enumerate() {
+        let selected = app.config_selection == i;
+        let unlocked = app.state.is_unlocked(feature);
+        let enabled = app.state.is_enabled(feature);
 
-fn render_toggle(
-    frame: &mut Frame,
-    app: &App,
-    area: Rect,
-    item: ConfigSelection,
-    name: &str,
-    enabled: bool,
-    unlocked: bool,
-) {
-    let selected = app.config_selection == item;
-    let (status, style) = if !unlocked {
-        ("🔒 locked", Style::default().fg(Color::DarkGray))
-    } else if enabled {
-        (
-            "✓ on",
-            if selected {
-                Style::default().fg(Color::Green).bold()
-            } else {
-                Style::default().fg(Color::Green)
-            },
-        )
-    } else {
-        (
-            "✗ off",
-            if selected {
-                Style::default().fg(Color::Red).bold()
-            } else {
-                Style::default().fg(Color::Red)
-            },
-        )
-    };
-    let text = format!(" {} [{}]", name, status);
-    let block = if selected {
-        Block::default().title(" ▶ ").borders(Borders::ALL)
-    } else {
-        Block::default().title("   ").borders(Borders::ALL)
-    };
-    let widget = Paragraph::new(text).style(style).block(block);
-    frame.render_widget(widget, area);
+        let (status, style) = if !unlocked {
+            ("🔒 locked", Style::default().fg(Color::DarkGray))
+        } else if enabled {
+            (
+                "✓ on",
+                if selected {
+                    Style::default().fg(Color::Green).bold()
+                } else {
+                    Style::default().fg(Color::Green)
+                },
+            )
+        } else {
+            (
+                "✗ off",
+                if selected {
+                    Style::default().fg(Color::Red).bold()
+                } else {
+                    Style::default().fg(Color::Red)
+                },
+            )
+        };
+
+        let text = format!(" {} [{}]", feature.name(), status);
+        let block = if selected {
+            Block::default().title(" ▶ ").borders(Borders::ALL)
+        } else {
+            Block::default().title("   ").borders(Borders::ALL)
+        };
+        let widget = Paragraph::new(text).style(style).block(block);
+        frame.render_widget(widget, chunks[i]);
+    }
 }

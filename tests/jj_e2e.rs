@@ -187,3 +187,28 @@ fn pushing_same_content_to_different_branch_awards_no_points() {
         "pushing same content to different branch should not award points"
     );
 }
+
+#[test]
+fn init_after_existing_commits_only_counts_new() {
+    let env = jj_env();
+
+    // push a commit BEFORE init
+    env.vcs.commit_file("README.md", "# Test", "initial commit");
+    env.vcs.push();
+
+    // now init party
+    env.party(&["init"]);
+
+    // push a second commit
+    env.vcs
+        .commit_file("src.rs", "fn main() {}", "add source file");
+    env.vcs.push();
+
+    // should only get credit for the second commit
+    // 10 starter + 1 (second commit only) = 11 points
+    assert_eq!(
+        env.get_points(),
+        11,
+        "init after existing commits should not retroactively award points"
+    );
+}

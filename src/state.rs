@@ -1,24 +1,91 @@
 use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct State {
     pub party_points: u64,
     pub commit_value_level: u32,
+
     #[serde(default)]
-    pub party_level: u32,
-    #[serde(default = "default_true")]
-    pub show_summary: bool,
-    #[serde(default = "default_true")]
-    pub show_colorful: bool,
-    #[serde(default = "default_true")]
-    pub show_quotes: bool,
-    #[serde(default = "default_true")]
-    pub show_big_text: bool,
+    pub bonuses: HashMap<BonusType, u32>,
+
+    #[serde(default)]
+    pub unlocked_features: HashSet<PartyFeature>,
+    #[serde(default)]
+    pub enabled_features: HashSet<PartyFeature>,
+
+    // pack_items: HashMap<PackItem, u32>,  // TODO: add when implementing packs
+
+    #[serde(default)]
+    pub unlocked_colors: HashMap<PartyFeature, HashSet<Color>>,
+    #[serde(default)]
+    pub active_color: HashMap<PartyFeature, ColorSelection>,
 }
 
-fn default_true() -> bool {
-    true
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum BonusType {
+    FirstPushOfDay,
+    // Streak, BigPush, SpreadTheLove, RapidFire, FridayDeploy, WeekendWarrior
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum PartyFeature {
+    Exclamations,
+    Quotes,
+    BigText,
+    // Stats, Fireworks, ...
+}
+
+// #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+// pub enum PackItem {
+//     SnakeToken,
+//     // SlotsToken, ...
+// }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum Color {
+    Red,
+    // Blue, Green, ..., Rainbow, ...
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ColorSelection {
+    White,
+    Specific(Color),
+    Random,
+}
+
+impl Default for ColorSelection {
+    fn default() -> Self {
+        Self::White
+    }
+}
+
+// costs for unlocking each party feature
+pub fn feature_cost(feature: PartyFeature) -> u64 {
+    match feature {
+        PartyFeature::Exclamations => 15,
+        PartyFeature::Quotes => 50,
+        PartyFeature::BigText => 150,
+    }
+}
+
+// ordered list of features for display in store/config
+pub const PARTY_FEATURES: &[PartyFeature] = &[
+    PartyFeature::Exclamations,
+    PartyFeature::Quotes,
+    PartyFeature::BigText,
+];
+
+impl PartyFeature {
+    pub fn name(self) -> &'static str {
+        match self {
+            PartyFeature::Exclamations => "Exclamations",
+            PartyFeature::Quotes => "Quotes",
+            PartyFeature::BigText => "Big Text",
+        }
+    }
 }
 
 impl Default for State {
@@ -26,37 +93,13 @@ impl Default for State {
         Self {
             party_points: 0,
             commit_value_level: 1,
-            party_level: 0,
-            show_summary: true,
-            show_colorful: true,
-            show_quotes: true,
-            show_big_text: true,
+            bonuses: HashMap::new(),
+            unlocked_features: HashSet::new(),
+            enabled_features: HashSet::new(),
+            unlocked_colors: HashMap::new(),
+            active_color: HashMap::new(),
         }
     }
-}
-
-pub const PARTY_LEVELS: &[PartyLevel] = &[
-    PartyLevel {
-        name: "Basic",
-        cost: 0,
-    },
-    PartyLevel {
-        name: "Colorful",
-        cost: 15,
-    },
-    PartyLevel {
-        name: "Quotes",
-        cost: 50,
-    },
-    PartyLevel {
-        name: "Big Text",
-        cost: 150,
-    },
-];
-
-pub struct PartyLevel {
-    pub name: &'static str,
-    pub cost: u64,
 }
 
 impl State {
@@ -69,19 +112,27 @@ impl State {
         25 * 4u64.pow(self.commit_value_level - 1)
     }
 
-    pub fn party_level_name(&self) -> &'static str {
-        PARTY_LEVELS
-            .get(self.party_level as usize)
-            .map(|l| l.name)
-            .unwrap_or("Max")
+    pub fn is_unlocked(&self, feature: PartyFeature) -> bool {
+        self.unlocked_features.contains(&feature)
     }
 
-    pub fn next_party_level(&self) -> Option<&'static PartyLevel> {
-        PARTY_LEVELS.get(self.party_level as usize + 1)
+    pub fn is_enabled(&self, feature: PartyFeature) -> bool {
+        self.unlocked_features.contains(&feature) && self.enabled_features.contains(&feature)
     }
 
-    pub fn party_upgrade_cost(&self) -> Option<u64> {
-        self.next_party_level().map(|l| l.cost)
+    pub fn unlock_feature(&mut self, feature: PartyFeature) {
+        self.unlocked_features.insert(feature);
+        self.enabled_features.insert(feature); // enable by default when unlocked
+    }
+
+    pub fn toggle_feature(&mut self, feature: PartyFeature) {
+        if self.unlocked_features.contains(&feature) {
+            if self.enabled_features.contains(&feature) {
+                self.enabled_features.remove(&feature);
+            } else {
+                self.enabled_features.insert(feature);
+            }
+        }
     }
 }
 
@@ -121,6 +172,8 @@ pub fn dump() {
     println!("commit_value_level: {}", state.commit_value_level);
     println!("points_per_commit: {}", state.points_per_commit());
     println!("upgrade_cost: {}", state.upgrade_cost());
+    println!("unlocked_features: {:?}", state.unlocked_features);
+    println!("enabled_features: {:?}", state.enabled_features);
 }
 
 pub fn load_from_path(path: &std::path::Path) -> State {
@@ -156,6 +209,13 @@ mod tests {
     }
 
     #[test]
+    fn default_state_has_no_unlocks() {
+        let state = State::default();
+        assert!(state.unlocked_features.is_empty());
+        assert!(state.enabled_features.is_empty());
+    }
+
+    #[test]
     fn points_per_commit_equals_level() {
         let mut state = State::default();
         assert_eq!(state.points_per_commit(), 1);
@@ -177,16 +237,44 @@ mod tests {
     }
 
     #[test]
+    fn unlock_feature_adds_to_both_sets() {
+        let mut state = State::default();
+        state.unlock_feature(PartyFeature::Exclamations);
+
+        assert!(state.is_unlocked(PartyFeature::Exclamations));
+        assert!(state.is_enabled(PartyFeature::Exclamations));
+    }
+
+    #[test]
+    fn toggle_feature_works() {
+        let mut state = State::default();
+        state.unlock_feature(PartyFeature::Quotes);
+
+        assert!(state.is_enabled(PartyFeature::Quotes));
+        state.toggle_feature(PartyFeature::Quotes);
+        assert!(!state.is_enabled(PartyFeature::Quotes));
+        state.toggle_feature(PartyFeature::Quotes);
+        assert!(state.is_enabled(PartyFeature::Quotes));
+    }
+
+    #[test]
+    fn toggle_locked_feature_does_nothing() {
+        let mut state = State::default();
+        state.toggle_feature(PartyFeature::BigText);
+        assert!(!state.is_enabled(PartyFeature::BigText));
+    }
+
+    #[test]
     fn save_and_load_roundtrips() {
         let dir = tempdir().unwrap();
         let path = dir.path().join("state.bin");
 
-        let state = State {
+        let mut state = State {
             party_points: 42,
             commit_value_level: 3,
-            party_level: 1,
             ..State::default()
         };
+        state.unlock_feature(PartyFeature::Exclamations);
 
         save_to_path(&state, &path).unwrap();
         let loaded = load_from_path(&path);

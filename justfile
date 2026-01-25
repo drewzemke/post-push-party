@@ -6,3 +6,6 @@ push n:
 
 reset:
     @cargo run --quiet --features dev -- reset
+
+install:
+    cargo install --path .

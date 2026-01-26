@@ -1,6 +1,7 @@
 use ratatui::prelude::*;
 
 use crate::state::{self, State};
+use crate::tui::views::MessageType;
 
 use super::action::{Action, Route};
 use super::views::games::GamesView;
@@ -12,7 +13,7 @@ use super::widgets::{render_footer, render_header};
 
 pub struct App {
     pub route: Route,
-    pub message: Option<String>,
+    pub message: Option<(MessageType, String)>,
     pub state: State,
 
     store: StoreView,
@@ -46,10 +47,10 @@ impl App {
         };
 
         match result {
-            ViewResult::None => {}
             ViewResult::Redraw => {
                 let _ = state::save(&self.state);
             }
+
             ViewResult::Navigate(route) => {
                 // if navigating within store, update store's sub-route
                 if let Route::Store(sub_route) = route {
@@ -57,10 +58,14 @@ impl App {
                 }
                 self.route = route;
             }
-            ViewResult::Message(msg) => {
-                self.message = Some(msg);
+
+            ViewResult::Message(ty, msg) => {
+                self.message = Some((ty, msg));
             }
+
             ViewResult::Exit => return false,
+
+            ViewResult::None => {}
         }
 
         true
@@ -74,7 +79,6 @@ impl App {
             .constraints([
                 Constraint::Length(2), // header + tabs
                 Constraint::Min(10),   // content
-                Constraint::Length(1), // message or spacer
                 Constraint::Length(1), // footer
             ])
             .split(area);
@@ -90,14 +94,6 @@ impl App {
             Route::Games => self.games.render(frame, chunks[1], &self.state),
         }
 
-        // message
-        if let Some(msg) = &self.message {
-            let msg_widget = ratatui::widgets::Paragraph::new(msg.as_str())
-                .alignment(Alignment::Center)
-                .style(Style::default().fg(Color::Yellow));
-            frame.render_widget(msg_widget, chunks[2]);
-        }
-
         // footer
         let hints = match &self.route {
             Route::Store(_) => self.store.key_hints(),
@@ -105,7 +101,13 @@ impl App {
             Route::Packs => self.packs.key_hints(),
             Route::Games => self.games.key_hints(),
         };
-        render_footer(frame, chunks[3], &hints, self.state.party_points);
+        render_footer(
+            frame,
+            chunks[2],
+            &hints,
+            self.state.party_points,
+            &self.message,
+        );
     }
 }
 

@@ -3,7 +3,7 @@ use ratatui::widgets::Paragraph;
 
 use crate::state::{feature_cost, PartyFeature, State, PARTY_FEATURES};
 use crate::tui::action::{Action, Route, StoreRoute};
-use crate::tui::views::{View, ViewResult};
+use crate::tui::views::{MessageType, View, ViewResult};
 use crate::tui::widgets::Card;
 
 pub struct UpgradesView {
@@ -102,18 +102,24 @@ impl View for UpgradesView {
             Action::Select => {
                 if let Some(feature) = self.selected_feature() {
                     if state.is_unlocked(feature) {
-                        ViewResult::Message(format!("{} already owned", feature.name()))
+                        ViewResult::Message(
+                            MessageType::Normal,
+                            format!("{} already owned", feature.name()),
+                        )
                     } else {
                         let cost = feature_cost(feature);
                         if state.party_points >= cost {
                             state.party_points -= cost;
                             state.unlock_feature(feature);
-                            ViewResult::Message(format!("Unlocked {}!", feature.name()))
+                            ViewResult::Message(
+                                MessageType::Success,
+                                format!("Unlocked {}!", feature.name()),
+                            )
                         } else {
-                            ViewResult::Message(format!(
-                                "Need {} more points",
-                                cost - state.party_points
-                            ))
+                            ViewResult::Message(
+                                MessageType::Error,
+                                format!("You need {} more points.", cost - state.party_points),
+                            )
                         }
                     }
                 } else {

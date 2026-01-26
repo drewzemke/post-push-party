@@ -1,9 +1,9 @@
 use ratatui::prelude::*;
+use ratatui::widgets::{Block, Borders, Paragraph, Widget, Wrap};
 
 use crate::state::State;
 use crate::tui::action::{Action, Route, StoreRoute};
 use crate::tui::views::{View, ViewResult};
-use crate::tui::widgets::Card;
 
 const GRID_ITEMS: [(StoreRoute, &str, &str); 4] = [
     (
@@ -47,22 +47,22 @@ impl View for GridView {
             .margin(1)
             .split(area);
 
-        let top_cols = Layout::default()
+        let top_row = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Ratio(1, 2), Constraint::Ratio(1, 2)])
             .split(rows[0]);
 
-        let bottom_cols = Layout::default()
+        let bottom_row = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Ratio(1, 2), Constraint::Ratio(1, 2)])
             .split(rows[1]);
 
-        let cells = [top_cols[0], top_cols[1], bottom_cols[0], bottom_cols[1]];
+        let cells = [top_row[0], top_row[1], bottom_row[0], bottom_row[1]];
 
         for (i, &(_, title, desc)) in GRID_ITEMS.iter().enumerate() {
-            let card = Card::new()
+            let card = GridCell::new()
                 .title(title)
-                .content(vec![Line::from(desc)])
+                .description(vec![Line::from(desc)])
                 .selected(i == self.selection);
             frame.render_widget(card, cells[i]);
         }
@@ -114,11 +114,81 @@ impl View for GridView {
     }
 
     fn key_hints(&self) -> Vec<(&'static str, &'static str)> {
-        vec![
-            ("↑↓←→", "select"),
-            ("Enter", "open"),
-            ("1-4", "tab"),
-            ("q", "quit"),
-        ]
+        vec![("↑↓←→", "select"), ("enter", "open"), ("q", "quit")]
+    }
+}
+
+struct GridCell<'a> {
+    title: &'a str,
+    description: Vec<Line<'a>>,
+    selected: bool,
+    border_style: Style,
+}
+
+impl<'a> GridCell<'a> {
+    pub fn new() -> Self {
+        Self {
+            title: "<missing title>",
+            description: vec![],
+            selected: false,
+            border_style: Style::default().fg(Color::DarkGray),
+        }
+    }
+
+    pub fn title(mut self, title: &'a str) -> Self {
+        self.title = title;
+        self
+    }
+
+    pub fn description(mut self, content: Vec<Line<'a>>) -> Self {
+        self.description = content;
+        self
+    }
+
+    pub fn selected(mut self, selected: bool) -> Self {
+        self.selected = selected;
+        if selected {
+            self.border_style = Style::default().fg(Color::Cyan);
+        }
+        self
+    }
+}
+
+impl<'a> Default for GridCell<'a> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Widget for GridCell<'_> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .border_style(self.border_style);
+
+        let inner = block.inner(area);
+        block.render(area, buf);
+
+        // center the content.
+        let layout = Layout::vertical([
+            Constraint::Fill(1),
+            Constraint::Length(1), // title
+            Constraint::Length(1), // space
+            Constraint::Length(2), // description
+            Constraint::Fill(1),
+        ])
+        .split(inner);
+
+        let title_area = layout[1];
+        let description_area = layout[3].inner(Margin::new(1, 0));
+
+        let title = Text::from(self.title.bold()).alignment(Alignment::Center);
+        title.render(title_area, buf);
+
+        let description = Text::from(self.description);
+        Paragraph::new(description)
+            .alignment(Alignment::Center)
+            .wrap(Wrap { trim: true })
+            .render(description_area, buf);
     }
 }

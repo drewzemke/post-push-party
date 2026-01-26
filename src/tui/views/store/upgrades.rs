@@ -35,11 +35,7 @@ impl UpgradeItem {
     }
 
     fn description(&self) -> &'static str {
-        match self.feature {
-            PartyFeature::Exclamations => "Adds an excited shout to your party.",
-            PartyFeature::Quotes => "An inspirational quote after each push.",
-            PartyFeature::BigText => "Finish your party with a full screen word. NICE!",
-        }
+        self.feature.description()
     }
 }
 

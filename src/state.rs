@@ -85,6 +85,14 @@ impl PartyFeature {
             PartyFeature::BigText => "Big Text",
         }
     }
+
+    pub fn description(self) -> &'static str {
+        match self {
+            PartyFeature::Exclamations => "Adds an excited shout to your party.",
+            PartyFeature::Quotes => "An inspirational quote after each push.",
+            PartyFeature::BigText => "Finish your party with a full screen word. NICE!",
+        }
+    }
 }
 
 impl Default for State {

@@ -1,18 +1,26 @@
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Paragraph};
+use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
 use crate::state::{feature_cost, PartyFeature, State, PARTY_FEATURES};
 use crate::tui::action::{Action, Route, StoreRoute};
 use crate::tui::views::{MessageType, View, ViewResult};
 use crate::tui::widgets::Card;
 
+const ITEM_HEIGHT: u16 = 4;
+const SCROLL_PADDING: u16 = ITEM_HEIGHT; // keep one item of padding when scrolling
+
 pub struct UpgradesView {
     selection: usize,
+    scroll_state: ScrollViewState,
 }
 
 impl Default for UpgradesView {
     fn default() -> Self {
-        Self { selection: 0 }
+        Self {
+            selection: 0,
+            scroll_state: ScrollViewState::default(),
+        }
     }
 }
 
@@ -20,12 +28,34 @@ impl UpgradesView {
     fn selected_feature(&self) -> Option<PartyFeature> {
         PARTY_FEATURES.get(self.selection).copied()
     }
+
+    fn item_count(&self) -> usize {
+        PARTY_FEATURES.len()
+    }
+
+    fn update_scroll(&mut self, viewport_height: u16) {
+        let selected_top = self.selection as u16 * ITEM_HEIGHT;
+        let selected_bottom = selected_top + ITEM_HEIGHT;
+
+        let current_offset = self.scroll_state.offset().y;
+        let viewport_bottom = current_offset + viewport_height;
+
+        // scroll down if selection is near bottom of viewport
+        if selected_bottom + SCROLL_PADDING > viewport_bottom {
+            let new_offset = (selected_bottom + SCROLL_PADDING).saturating_sub(viewport_height);
+            self.scroll_state.set_offset(Position::new(0, new_offset));
+        }
+        // scroll up if selection is near top of viewport
+        else if selected_top < current_offset + SCROLL_PADDING {
+            let new_offset = selected_top.saturating_sub(SCROLL_PADDING);
+            self.scroll_state.set_offset(Position::new(0, new_offset));
+        }
+    }
 }
 
 impl View for UpgradesView {
     fn render(&self, frame: &mut Frame, area: Rect, state: &State) {
-        // initially split out a header that contains a dividing top line
-        // and the title of the view
+        // split out header
         let chunks = Layout::vertical([Constraint::Length(2), Constraint::Fill(1)]).split(area);
 
         let block = Block::default()
@@ -37,13 +67,15 @@ impl View for UpgradesView {
             .block(block);
         frame.render_widget(header, chunks[0]);
 
-        let constraints = PARTY_FEATURES.iter().map(|_| Constraint::Length(5));
+        // content area
+        let content_area = chunks[1].inner(Margin::new(1, 0));
+        let content_width = content_area.width;
+        let content_height = self.item_count() as u16 * ITEM_HEIGHT;
 
-        let chunks = Layout::vertical(constraints)
-            .horizontal_margin(1)
-            .split(chunks[1]);
+        let mut scroll_view = ScrollView::new(Size::new(content_width, content_height))
+            .horizontal_scrollbar_visibility(ScrollbarVisibility::Never);
 
-        // upgrade items
+        // render items into scroll view
         for (i, &feature) in PARTY_FEATURES.iter().enumerate() {
             let selected = self.selection == i;
             let unlocked = state.is_unlocked(feature);
@@ -73,7 +105,7 @@ impl View for UpgradesView {
             // title line with price right-aligned
             let title_width = feature.name().len();
             let price_width = price_text.len();
-            let card_inner_width = (area.width as usize).saturating_sub(6); // margins + borders
+            let card_inner_width = content_width.saturating_sub(4) as usize; // borders
             let spacing = card_inner_width.saturating_sub(title_width + price_width);
 
             let title_line = Line::from(vec![
@@ -85,19 +117,26 @@ impl View for UpgradesView {
             let card = Card::new()
                 .content(vec![title_line, Line::from(description)])
                 .selected(selected);
-            frame.render_widget(card, chunks[i]);
+
+            let item_rect = Rect::new(0, i as u16 * ITEM_HEIGHT, content_width, ITEM_HEIGHT);
+            scroll_view.render_widget(card, item_rect);
         }
+
+        // render scroll view
+        frame.render_stateful_widget(scroll_view, content_area, &mut self.scroll_state.clone());
     }
 
     fn handle(&mut self, action: Action, state: &mut State) -> ViewResult {
         match action {
             Action::Up => {
-                let count = PARTY_FEATURES.len();
+                let count = self.item_count();
                 self.selection = (self.selection + count - 1) % count;
+                self.update_scroll(20); // approximate viewport height
                 ViewResult::Redraw
             }
             Action::Down => {
-                self.selection = (self.selection + 1) % PARTY_FEATURES.len();
+                self.selection = (self.selection + 1) % self.item_count();
+                self.update_scroll(20);
                 ViewResult::Redraw
             }
             Action::Select => {

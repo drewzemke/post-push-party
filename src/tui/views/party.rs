@@ -7,11 +7,12 @@ use crate::tui::views::MessageType;
 
 use super::{Action, Route, View, ViewResult};
 
-const ITEM_HEIGHT: u16 = 4;
+const ITEM_HEIGHT: u16 = 5;
 const SCROLL_PADDING: u16 = ITEM_HEIGHT;
 
 struct PartyItem {
     name: &'static str,
+    description: &'static str,
     status: ItemStatus,
     selected: bool,
 }
@@ -22,8 +23,8 @@ enum ItemStatus {
 }
 
 impl PartyItem {
-    fn new(name: &'static str, status: ItemStatus, selected: bool) -> Self {
-        Self { name, status, selected }
+    fn new(name: &'static str, description: &'static str, status: ItemStatus, selected: bool) -> Self {
+        Self { name, description, status, selected }
     }
 }
 
@@ -43,19 +44,28 @@ impl Widget for PartyItem {
         let inner = block.inner(area);
         block.render(area, buf);
 
-        let chunks = Layout::vertical([Constraint::Length(1), Constraint::Length(1)]).split(inner);
+        let chunks = Layout::vertical([
+            Constraint::Length(1), // name
+            Constraint::Length(1), // description
+            Constraint::Length(1), // status
+        ])
+        .split(inner);
 
-        // top line - name
+        // name
         let title = Text::from(self.name).white().bold();
         title.render(chunks[0], buf);
 
-        // bottom line - status
+        // description
+        let desc = Text::from(self.description).dark_gray();
+        desc.render(chunks[1], buf);
+
+        // status
         let (status_text, status_style) = match self.status {
             ItemStatus::Enabled => ("✓ Enabled", Style::default().fg(Color::Green)),
             ItemStatus::Disabled => ("✗ Disabled", Style::default().fg(Color::Red)),
         };
         let status = Text::from(status_text).style(status_style);
-        status.render(chunks[1], buf);
+        status.render(chunks[2], buf);
     }
 }
 
@@ -123,7 +133,12 @@ impl View for PartyView {
             .horizontal_scrollbar_visibility(ScrollbarVisibility::Never);
 
         // basic party (always enabled)
-        let basic_item = PartyItem::new("Basic Party", ItemStatus::Enabled, self.selection == 0);
+        let basic_item = PartyItem::new(
+            "Basic Party",
+            "A simple summary of how many points you earned.",
+            ItemStatus::Enabled,
+            self.selection == 0,
+        );
         scroll_view.render_widget(basic_item, Rect::new(0, 0, content_width, ITEM_HEIGHT));
 
         // unlocked features only
@@ -134,7 +149,7 @@ impl View for PartyView {
                 ItemStatus::Disabled
             };
 
-            let item = PartyItem::new(feature.name(), status, self.selection == i + 1);
+            let item = PartyItem::new(feature.name(), feature.description(), status, self.selection == i + 1);
             let item_rect = Rect::new(0, (i + 1) as u16 * ITEM_HEIGHT, content_width, ITEM_HEIGHT);
             scroll_view.render_widget(item, item_rect);
         }

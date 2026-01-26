@@ -16,7 +16,6 @@ pub struct State {
     pub enabled_features: HashSet<PartyFeature>,
 
     // pack_items: HashMap<PackItem, u32>,  // TODO: add when implementing packs
-
     #[serde(default)]
     pub unlocked_colors: HashMap<PartyFeature, HashSet<Color>>,
     #[serde(default)]

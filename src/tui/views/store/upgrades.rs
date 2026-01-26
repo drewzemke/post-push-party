@@ -1,5 +1,5 @@
 use ratatui::prelude::*;
-use ratatui::widgets::Paragraph;
+use ratatui::widgets::{Block, Borders, Paragraph};
 
 use crate::state::{feature_cost, PartyFeature, State, PARTY_FEATURES};
 use crate::tui::action::{Action, Route, StoreRoute};
@@ -24,23 +24,24 @@ impl UpgradesView {
 
 impl View for UpgradesView {
     fn render(&self, frame: &mut Frame, area: Rect, state: &State) {
-        let mut constraints = vec![Constraint::Length(2)]; // sub-header
-        for _ in PARTY_FEATURES {
-            constraints.push(Constraint::Length(5));
-        }
-        constraints.push(Constraint::Min(0)); // spacer
+        // initially split out a header that contains a dividing top line
+        // and the title of the view
+        let chunks = Layout::vertical([Constraint::Length(2), Constraint::Fill(1)]).split(area);
 
-        let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints(constraints)
-            .margin(1)
-            .split(area);
-
-        // sub-header
+        let block = Block::default()
+            .borders(Borders::TOP)
+            .border_style(Style::default().dark_gray());
         let header = Paragraph::new("Upgrades")
             .alignment(Alignment::Center)
-            .style(Style::default().fg(Color::White));
+            .style(Style::default().fg(Color::White))
+            .block(block);
         frame.render_widget(header, chunks[0]);
+
+        let constraints = PARTY_FEATURES.iter().map(|_| Constraint::Length(5));
+
+        let chunks = Layout::vertical(constraints)
+            .horizontal_margin(1)
+            .split(chunks[1]);
 
         // upgrade items
         for (i, &feature) in PARTY_FEATURES.iter().enumerate() {
@@ -84,7 +85,7 @@ impl View for UpgradesView {
             let card = Card::new()
                 .content(vec![title_line, Line::from(description)])
                 .selected(selected);
-            frame.render_widget(card, chunks[i + 1]);
+            frame.render_widget(card, chunks[i]);
         }
     }
 

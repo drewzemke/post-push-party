@@ -3,7 +3,7 @@ use ratatui::widgets::{Block, Borders, Paragraph, Widget, Wrap};
 
 use crate::state::State;
 use crate::tui::action::{Action, Route, StoreRoute};
-use crate::tui::views::{View, ViewResult};
+use crate::tui::views::{MessageType, View, ViewResult};
 
 const GRID_ITEMS: [(StoreRoute, &str, &str); 4] = [
     (
@@ -97,7 +97,7 @@ impl View for GridView {
             Action::Select => {
                 let (route, _, _) = GRID_ITEMS[self.selection];
                 if route == StoreRoute::Grid {
-                    ViewResult::Message("Coming soon...".to_string())
+                    ViewResult::Message(MessageType::Normal, "Coming soon...".to_string())
                 } else {
                     ViewResult::Navigate(Route::Store(route))
                 }

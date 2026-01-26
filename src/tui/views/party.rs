@@ -1,6 +1,7 @@
 use ratatui::prelude::*;
 
 use crate::state::{PartyFeature, State, PARTY_FEATURES};
+use crate::tui::views::MessageType;
 use crate::tui::widgets::Card;
 
 use super::{Action, Route, View, ViewResult};
@@ -50,10 +51,7 @@ impl View for PartyView {
             .content(vec![
                 Line::from("A simple summary of how many points you earned."),
                 Line::from(""),
-                Line::from(Span::styled(
-                    "✓ Enabled",
-                    Style::default().fg(Color::Green),
-                )),
+                Line::from(Span::styled("✓ Enabled", Style::default().fg(Color::Green))),
             ])
             .selected(self.selection == 0);
         frame.render_widget(basic_card, chunks[0]);
@@ -70,15 +68,9 @@ impl View for PartyView {
                     Style::default().fg(Color::DarkGray),
                 ))
             } else if enabled {
-                Line::from(Span::styled(
-                    "✓ Enabled",
-                    Style::default().fg(Color::Green),
-                ))
+                Line::from(Span::styled("✓ Enabled", Style::default().fg(Color::Green)))
             } else {
-                Line::from(Span::styled(
-                    "✗ Disabled",
-                    Style::default().fg(Color::Red),
-                ))
+                Line::from(Span::styled("✗ Disabled", Style::default().fg(Color::Red)))
             };
 
             let description = match feature {
@@ -112,10 +104,13 @@ impl View for PartyView {
                         state.toggle_feature(feature);
                         ViewResult::Redraw
                     } else {
-                        ViewResult::Message("Feature is locked".to_string())
+                        ViewResult::Message(MessageType::Error, "Feature is locked".to_string())
                     }
                 } else {
-                    ViewResult::Message("Basic party is always enabled".to_string())
+                    ViewResult::Message(
+                        MessageType::Normal,
+                        "Basic party is always enabled".to_string(),
+                    )
                 }
             }
             Action::Tab(i) => ViewResult::Navigate(match i {

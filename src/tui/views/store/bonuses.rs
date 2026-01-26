@@ -3,7 +3,7 @@ use ratatui::widgets::Paragraph;
 
 use crate::state::State;
 use crate::tui::action::{Action, Route, StoreRoute};
-use crate::tui::views::{View, ViewResult};
+use crate::tui::views::{MessageType, View, ViewResult};
 use crate::tui::widgets::Card;
 
 /// bonus track with tier-based upgrades
@@ -175,7 +175,10 @@ impl View for BonusesView {
             }
             Action::Select => {
                 // TODO: implement purchasing
-                ViewResult::Message("Bonus purchasing coming soon...".to_string())
+                ViewResult::Message(
+                    MessageType::Normal,
+                    "Bonus purchasing coming soon...".to_string(),
+                )
             }
             Action::Back => ViewResult::Navigate(Route::Store(StoreRoute::Grid)),
             Action::Tab(i) => ViewResult::Navigate(match i {

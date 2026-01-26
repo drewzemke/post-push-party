@@ -9,6 +9,12 @@ use crate::state::State;
 
 use super::action::{Action, Route};
 
+pub enum MessageType {
+    Success,
+    Normal,
+    Error,
+}
+
 /// result of handling an action in a view
 pub enum ViewResult {
     /// nothing happened
@@ -18,7 +24,7 @@ pub enum ViewResult {
     /// navigate to a different route
     Navigate(Route),
     /// show a transient message
-    Message(String),
+    Message(MessageType, String),
     /// exit the TUI
     Exit,
 }

@@ -44,7 +44,7 @@ impl View for GridView {
         let rows = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Ratio(1, 2), Constraint::Ratio(1, 2)])
-            .margin(1)
+            .horizontal_margin(1)
             .split(area);
 
         let top_row = Layout::default()

@@ -84,7 +84,7 @@ impl App {
             .split(area);
 
         // header
-        render_header(frame, chunks[0], &self.route);
+        render_header(frame, chunks[0].inner(Margin::new(1, 0)), &self.route);
 
         // content
         match &self.route {

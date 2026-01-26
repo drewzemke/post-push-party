@@ -10,6 +10,64 @@ use crate::tui::widgets::Card;
 const ITEM_HEIGHT: u16 = 4;
 const SCROLL_PADDING: u16 = ITEM_HEIGHT; // keep one item of padding when scrolling
 
+struct UpgradeItem {
+    feature: PartyFeature,
+    unlocked: bool,
+    affordable: bool,
+    cost: u64,
+    selected: bool,
+}
+
+impl UpgradeItem {
+    fn new(feature: PartyFeature, unlocked: bool, affordable: bool, cost: u64, selected: bool) -> Self {
+        Self { feature, unlocked, affordable, cost, selected }
+    }
+
+    fn description(&self) -> &'static str {
+        match self.feature {
+            PartyFeature::Exclamations => "Adds an excited shout to your party.",
+            PartyFeature::Quotes => "An inspirational quote after each push.",
+            PartyFeature::BigText => "Finish your party with a full screen word. NICE!",
+        }
+    }
+}
+
+impl Widget for UpgradeItem {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let price_style = if self.unlocked {
+            Style::default().fg(Color::DarkGray)
+        } else if self.affordable {
+            Style::default().fg(Color::Green)
+        } else {
+            Style::default().fg(Color::Red)
+        };
+
+        let price_text = if self.unlocked {
+            "✓ Owned".to_string()
+        } else {
+            format!("{} P", self.cost)
+        };
+
+        // title line with price right-aligned
+        let title_width = self.feature.name().len();
+        let price_width = price_text.len();
+        let card_inner_width = area.width.saturating_sub(4) as usize; // borders
+        let spacing = card_inner_width.saturating_sub(title_width + price_width);
+
+        let title_line = Line::from(vec![
+            Span::styled(self.feature.name(), Style::default().fg(Color::White)),
+            Span::raw(" ".repeat(spacing)),
+            Span::styled(price_text, price_style),
+        ]);
+
+        let card = Card::new()
+            .content(vec![title_line, Line::from(self.description())])
+            .selected(self.selected);
+
+        card.render(area, buf);
+    }
+}
+
 pub struct UpgradesView {
     selection: usize,
     scroll_state: ScrollViewState,
@@ -77,49 +135,15 @@ impl View for UpgradesView {
 
         // render items into scroll view
         for (i, &feature) in PARTY_FEATURES.iter().enumerate() {
-            let selected = self.selection == i;
-            let unlocked = state.is_unlocked(feature);
-            let cost = feature_cost(feature);
-            let affordable = state.party_points >= cost;
-
-            let description = match feature {
-                PartyFeature::Exclamations => "Adds an excited shout to your party.",
-                PartyFeature::Quotes => "An inspirational quote after each push.",
-                PartyFeature::BigText => "Finish your party with a full screen word. NICE!",
-            };
-
-            let price_style = if unlocked {
-                Style::default().fg(Color::DarkGray)
-            } else if affordable {
-                Style::default().fg(Color::Green)
-            } else {
-                Style::default().fg(Color::Red)
-            };
-
-            let price_text = if unlocked {
-                "✓ Owned".to_string()
-            } else {
-                format!("{} P", cost)
-            };
-
-            // title line with price right-aligned
-            let title_width = feature.name().len();
-            let price_width = price_text.len();
-            let card_inner_width = content_width.saturating_sub(4) as usize; // borders
-            let spacing = card_inner_width.saturating_sub(title_width + price_width);
-
-            let title_line = Line::from(vec![
-                Span::styled(feature.name(), Style::default().fg(Color::White)),
-                Span::raw(" ".repeat(spacing)),
-                Span::styled(price_text, price_style),
-            ]);
-
-            let card = Card::new()
-                .content(vec![title_line, Line::from(description)])
-                .selected(selected);
-
+            let item = UpgradeItem::new(
+                feature,
+                state.is_unlocked(feature),
+                state.party_points >= feature_cost(feature),
+                feature_cost(feature),
+                self.selection == i,
+            );
             let item_rect = Rect::new(0, i as u16 * ITEM_HEIGHT, content_width, ITEM_HEIGHT);
-            scroll_view.render_widget(card, item_rect);
+            scroll_view.render_widget(item, item_rect);
         }
 
         // render scroll view

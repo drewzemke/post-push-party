@@ -1,11 +1,10 @@
 use ratatui::prelude::*;
-use ratatui::widgets::{Block, Borders, Paragraph};
+use ratatui::widgets::{Block, Borders, Padding, Paragraph};
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
 use crate::state::{feature_cost, PartyFeature, State, PARTY_FEATURES};
 use crate::tui::action::{Action, Route, StoreRoute};
 use crate::tui::views::{MessageType, View, ViewResult};
-use crate::tui::widgets::Card;
 
 const ITEM_HEIGHT: u16 = 4;
 const SCROLL_PADDING: u16 = ITEM_HEIGHT; // keep one item of padding when scrolling
@@ -19,8 +18,20 @@ struct UpgradeItem {
 }
 
 impl UpgradeItem {
-    fn new(feature: PartyFeature, unlocked: bool, affordable: bool, cost: u64, selected: bool) -> Self {
-        Self { feature, unlocked, affordable, cost, selected }
+    fn new(
+        feature: PartyFeature,
+        unlocked: bool,
+        affordable: bool,
+        cost: u64,
+        selected: bool,
+    ) -> Self {
+        Self {
+            feature,
+            unlocked,
+            affordable,
+            cost,
+            selected,
+        }
     }
 
     fn description(&self) -> &'static str {
@@ -34,6 +45,31 @@ impl UpgradeItem {
 
 impl Widget for UpgradeItem {
     fn render(self, area: Rect, buf: &mut Buffer) {
+        // block for border
+        let border_style = if self.selected {
+            Style::default().cyan()
+        } else {
+            Style::default().gray()
+        };
+
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .padding(Padding::horizontal(1))
+            .border_style(border_style);
+
+        let inner = block.inner(area);
+        block.render(area, buf);
+
+        // divide inner into top and bottom rows
+        let chunks = Layout::vertical([Constraint::Length(1), Constraint::Length(1)]).split(inner);
+
+        // top line -- split into title and price
+        let top_chunks =
+            Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).split(chunks[0]);
+
+        let title_text = Text::from(self.feature.name()).white().bold();
+        title_text.render(top_chunks[0], buf);
+
         let price_style = if self.unlocked {
             Style::default().fg(Color::DarkGray)
         } else if self.affordable {
@@ -42,29 +78,20 @@ impl Widget for UpgradeItem {
             Style::default().fg(Color::Red)
         };
 
-        let price_text = if self.unlocked {
+        let price_str = if self.unlocked {
             "✓ Owned".to_string()
         } else {
             format!("{} P", self.cost)
         };
 
-        // title line with price right-aligned
-        let title_width = self.feature.name().len();
-        let price_width = price_text.len();
-        let card_inner_width = area.width.saturating_sub(4) as usize; // borders
-        let spacing = card_inner_width.saturating_sub(title_width + price_width);
+        let price_text = Text::from(price_str)
+            .style(price_style)
+            .alignment(Alignment::Right);
+        price_text.render(top_chunks[1], buf);
 
-        let title_line = Line::from(vec![
-            Span::styled(self.feature.name(), Style::default().fg(Color::White)),
-            Span::raw(" ".repeat(spacing)),
-            Span::styled(price_text, price_style),
-        ]);
-
-        let card = Card::new()
-            .content(vec![title_line, Line::from(self.description())])
-            .selected(self.selected);
-
-        card.render(area, buf);
+        // bottom line -- just the description
+        let desc_text = Text::from(self.description()).white();
+        desc_text.render(chunks[1], buf);
     }
 }
 
@@ -168,7 +195,7 @@ impl View for UpgradesView {
                     if state.is_unlocked(feature) {
                         ViewResult::Message(
                             MessageType::Normal,
-                            format!("{} already owned", feature.name()),
+                            format!("You already own {}.", feature.name()),
                         )
                     } else {
                         let cost = feature_cost(feature);

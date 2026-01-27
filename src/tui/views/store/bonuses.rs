@@ -29,17 +29,22 @@ const BONUS_TRACKS: &[BonusTrack] = &[
             ("5x", 10000),
         ],
     },
-    // BonusTrack {
-    //     name: "First Catch of the Day",
-    //     description: "Make your first push each day more valuable.",
-    //     tiers: &[
-    //         ("1x", 100),
-    //         ("2x", 500),
-    //         ("3x", 1000),
-    //         ("4x", 5000),
-    //         ("5x", 10000),
-    //     ],
-    // },
+    BonusTrack {
+        name: "First Catch of the Day",
+        description: "Make your first push each day more valuable.",
+        tiers: &[
+            ("1x", 100),
+            ("2x", 500),
+            ("3x", 1000),
+            ("4x", 5000),
+            ("5x", 10000),
+            ("6x", 50000),
+            ("7x", 100000),
+            ("8x", 500000),
+            ("9x", 1000000),
+            ("10x", 5000000),
+        ],
+    },
 ];
 
 struct BonusItem<'a> {
@@ -179,9 +184,13 @@ impl View for BonusesView {
             .split(area);
 
         // sub-header
+        let block = Block::default()
+            .borders(Borders::TOP)
+            .border_style(Style::default().dark_gray());
         let header = Paragraph::new("Bonuses")
             .alignment(Alignment::Center)
-            .style(Style::default().fg(Color::White));
+            .style(Style::default().fg(Color::White))
+            .block(block);
         frame.render_widget(header, chunks[0]);
 
         // bonus tracks

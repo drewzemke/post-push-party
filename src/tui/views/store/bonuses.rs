@@ -1,12 +1,11 @@
 use ratatui::prelude::*;
-use ratatui::widgets::Paragraph;
+use ratatui::widgets::{Block, Borders, Padding, Paragraph};
 
 use crate::state::State;
 use crate::tui::action::{Action, Route, StoreRoute};
 use crate::tui::views::{MessageType, View, ViewResult};
-use crate::tui::widgets::Card;
 
-/// bonus track with tier-based upgrades
+#[derive(Clone)]
 struct BonusTrack {
     name: &'static str,
     description: &'static str,
@@ -17,20 +16,140 @@ const BONUS_TRACKS: &[BonusTrack] = &[
     BonusTrack {
         name: "Commit Value",
         description: "How many party points you get per commit.",
-        tiers: &[("1", 0), ("2", 0), ("3", 100), ("4", 1000), ("5", 10000)],
+        tiers: &[("1", 0), ("2", 50), ("3", 500), ("4", 5000), ("5", 50000)],
     },
     BonusTrack {
         name: "Weekend Warrior",
         description: "Earn more points for pushing code on Saturday or Sunday.",
         tiers: &[
-            ("1x", 0),
-            ("2x", 0),
-            ("3x", 100),
-            ("4x", 1000),
+            ("1x", 100),
+            ("2x", 500),
+            ("3x", 1000),
+            ("4x", 5000),
             ("5x", 10000),
         ],
     },
+    // BonusTrack {
+    //     name: "First Catch of the Day",
+    //     description: "Make your first push each day more valuable.",
+    //     tiers: &[
+    //         ("1x", 100),
+    //         ("2x", 500),
+    //         ("3x", 1000),
+    //         ("4x", 5000),
+    //         ("5x", 10000),
+    //     ],
+    // },
 ];
+
+struct BonusItem<'a> {
+    track: BonusTrack,
+    state: &'a State,
+
+    selected: bool,
+    tier_selection: usize,
+}
+
+impl<'a> BonusItem<'a> {
+    fn new(track: BonusTrack, state: &'a State, selected: bool, tier_selection: usize) -> Self {
+        Self {
+            track,
+            state,
+            selected,
+            tier_selection,
+        }
+    }
+}
+
+impl<'a> Widget for BonusItem<'a> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        // FIXME using commit value level for eveything
+        let owned_level = self.state.commit_value_level as usize;
+
+        // colored border based on selection
+        let border_style = if self.selected {
+            Style::default().cyan()
+        } else {
+            Style::default().white()
+        };
+
+        let block = Block::default()
+            .border_style(border_style)
+            .padding(Padding::horizontal(1))
+            .borders(Borders::ALL);
+
+        let inner = block.inner(area);
+
+        block.render(area, buf);
+
+        let chunks = Layout::vertical([
+            Constraint::Length(1), // title
+            Constraint::Length(1), // description
+            Constraint::Length(4), // tiers
+        ])
+        .split(inner);
+
+        // title
+        let title = Text::from(self.track.name).white().bold();
+        title.render(chunks[0], buf);
+
+        // description
+        let description = Text::from(self.track.description).white();
+        description.render(chunks[1], buf);
+
+        // tiers
+        let tiers_constraints = self
+            .track
+            .tiers
+            .iter()
+            .map(|_| Constraint::Length(10))
+            .collect::<Vec<_>>();
+        let tiers_chunks = Layout::horizontal(tiers_constraints).split(chunks[2]);
+
+        // TODO: extract component
+        for (idx, (tier_label, tier_cost)) in self.track.tiers.iter().enumerate() {
+            let is_owned = idx < owned_level;
+            let is_tier_selected = self.selected && idx == self.tier_selection;
+
+            let style = if is_tier_selected {
+                Style::default().fg(Color::Cyan).bold()
+            } else if is_owned {
+                Style::default().fg(Color::Green)
+            } else {
+                Style::default().fg(Color::DarkGray)
+            };
+
+            let border_style = if is_tier_selected {
+                Style::default().fg(Color::Cyan)
+            } else {
+                Style::default().fg(Color::DarkGray)
+            };
+
+            let chunk = tiers_chunks[idx];
+
+            let block = Block::default()
+                .border_style(border_style)
+                .borders(Borders::ALL);
+            let inner = block.inner(chunk);
+
+            block.render(chunk, buf);
+
+            // split inner into top and bottom
+            let inner_chunks =
+                Layout::vertical([Constraint::Length(1), Constraint::Length(1)]).split(inner);
+
+            let label_text = Text::from(*tier_label)
+                .style(style)
+                .alignment(Alignment::Center);
+            label_text.render(inner_chunks[0], buf);
+
+            let cost_text = Text::from(format_cost(*tier_cost))
+                .style(style)
+                .alignment(Alignment::Center);
+            cost_text.render(inner_chunks[1], buf);
+        }
+    }
+}
 
 pub struct BonusesView {
     selection: usize,
@@ -50,14 +169,13 @@ impl View for BonusesView {
     fn render(&self, frame: &mut Frame, area: Rect, state: &State) {
         let mut constraints = vec![Constraint::Length(2)]; // sub-header
         for _ in BONUS_TRACKS {
-            constraints.push(Constraint::Length(7));
+            constraints.push(Constraint::Length(8));
         }
-        constraints.push(Constraint::Min(0)); // spacer
 
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints(constraints)
-            .margin(1)
+            .horizontal_margin(1)
             .split(area);
 
         // sub-header
@@ -70,82 +188,8 @@ impl View for BonusesView {
         for (i, track) in BONUS_TRACKS.iter().enumerate() {
             let selected = self.selection == i;
 
-            // determine owned level (mock: first 2 tiers are owned)
-            let owned_level = if i == 0 {
-                state.commit_value_level as usize
-            } else {
-                2 // mock for weekend warrior
-            };
-
-            // build tier display
-            let tier_spans: Vec<Span> = track
-                .tiers
-                .iter()
-                .enumerate()
-                .flat_map(|(ti, &(label, _cost))| {
-                    let is_owned = ti < owned_level;
-                    let is_tier_selected = selected && ti == self.tier_selection;
-
-                    let style = if is_tier_selected {
-                        Style::default().fg(Color::Cyan).bold()
-                    } else if is_owned {
-                        Style::default().fg(Color::Green)
-                    } else {
-                        Style::default().fg(Color::DarkGray)
-                    };
-
-                    let border_style = if is_tier_selected {
-                        Style::default().fg(Color::Cyan)
-                    } else {
-                        Style::default().fg(Color::DarkGray)
-                    };
-
-                    vec![
-                        Span::styled("[", border_style),
-                        Span::styled(format!(" {} ", label), style),
-                        Span::styled("]", border_style),
-                        Span::raw("  "),
-                    ]
-                })
-                .collect();
-
-            // cost/status line
-            let cost_spans: Vec<Span> = track
-                .tiers
-                .iter()
-                .enumerate()
-                .flat_map(|(ti, &(_, cost))| {
-                    let is_owned = ti < owned_level;
-                    let text = if is_owned {
-                        "✓".to_string()
-                    } else {
-                        format_cost(cost)
-                    };
-
-                    let style = if is_owned {
-                        Style::default().fg(Color::Green)
-                    } else if state.party_points >= cost {
-                        Style::default().fg(Color::White)
-                    } else {
-                        Style::default().fg(Color::DarkGray)
-                    };
-
-                    // pad to match tier width
-                    let padded = format!("{:^5}", text);
-                    vec![Span::styled(padded, style), Span::raw("  ")]
-                })
-                .collect();
-
-            let card = Card::new()
-                .title(track.name)
-                .content(vec![
-                    Line::from(track.description),
-                    Line::from(""),
-                    Line::from(tier_spans),
-                    Line::from(cost_spans),
-                ])
-                .selected(selected);
-            frame.render_widget(card, chunks[i + 1]);
+            let item = BonusItem::new(track.clone(), state, selected, self.tier_selection);
+            frame.render_widget(item, chunks[i + 1]);
         }
     }
 
@@ -195,18 +239,18 @@ impl View for BonusesView {
         vec![
             ("↑↓", "track"),
             ("←→", "tier"),
-            ("Enter", "buy"),
-            ("Esc", "back"),
+            ("enter", "buy"),
+            ("esc", "back"),
             ("q", "quit"),
         ]
     }
 }
 
 fn format_cost(cost: u64) -> String {
-    if cost >= 10000 {
-        format!("{}K P", cost / 1000)
-    } else if cost >= 1000 {
-        format!("{}K P", cost / 1000)
+    if cost >= 1_000_000 {
+        format!("{}M P", cost / 1_000_000)
+    } else if cost >= 1_000 {
+        format!("{}K P", cost / 1_000)
     } else {
         format!("{} P", cost)
     }

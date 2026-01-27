@@ -6,6 +6,7 @@ use crate::state::State;
 
 const ITEM_HEIGHT: u16 = 8;
 const SCROLL_PADDING: u16 = ITEM_HEIGHT;
+const TIER_WIDTH: u16 = 10;
 use crate::tui::action::{Action, Route, StoreRoute};
 use crate::tui::views::{MessageType, View, ViewResult};
 
@@ -57,15 +58,23 @@ struct BonusItem<'a> {
 
     selected: bool,
     tier_selection: usize,
+    tier_scroll_offset: usize,
 }
 
 impl<'a> BonusItem<'a> {
-    fn new(track: BonusTrack, state: &'a State, selected: bool, tier_selection: usize) -> Self {
+    fn new(
+        track: BonusTrack,
+        state: &'a State,
+        selected: bool,
+        tier_selection: usize,
+        tier_scroll_offset: usize,
+    ) -> Self {
         Self {
             track,
             state,
             selected,
             tier_selection,
+            tier_scroll_offset,
         }
     }
 }
@@ -106,19 +115,28 @@ impl<'a> Widget for BonusItem<'a> {
         let description = Text::from(self.track.description).white();
         description.render(chunks[1], buf);
 
-        // tiers
-        let tiers_constraints = self
-            .track
-            .tiers
-            .iter()
-            .map(|_| Constraint::Length(10))
-            .collect::<Vec<_>>();
-        let tiers_chunks = Layout::horizontal(tiers_constraints).split(chunks[2]);
+        // tiers - calculate visible range based on scroll offset
+        let tiers_area = chunks[2];
+        let visible_count = (tiers_area.width / TIER_WIDTH) as usize;
+        let end_idx = (self.tier_scroll_offset + visible_count).min(self.track.tiers.len());
 
-        // TODO: extract component
-        for (idx, (tier_label, tier_cost)) in self.track.tiers.iter().enumerate() {
-            let is_owned = idx < owned_level;
-            let is_tier_selected = self.selected && idx == self.tier_selection;
+        let visible_tiers: Vec<_> = self.track.tiers[self.tier_scroll_offset..end_idx]
+            .iter()
+            .enumerate()
+            .collect();
+
+        let tiers_constraints: Vec<_> = visible_tiers
+            .iter()
+            .map(|_| Constraint::Length(TIER_WIDTH))
+            .collect();
+        let tiers_chunks = Layout::horizontal(tiers_constraints).split(tiers_area);
+
+        for (render_idx, (local_idx, (tier_label, tier_cost))) in
+            visible_tiers.into_iter().enumerate()
+        {
+            let actual_idx = self.tier_scroll_offset + local_idx;
+            let is_owned = actual_idx < owned_level;
+            let is_tier_selected = self.selected && actual_idx == self.tier_selection;
 
             let style = if is_tier_selected {
                 Style::default().fg(Color::Cyan).bold()
@@ -134,7 +152,7 @@ impl<'a> Widget for BonusItem<'a> {
                 Style::default().fg(Color::DarkGray)
             };
 
-            let chunk = tiers_chunks[idx];
+            let chunk = tiers_chunks[render_idx];
 
             let block = Block::default()
                 .border_style(border_style)
@@ -162,7 +180,8 @@ impl<'a> Widget for BonusItem<'a> {
 
 pub struct BonusesView {
     selection: usize,
-    tier_selection: usize,
+    tier_selections: Vec<usize>,
+    tier_scroll_offsets: Vec<usize>,
     scroll_state: ScrollViewState,
 }
 
@@ -170,7 +189,8 @@ impl Default for BonusesView {
     fn default() -> Self {
         Self {
             selection: 0,
-            tier_selection: 2, // default to first purchasable tier
+            tier_selections: vec![2; BONUS_TRACKS.len()],
+            tier_scroll_offsets: vec![0; BONUS_TRACKS.len()],
             scroll_state: ScrollViewState::default(),
         }
     }
@@ -193,6 +213,20 @@ impl BonusesView {
         else if selected_top < current_offset + SCROLL_PADDING {
             let new_offset = selected_top.saturating_sub(SCROLL_PADDING);
             self.scroll_state.set_offset(Position::new(0, new_offset));
+        }
+    }
+
+    fn update_tier_scroll(&mut self, visible_count: usize) {
+        let tier_selection = self.tier_selections[self.selection];
+        let tier_scroll_offset = &mut self.tier_scroll_offsets[self.selection];
+
+        // scroll right if selection is past visible range
+        if tier_selection >= *tier_scroll_offset + visible_count {
+            *tier_scroll_offset = tier_selection + 1 - visible_count;
+        }
+        // scroll left if selection is before visible range
+        else if tier_selection < *tier_scroll_offset {
+            *tier_scroll_offset = tier_selection;
         }
     }
 }
@@ -224,7 +258,13 @@ impl View for BonusesView {
         for (i, track) in BONUS_TRACKS.iter().enumerate() {
             let selected = self.selection == i;
 
-            let item = BonusItem::new(track.clone(), state, selected, self.tier_selection);
+            let item = BonusItem::new(
+                track.clone(),
+                state,
+                selected,
+                self.tier_selections[i],
+                self.tier_scroll_offsets[i],
+            );
             let item_rect = Rect::new(0, i as u16 * ITEM_HEIGHT, content_width, ITEM_HEIGHT);
             scroll_view.render_widget(item, item_rect);
         }
@@ -246,15 +286,17 @@ impl View for BonusesView {
                 ViewResult::Redraw
             }
             Action::Left => {
-                if self.tier_selection > 0 {
-                    self.tier_selection -= 1;
+                if self.tier_selections[self.selection] > 0 {
+                    self.tier_selections[self.selection] -= 1;
+                    self.update_tier_scroll(5); // approximate visible count
                 }
                 ViewResult::Redraw
             }
             Action::Right => {
                 let tier_count = BONUS_TRACKS[self.selection].tiers.len();
-                if self.tier_selection < tier_count - 1 {
-                    self.tier_selection += 1;
+                if self.tier_selections[self.selection] < tier_count - 1 {
+                    self.tier_selections[self.selection] += 1;
+                    self.update_tier_scroll(5); // approximate visible count
                 }
                 ViewResult::Redraw
             }

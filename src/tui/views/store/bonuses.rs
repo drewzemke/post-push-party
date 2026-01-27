@@ -1,7 +1,11 @@
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Padding, Paragraph};
+use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
 use crate::state::State;
+
+const ITEM_HEIGHT: u16 = 8;
+const SCROLL_PADDING: u16 = ITEM_HEIGHT;
 use crate::tui::action::{Action, Route, StoreRoute};
 use crate::tui::views::{MessageType, View, ViewResult};
 
@@ -159,6 +163,7 @@ impl<'a> Widget for BonusItem<'a> {
 pub struct BonusesView {
     selection: usize,
     tier_selection: usize,
+    scroll_state: ScrollViewState,
 }
 
 impl Default for BonusesView {
@@ -166,22 +171,36 @@ impl Default for BonusesView {
         Self {
             selection: 0,
             tier_selection: 2, // default to first purchasable tier
+            scroll_state: ScrollViewState::default(),
+        }
+    }
+}
+
+impl BonusesView {
+    fn update_scroll(&mut self, viewport_height: u16) {
+        let selected_top = self.selection as u16 * ITEM_HEIGHT;
+        let selected_bottom = selected_top + ITEM_HEIGHT;
+
+        let current_offset = self.scroll_state.offset().y;
+        let viewport_bottom = current_offset + viewport_height;
+
+        // scroll down if selection is near bottom of viewport
+        if selected_bottom + SCROLL_PADDING > viewport_bottom {
+            let new_offset = (selected_bottom + SCROLL_PADDING).saturating_sub(viewport_height);
+            self.scroll_state.set_offset(Position::new(0, new_offset));
+        }
+        // scroll up if selection is near top of viewport
+        else if selected_top < current_offset + SCROLL_PADDING {
+            let new_offset = selected_top.saturating_sub(SCROLL_PADDING);
+            self.scroll_state.set_offset(Position::new(0, new_offset));
         }
     }
 }
 
 impl View for BonusesView {
     fn render(&self, frame: &mut Frame, area: Rect, state: &State) {
-        let mut constraints = vec![Constraint::Length(2)]; // sub-header
-        for _ in BONUS_TRACKS {
-            constraints.push(Constraint::Length(8));
-        }
-
-        let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints(constraints)
-            .horizontal_margin(1)
-            .split(area);
+        // split out header
+        let chunks = Layout::vertical([Constraint::Length(2), Constraint::Fill(1)]).split(area);
 
         // sub-header
         let block = Block::default()
@@ -193,13 +212,24 @@ impl View for BonusesView {
             .block(block);
         frame.render_widget(header, chunks[0]);
 
+        // content area with scrollview
+        let content_area = chunks[1].inner(Margin::new(1, 0));
+        let content_width = content_area.width;
+        let content_height = BONUS_TRACKS.len() as u16 * ITEM_HEIGHT;
+
+        let mut scroll_view = ScrollView::new(Size::new(content_width, content_height))
+            .horizontal_scrollbar_visibility(ScrollbarVisibility::Never);
+
         // bonus tracks
         for (i, track) in BONUS_TRACKS.iter().enumerate() {
             let selected = self.selection == i;
 
             let item = BonusItem::new(track.clone(), state, selected, self.tier_selection);
-            frame.render_widget(item, chunks[i + 1]);
+            let item_rect = Rect::new(0, i as u16 * ITEM_HEIGHT, content_width, ITEM_HEIGHT);
+            scroll_view.render_widget(item, item_rect);
         }
+
+        frame.render_stateful_widget(scroll_view, content_area, &mut self.scroll_state.clone());
     }
 
     fn handle(&mut self, action: Action, _state: &mut State) -> ViewResult {
@@ -207,10 +237,12 @@ impl View for BonusesView {
             Action::Up => {
                 let count = BONUS_TRACKS.len();
                 self.selection = (self.selection + count - 1) % count;
+                self.update_scroll(20);
                 ViewResult::Redraw
             }
             Action::Down => {
                 self.selection = (self.selection + 1) % BONUS_TRACKS.len();
+                self.update_scroll(20);
                 ViewResult::Redraw
             }
             Action::Left => {

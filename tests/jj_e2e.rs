@@ -222,6 +222,52 @@ fn fetch_then_rebase_onto_main_only_awards_for_my_work() {
 }
 
 #[test]
+fn rebase_force_push_still_shows_party() {
+    let env = jj_env();
+    env.party(&["init"]);
+
+    // allow rewriting pushed commits for this test
+    let config_path = env.vcs.repo_dir.join(".jj/repo/config.toml");
+    let config = std::fs::read_to_string(&config_path).unwrap_or_default();
+    let new_config = format!("{}\n[revset-aliases]\n\"immutable_heads()\" = \"none()\"\n", config);
+    std::fs::write(&config_path, new_config).expect("failed to write config");
+
+    // create initial commit on main
+    env.vcs.commit_file("README.md", "# Test", "initial commit");
+    let initial = env.vcs.cmd(&["log", "-r", "main", "-T", "commit_id", "--no-graph"]).trim().to_string();
+    env.vcs.push();
+
+    // create feature as sibling of main (both children of initial)
+    env.vcs.cmd(&["new", &initial]); // go to initial, not main
+    let feature_path = env.vcs.repo_dir.join("feature.rs");
+    std::fs::write(&feature_path, "// feature").expect("write failed");
+    env.vcs.cmd(&["commit", "-m", "feature work"]);
+    env.vcs.cmd(&["bookmark", "create", "feature", "-r", "@-"]);
+    env.vcs.push_branch("feature");
+
+    // create main2 as another child of initial (sibling of feature)
+    env.vcs.cmd(&["new", &initial]);
+    let main2_path = env.vcs.repo_dir.join("main2.rs");
+    std::fs::write(&main2_path, "// main2").expect("write failed");
+    env.vcs.cmd(&["commit", "-m", "more main work"]);
+    env.vcs.cmd(&["bookmark", "set", "main", "-r", "@-"]);
+    env.vcs.push();
+
+    // now feature and main are siblings - rebase should create new commit
+    env.vcs.cmd(&["rebase", "-b", "feature", "-d", "main"]);
+
+    // push rebased feature
+    let output = env.vcs.cmd(&["push", "-b", "feature"]);
+
+    // should still show party even though no points earned
+    assert!(
+        output.contains("🎉"),
+        "push of rebased commits should still show party message, got: {}",
+        output
+    );
+}
+
+#[test]
 fn init_after_existing_commits_only_counts_new() {
     let env = jj_env();
 

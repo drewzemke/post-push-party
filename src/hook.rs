@@ -145,15 +145,13 @@ pub fn run() -> Option<PushInfo> {
     }
     let _ = save_refs(&branch_refs);
 
-    if new_patch_ids.is_empty() {
-        return None;
-    }
-
-    // persist new patch-ids
-    patch_store.record(&remote_url, &new_patch_ids);
-    let _ = patch_ids::save(&patch_store);
-
     let commits_counted = new_patch_ids.len() as u64;
+
+    // persist new patch-ids (if any)
+    if !new_patch_ids.is_empty() {
+        patch_store.record(&remote_url, &new_patch_ids);
+        let _ = patch_ids::save(&patch_store);
+    }
 
     if let Some(branch) = pushed_branch {
         crate::history::record(&remote_url, &branch, commits_counted);

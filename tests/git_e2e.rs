@@ -200,6 +200,39 @@ fn fetch_then_rebase_onto_main_only_awards_for_my_work() {
 }
 
 #[test]
+fn rebase_force_push_still_shows_party() {
+    let env = git_env();
+    env.party(&["init"]);
+
+    env.vcs.commit_file("README.md", "# Test", "initial commit");
+    env.vcs.ensure_main();
+    env.vcs.push();
+
+    env.vcs.create_feature_branch("feature");
+    env.vcs
+        .commit_file("feature.rs", "// feature", "feature work");
+    env.vcs.push_branch("feature");
+
+    // add more work to main so rebase will create new SHAs
+    env.vcs.checkout("main");
+    env.vcs
+        .commit_file("main2.rs", "// main2", "more main work");
+    env.vcs.push();
+
+    // rebase feature onto updated main (creates new SHA but same content)
+    env.vcs.checkout("feature");
+    env.vcs.cmd(&["rebase", "main"]);
+    let output = env.vcs.cmd(&["push", "--force", "origin", "feature"]);
+
+    // should still show party even though no points earned
+    assert!(
+        output.contains("🎉"),
+        "force push of rebased commits should still show party message, got: {}",
+        output
+    );
+}
+
+#[test]
 fn init_after_existing_commits_only_counts_new() {
     let env = git_env();
 

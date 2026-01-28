@@ -3,18 +3,19 @@ use ratatui::widgets::{Block, Borders, Padding, Paragraph};
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
 use crate::state::State;
+use crate::tui::action::{Action, Route, StoreRoute};
+use crate::tui::views::{MessageType, View, ViewResult};
+use crate::tui::widgets::ShimmerBlock;
 
 const ITEM_HEIGHT: u16 = 8;
 const SCROLL_PADDING: u16 = ITEM_HEIGHT;
 const TIER_WIDTH: u16 = 10;
-use crate::tui::action::{Action, Route, StoreRoute};
-use crate::tui::views::{MessageType, View, ViewResult};
 
 #[derive(Clone)]
 struct BonusTrack {
     name: &'static str,
     description: &'static str,
-    tiers: &'static [(&'static str, u64)], // (label, cost) - cost 0 means owned
+    tiers: &'static [(&'static str, u64)],
 }
 
 const BONUS_TRACKS: &[BonusTrack] = &[
@@ -55,10 +56,9 @@ const BONUS_TRACKS: &[BonusTrack] = &[
 struct BonusItem<'a> {
     track: BonusTrack,
     state: &'a State,
-
     selected: bool,
-    tier_selection: usize,
-    tier_scroll_offset: usize,
+    tick: u32,
+    owned_level: usize, // FIXME: temporary fixture data
 }
 
 impl<'a> BonusItem<'a> {
@@ -66,39 +66,38 @@ impl<'a> BonusItem<'a> {
         track: BonusTrack,
         state: &'a State,
         selected: bool,
-        tier_selection: usize,
-        tier_scroll_offset: usize,
+        tick: u32,
+        owned_level: usize,
     ) -> Self {
         Self {
             track,
             state,
             selected,
-            tier_selection,
-            tier_scroll_offset,
+            tick,
+            owned_level,
         }
     }
 }
 
 impl<'a> Widget for BonusItem<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        // FIXME using commit value level for eveything
-        let owned_level = self.state.commit_value_level as usize;
+        let owned_level = self.owned_level;
 
-        // colored border based on selection
-        let border_style = if self.selected {
-            Style::default().cyan()
+        // shimmer border for selected row, plain for unselected
+        let inner = if self.selected {
+            let block = ShimmerBlock::new(self.tick);
+            let inner = block.inner(area).inner(Margin::new(1, 0));
+            block.render(area, buf);
+            inner
         } else {
-            Style::reset()
+            let block = Block::default()
+                .border_style(Style::default().gray())
+                .padding(Padding::horizontal(1))
+                .borders(Borders::ALL);
+            let inner = block.inner(area);
+            block.render(area, buf);
+            inner
         };
-
-        let block = Block::default()
-            .border_style(border_style)
-            .padding(Padding::horizontal(1))
-            .borders(Borders::ALL);
-
-        let inner = block.inner(area);
-
-        block.render(area, buf);
 
         let chunks = Layout::vertical([
             Constraint::Length(1), // title
@@ -115,39 +114,42 @@ impl<'a> Widget for BonusItem<'a> {
         let description = Text::from(self.track.description).reset();
         description.render(chunks[1], buf);
 
-        // tiers - calculate visible range based on scroll offset
+        // tiers: show current tier first, then next (gold), then rest
         let tiers_area = chunks[2];
-        let visible_count = (tiers_area.width / TIER_WIDTH) as usize;
-        let end_idx = (self.tier_scroll_offset + visible_count).min(self.track.tiers.len());
+        let max_visible = (tiers_area.width / TIER_WIDTH) as usize;
 
-        let visible_tiers: Vec<_> = self.track.tiers[self.tier_scroll_offset..end_idx]
-            .iter()
-            .enumerate()
-            .collect();
+        // start from current tier (last owned), or 0 if none owned
+        let start_idx = owned_level.saturating_sub(1);
+        let end_idx = (start_idx + max_visible).min(self.track.tiers.len());
+        let visible_count = end_idx - start_idx;
 
-        let tiers_constraints: Vec<_> = visible_tiers
-            .iter()
+        let tiers_constraints: Vec<_> = (0..visible_count)
             .map(|_| Constraint::Length(TIER_WIDTH))
             .collect();
         let tiers_chunks = Layout::horizontal(tiers_constraints).split(tiers_area);
 
-        for (render_idx, (local_idx, (tier_label, tier_cost))) in
-            visible_tiers.into_iter().enumerate()
-        {
-            let actual_idx = self.tier_scroll_offset + local_idx;
-            let is_owned = actual_idx < owned_level;
-            let is_tier_selected = self.selected && actual_idx == self.tier_selection;
+        for (render_idx, idx) in (start_idx..end_idx).enumerate() {
+            let (tier_label, tier_cost) = &self.track.tiers[idx];
+            let is_current = idx == owned_level.saturating_sub(1) && owned_level > 0;
+            let is_next = idx == owned_level && self.selected;
+            let affordable = self.state.party_points >= *tier_cost;
 
-            let style = if is_tier_selected {
-                Style::default().fg(Color::Cyan).bold()
-            } else if is_owned {
-                Style::default().fg(Color::Green)
+            // text style: white for current, green/red for next based on affordability
+            let style = if is_current {
+                Style::default().fg(Color::White).bold()
+            } else if is_next {
+                let color = if affordable { Color::Green } else { Color::Red };
+                Style::default().fg(color).bold()
             } else {
                 Style::default().fg(Color::DarkGray)
             };
 
-            let border_style = if is_tier_selected {
-                Style::default().fg(Color::Cyan)
+            // border style: white for current, green/red for next, dark gray otherwise
+            let border_style = if is_current {
+                Style::default().fg(Color::White)
+            } else if is_next {
+                let color = if affordable { Color::Green } else { Color::Red };
+                Style::default().fg(color)
             } else {
                 Style::default().fg(Color::DarkGray)
             };
@@ -158,10 +160,8 @@ impl<'a> Widget for BonusItem<'a> {
                 .border_style(border_style)
                 .borders(Borders::ALL);
             let inner = block.inner(chunk);
-
             block.render(chunk, buf);
 
-            // split inner into top and bottom
             let inner_chunks =
                 Layout::vertical([Constraint::Length(1), Constraint::Length(1)]).split(inner);
 
@@ -180,8 +180,6 @@ impl<'a> Widget for BonusItem<'a> {
 
 pub struct BonusesView {
     selection: usize,
-    tier_selections: Vec<usize>,
-    tier_scroll_offsets: Vec<usize>,
     scroll_state: ScrollViewState,
 }
 
@@ -189,8 +187,6 @@ impl Default for BonusesView {
     fn default() -> Self {
         Self {
             selection: 0,
-            tier_selections: vec![2; BONUS_TRACKS.len()],
-            tier_scroll_offsets: vec![0; BONUS_TRACKS.len()],
             scroll_state: ScrollViewState::default(),
         }
     }
@@ -204,36 +200,18 @@ impl BonusesView {
         let current_offset = self.scroll_state.offset().y;
         let viewport_bottom = current_offset + viewport_height;
 
-        // scroll down if selection is near bottom of viewport
         if selected_bottom + SCROLL_PADDING > viewport_bottom {
             let new_offset = (selected_bottom + SCROLL_PADDING).saturating_sub(viewport_height);
             self.scroll_state.set_offset(Position::new(0, new_offset));
-        }
-        // scroll up if selection is near top of viewport
-        else if selected_top < current_offset + SCROLL_PADDING {
+        } else if selected_top < current_offset + SCROLL_PADDING {
             let new_offset = selected_top.saturating_sub(SCROLL_PADDING);
             self.scroll_state.set_offset(Position::new(0, new_offset));
-        }
-    }
-
-    fn update_tier_scroll(&mut self, visible_count: usize) {
-        let tier_selection = self.tier_selections[self.selection];
-        let tier_scroll_offset = &mut self.tier_scroll_offsets[self.selection];
-
-        // scroll right if selection is past visible range
-        if tier_selection >= *tier_scroll_offset + visible_count {
-            *tier_scroll_offset = tier_selection + 1 - visible_count;
-        }
-        // scroll left if selection is before visible range
-        else if tier_selection < *tier_scroll_offset {
-            *tier_scroll_offset = tier_selection;
         }
     }
 }
 
 impl View for BonusesView {
-    fn render(&self, frame: &mut Frame, area: Rect, state: &State, _tick: u32) {
-        // split out header
+    fn render(&self, frame: &mut Frame, area: Rect, state: &State, tick: u32) {
         let chunks = Layout::vertical([Constraint::Length(2), Constraint::Fill(1)]).split(area);
 
         // sub-header
@@ -254,17 +232,12 @@ impl View for BonusesView {
         let mut scroll_view = ScrollView::new(Size::new(content_width, content_height))
             .horizontal_scrollbar_visibility(ScrollbarVisibility::Never);
 
-        // bonus tracks
-        for (i, track) in BONUS_TRACKS.iter().enumerate() {
-            let selected = self.selection == i;
+        // FIXME: fixture owned levels for testing
+        let owned_levels = [1, 1, 8];
 
-            let item = BonusItem::new(
-                track.clone(),
-                state,
-                selected,
-                self.tier_selections[i],
-                self.tier_scroll_offsets[i],
-            );
+        for (i, track) in BONUS_TRACKS.iter().enumerate() {
+            let owned_level = owned_levels.get(i).copied().unwrap_or(0);
+            let item = BonusItem::new(track.clone(), state, self.selection == i, tick, owned_level);
             let item_rect = Rect::new(0, i as u16 * ITEM_HEIGHT, content_width, ITEM_HEIGHT);
             scroll_view.render_widget(item, item_rect);
         }
@@ -285,21 +258,6 @@ impl View for BonusesView {
                 self.update_scroll(20);
                 ViewResult::Redraw
             }
-            Action::Left => {
-                if self.tier_selections[self.selection] > 0 {
-                    self.tier_selections[self.selection] -= 1;
-                    self.update_tier_scroll(5); // approximate visible count
-                }
-                ViewResult::Redraw
-            }
-            Action::Right => {
-                let tier_count = BONUS_TRACKS[self.selection].tiers.len();
-                if self.tier_selections[self.selection] < tier_count - 1 {
-                    self.tier_selections[self.selection] += 1;
-                    self.update_tier_scroll(5); // approximate visible count
-                }
-                ViewResult::Redraw
-            }
             Action::Select => {
                 // TODO: implement purchasing
                 ViewResult::Message(
@@ -315,13 +273,13 @@ impl View for BonusesView {
                 _ => Route::Games,
             }),
             Action::Quit => ViewResult::Exit,
+            _ => ViewResult::None,
         }
     }
 
     fn key_hints(&self) -> Vec<(&'static str, &'static str)> {
         vec![
-            ("↑↓", "track"),
-            ("←→", "tier"),
+            ("↑↓", "select"),
             ("enter", "buy"),
             ("esc", "back"),
             ("q", "quit"),

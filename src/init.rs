@@ -119,7 +119,7 @@ pub fn jj_config_path(repo_path: &Path) -> std::path::PathBuf {
 }
 
 pub const JJ_ALIAS: &str = r#"[aliases]
-push = ["util", "exec", "--", "bash", "-c", "jj git push \"$@\" && party hook", "--"]
+push = ["util", "exec", "--", "bash", "-c", "party snapshot && jj git push \"$@\" && party hook", "--"]
 "#;
 
 pub fn install_git_hook(repo_path: &Path) -> std::io::Result<()> {

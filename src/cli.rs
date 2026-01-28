@@ -18,6 +18,9 @@ pub enum Command {
     /// called by git hook (not user-facing)
     #[command(hide = true)]
     Hook,
+    /// snapshot current refs (called before push in jj)
+    #[command(hide = true)]
+    Snapshot,
     /// print state for debugging
     #[command(hide = true)]
     Dump,

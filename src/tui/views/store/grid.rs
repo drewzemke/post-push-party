@@ -4,6 +4,7 @@ use ratatui::widgets::{Block, Borders, Paragraph, Widget, Wrap};
 use crate::state::State;
 use crate::tui::action::{Action, Route, StoreRoute};
 use crate::tui::views::{MessageType, View, ViewResult};
+use crate::tui::widgets::ShimmerBlock;
 
 const GRID_ITEMS: [(StoreRoute, &str, &str); 4] = [
     (
@@ -39,7 +40,7 @@ impl Default for GridView {
 }
 
 impl View for GridView {
-    fn render(&self, frame: &mut Frame, area: Rect, _state: &State) {
+    fn render(&self, frame: &mut Frame, area: Rect, _state: &State, tick: u32) {
         // 2x2 grid layout
         let rows = Layout::default()
             .direction(Direction::Vertical)
@@ -63,7 +64,8 @@ impl View for GridView {
             let card = GridCell::new()
                 .title(title)
                 .description(vec![Line::from(desc)])
-                .selected(i == self.selection);
+                .selected(i == self.selection)
+                .tick(tick);
             frame.render_widget(card, cells[i]);
         }
     }
@@ -123,6 +125,7 @@ struct GridCell<'a> {
     description: Vec<Line<'a>>,
     selected: bool,
     border_style: Style,
+    tick: u32,
 }
 
 impl<'a> GridCell<'a> {
@@ -132,6 +135,7 @@ impl<'a> GridCell<'a> {
             description: vec![],
             selected: false,
             border_style: Style::default().fg(Color::DarkGray),
+            tick: 0,
         }
     }
 
@@ -152,6 +156,11 @@ impl<'a> GridCell<'a> {
         }
         self
     }
+
+    pub fn tick(mut self, tick: u32) -> Self {
+        self.tick = tick;
+        self
+    }
 }
 
 impl<'a> Default for GridCell<'a> {
@@ -162,12 +171,20 @@ impl<'a> Default for GridCell<'a> {
 
 impl Widget for GridCell<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .border_style(self.border_style);
-
-        let inner = block.inner(area);
-        block.render(area, buf);
+        // use shimmer border for selected cells, regular block for unselected
+        let inner = if self.selected {
+            let block = ShimmerBlock::new(self.tick);
+            let inner = block.inner(area);
+            block.render(area, buf);
+            inner
+        } else {
+            let block = Block::default()
+                .borders(Borders::ALL)
+                .border_style(self.border_style);
+            let inner = block.inner(area);
+            block.render(area, buf);
+            inner
+        };
 
         // center the content.
         let layout = Layout::vertical([

@@ -5,6 +5,7 @@ use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 use crate::state::{feature_cost, PartyFeature, State, PARTY_FEATURES};
 use crate::tui::action::{Action, Route, StoreRoute};
 use crate::tui::views::{MessageType, View, ViewResult};
+use crate::tui::widgets::ShimmerBlock;
 
 const ITEM_HEIGHT: u16 = 4;
 const SCROLL_PADDING: u16 = ITEM_HEIGHT; // keep one item of padding when scrolling
@@ -15,6 +16,7 @@ struct UpgradeItem {
     affordable: bool,
     cost: u64,
     selected: bool,
+    tick: u32,
 }
 
 impl UpgradeItem {
@@ -24,6 +26,7 @@ impl UpgradeItem {
         affordable: bool,
         cost: u64,
         selected: bool,
+        tick: u32,
     ) -> Self {
         Self {
             feature,
@@ -31,6 +34,7 @@ impl UpgradeItem {
             affordable,
             cost,
             selected,
+            tick,
         }
     }
 
@@ -41,20 +45,21 @@ impl UpgradeItem {
 
 impl Widget for UpgradeItem {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        // block for border
-        let border_style = if self.selected {
-            Style::default().cyan()
+        // use shimmer block for selected, regular block for unselected
+        let inner = if self.selected {
+            let block = ShimmerBlock::new(self.tick);
+            let inner = block.inner(area).inner(Margin::new(1, 0));
+            block.render(area, buf);
+            inner
         } else {
-            Style::default().gray()
+            let block = Block::default()
+                .borders(Borders::ALL)
+                .padding(Padding::horizontal(1))
+                .border_style(Style::default().gray());
+            let inner = block.inner(area);
+            block.render(area, buf);
+            inner
         };
-
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .padding(Padding::horizontal(1))
-            .border_style(border_style);
-
-        let inner = block.inner(area);
-        block.render(area, buf);
 
         // divide inner into top and bottom rows
         let chunks = Layout::vertical([Constraint::Length(1), Constraint::Length(1)]).split(inner);
@@ -63,7 +68,7 @@ impl Widget for UpgradeItem {
         let top_chunks =
             Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).split(chunks[0]);
 
-        let title_text = Text::from(self.feature.name()).white().bold();
+        let title_text = Text::from(self.feature.name()).reset().bold();
         title_text.render(top_chunks[0], buf);
 
         let price_style = if self.unlocked {
@@ -86,7 +91,7 @@ impl Widget for UpgradeItem {
         price_text.render(top_chunks[1], buf);
 
         // bottom line -- just the description
-        let desc_text = Text::from(self.description()).white();
+        let desc_text = Text::from(self.description()).reset();
         desc_text.render(chunks[1], buf);
     }
 }
@@ -135,7 +140,7 @@ impl UpgradesView {
 }
 
 impl View for UpgradesView {
-    fn render(&self, frame: &mut Frame, area: Rect, state: &State) {
+    fn render(&self, frame: &mut Frame, area: Rect, state: &State, tick: u32) {
         // split out header
         let chunks = Layout::vertical([Constraint::Length(2), Constraint::Fill(1)]).split(area);
 
@@ -144,7 +149,7 @@ impl View for UpgradesView {
             .border_style(Style::default().dark_gray());
         let header = Paragraph::new("Upgrades")
             .alignment(Alignment::Center)
-            .style(Style::default().fg(Color::White))
+            .style(Style::default().fg(Color::Reset))
             .block(block);
         frame.render_widget(header, chunks[0]);
 
@@ -164,6 +169,7 @@ impl View for UpgradesView {
                 state.party_points >= feature_cost(feature),
                 feature_cost(feature),
                 self.selection == i,
+                tick,
             );
             let item_rect = Rect::new(0, i as u16 * ITEM_HEIGHT, content_width, ITEM_HEIGHT);
             scroll_view.render_widget(item, item_rect);

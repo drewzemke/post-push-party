@@ -53,8 +53,8 @@ impl StoreView {
 }
 
 impl View for StoreView {
-    fn render(&self, frame: &mut Frame, area: Rect, state: &State) {
-        self.current_view().render(frame, area, state);
+    fn render(&self, frame: &mut Frame, area: Rect, state: &State, tick: u32) {
+        self.current_view().render(frame, area, state, tick);
     }
 
     fn handle(&mut self, action: Action, state: &mut State) -> ViewResult {

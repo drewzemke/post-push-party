@@ -32,7 +32,7 @@ pub enum ViewResult {
 /// a renderable, interactive view
 pub trait View {
     /// render the view's content (not header/footer, those are handled by App)
-    fn render(&self, frame: &mut Frame, area: Rect, state: &State);
+    fn render(&self, frame: &mut Frame, area: Rect, state: &State, tick: u32);
 
     /// handle an action, potentially mutating game state
     fn handle(&mut self, action: Action, state: &mut State) -> ViewResult;

@@ -15,6 +15,7 @@ pub struct App {
     pub route: Route,
     pub message: Option<(MessageType, String)>,
     pub state: State,
+    pub tick: u32,
 
     store: StoreView,
     party: PartyView,
@@ -28,11 +29,16 @@ impl App {
             route: Route::default(),
             message: None,
             state: state::load(),
+            tick: 0,
             store: StoreView::default(),
             party: PartyView::default(),
             packs: PacksView::default(),
             games: GamesView::default(),
         }
+    }
+
+    pub fn tick(&mut self) {
+        self.tick = self.tick.wrapping_add(1);
     }
 
     pub fn handle(&mut self, action: Action) -> bool {
@@ -88,10 +94,10 @@ impl App {
 
         // content
         match &self.route {
-            Route::Store(_) => self.store.render(frame, chunks[1], &self.state),
-            Route::Party => self.party.render(frame, chunks[1], &self.state),
-            Route::Packs => self.packs.render(frame, chunks[1], &self.state),
-            Route::Games => self.games.render(frame, chunks[1], &self.state),
+            Route::Store(_) => self.store.render(frame, chunks[1], &self.state, self.tick),
+            Route::Party => self.party.render(frame, chunks[1], &self.state, self.tick),
+            Route::Packs => self.packs.render(frame, chunks[1], &self.state, self.tick),
+            Route::Games => self.games.render(frame, chunks[1], &self.state, self.tick),
         }
 
         // footer

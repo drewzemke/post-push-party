@@ -36,6 +36,10 @@ fn main() {
             }
         }
         Some(Command::Dump) => state::dump(),
+        Some(Command::Snapshot) => {
+            let cwd = std::env::current_dir().expect("could not get current directory");
+            hook::snapshot_refs(&cwd);
+        }
         None => tui::run().unwrap_or_else(|e| {
             eprintln!("error running TUI: {e}");
             std::process::exit(1);

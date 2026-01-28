@@ -17,7 +17,10 @@ fn run(cmd: &mut Command) -> String {
             cmd, stdout, stderr
         );
     }
-    String::from_utf8_lossy(&output.stdout).to_string()
+    // combine stdout and stderr since party output might go to either
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    format!("{}{}", stdout, stderr)
 }
 
 fn party_bin() -> String {

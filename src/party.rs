@@ -73,21 +73,28 @@ pub fn display(state: &State, commits_pushed: u64, commits_counted: u64, points_
     }
 
     // summary (always shown)
-    if use_big_text {
-        println!("🎉 +{} party points!", points_earned);
+    if points_earned > 0 {
+        if use_big_text {
+            println!("🎉 +{} party points!", points_earned);
+        } else {
+            println!(
+                "{}🎉 You earned {} party points!{}",
+                color, points_earned, reset
+            );
+        }
+        if commits_pushed != commits_counted {
+            println!(
+                "   ({} commits pushed, {} counted)",
+                commits_pushed, commits_counted
+            );
+        } else if commits_counted > 1 {
+            println!("   ({} commits)", commits_counted);
+        }
     } else {
         println!(
-            "{}🎉 You earned {} party points!{}",
-            color, points_earned, reset
+            "{}🎉 Pushed {} commits! (already counted){}",
+            color, commits_pushed, reset
         );
-    }
-    if commits_pushed != commits_counted {
-        println!(
-            "   ({} commits pushed, {} counted)",
-            commits_pushed, commits_counted
-        );
-    } else if commits_counted > 1 {
-        println!("   ({} commits)", commits_counted);
     }
     println!();
 

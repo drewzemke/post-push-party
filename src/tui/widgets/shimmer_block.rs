@@ -1,4 +1,5 @@
 use ratatui::prelude::*;
+use ratatui::symbols::border::THICK as BORDER;
 use ratatui::widgets::Widget;
 
 const SHIMMER_WIDTH: u32 = 18;
@@ -29,15 +30,15 @@ impl Widget for ShimmerBlock {
             return;
         }
 
-        for (x, y, ch) in border_chars(area) {
+        for (x, y, s) in border_chars(area) {
             let color = shimmer_color(x, y, area, self.tick);
-            buf[(x, y)].set_char(ch).set_fg(color);
+            buf[(x, y)].set_symbol(s).set_fg(color);
         }
     }
 }
 
 /// yields (x, y, char) for each position around the border (thick style)
-fn border_chars(area: Rect) -> impl Iterator<Item = (u16, u16, char)> {
+fn border_chars(area: Rect) -> impl Iterator<Item = (u16, u16, &'static str)> {
     let top_left = (area.x, area.y);
     let top_right = (area.x + area.width - 1, area.y);
     let bottom_right = (area.x + area.width - 1, area.y + area.height - 1);
@@ -45,29 +46,30 @@ fn border_chars(area: Rect) -> impl Iterator<Item = (u16, u16, char)> {
 
     let top = (area.x..=top_right.0).map(move |x| {
         let ch = if x == top_left.0 {
-            '┏'
+            BORDER.top_left
         } else if x == top_right.0 {
-            '┓'
+            BORDER.top_right
         } else {
-            '━'
+            BORDER.horizontal_top
         };
         (x, area.y, ch)
     });
 
-    let right = ((area.y + 1)..bottom_right.1).map(move |y| (top_right.0, y, '┃'));
+    let right =
+        ((area.y + 1)..bottom_right.1).map(move |y| (top_right.0, y, BORDER.vertical_right));
 
     let bottom = (bottom_left.0..=bottom_right.0).map(move |x| {
         let ch = if x == bottom_right.0 {
-            '┛'
+            BORDER.bottom_right
         } else if x == bottom_left.0 {
-            '┗'
+            BORDER.bottom_left
         } else {
-            '━'
+            BORDER.horizontal_bottom
         };
         (x, bottom_left.1, ch)
     });
 
-    let left = ((area.y + 1)..bottom_left.1).map(move |y| (area.x, y, '┃'));
+    let left = ((area.y + 1)..bottom_left.1).map(move |y| (area.x, y, BORDER.vertical_left));
 
     top.chain(right).chain(bottom).chain(left)
 }

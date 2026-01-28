@@ -40,7 +40,7 @@ pub fn render_footer(
             .iter()
             .flat_map(|(key, desc)| {
                 [
-                    key.white().bold(),
+                    key.reset().bold(),
                     ": ".fg(Color::Gray),
                     desc.dark_gray(),
                     "  ".into(),

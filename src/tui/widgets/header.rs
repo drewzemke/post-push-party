@@ -29,7 +29,7 @@ pub fn render_header(frame: &mut Frame, area: Rect, route: &Route) {
         .enumerate()
         .flat_map(|(i, &tab)| {
             let style = if i == selected {
-                Style::default().fg(Color::White)
+Style::default().fg(Color::Reset)
             } else {
                 Style::default().fg(Color::DarkGray)
             };

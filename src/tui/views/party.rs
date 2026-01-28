@@ -4,6 +4,7 @@ use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
 use crate::state::{PartyFeature, State, PARTY_FEATURES};
 use crate::tui::views::MessageType;
+use crate::tui::widgets::ShimmerBlock;
 
 use super::{Action, Route, View, ViewResult};
 
@@ -15,6 +16,7 @@ struct PartyItem {
     description: &'static str,
     status: ItemStatus,
     selected: bool,
+    tick: u32,
 }
 
 enum ItemStatus {
@@ -23,26 +25,27 @@ enum ItemStatus {
 }
 
 impl PartyItem {
-    fn new(name: &'static str, description: &'static str, status: ItemStatus, selected: bool) -> Self {
-        Self { name, description, status, selected }
+    fn new(name: &'static str, description: &'static str, status: ItemStatus, selected: bool, tick: u32) -> Self {
+        Self { name, description, status, selected, tick }
     }
 }
 
 impl Widget for PartyItem {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let border_style = if self.selected {
-            Style::default().cyan()
+        let inner = if self.selected {
+            let block = ShimmerBlock::new(self.tick);
+            let inner = block.inner(area).inner(Margin::new(1, 0));
+            block.render(area, buf);
+            inner
         } else {
-            Style::default().gray()
+            let block = Block::default()
+                .borders(Borders::ALL)
+                .padding(Padding::horizontal(1))
+                .border_style(Style::default().gray());
+            let inner = block.inner(area);
+            block.render(area, buf);
+            inner
         };
-
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .padding(Padding::horizontal(1))
-            .border_style(border_style);
-
-        let inner = block.inner(area);
-        block.render(area, buf);
 
         let chunks = Layout::vertical([
             Constraint::Length(1), // name
@@ -52,7 +55,7 @@ impl Widget for PartyItem {
         .split(inner);
 
         // name
-        let title = Text::from(self.name).white().bold();
+        let title = Text::from(self.name).reset().bold();
         title.render(chunks[0], buf);
 
         // description
@@ -122,7 +125,7 @@ impl PartyView {
 }
 
 impl View for PartyView {
-    fn render(&self, frame: &mut Frame, area: Rect, state: &State) {
+    fn render(&self, frame: &mut Frame, area: Rect, state: &State, tick: u32) {
         let unlocked = Self::unlocked_features(state);
 
         let content_area = area.inner(Margin::new(1, 0));
@@ -138,6 +141,7 @@ impl View for PartyView {
             "A simple summary of how many points you earned.",
             ItemStatus::Enabled,
             self.selection == 0,
+            tick,
         );
         scroll_view.render_widget(basic_item, Rect::new(0, 0, content_width, ITEM_HEIGHT));
 
@@ -149,7 +153,7 @@ impl View for PartyView {
                 ItemStatus::Disabled
             };
 
-            let item = PartyItem::new(feature.name(), feature.description(), status, self.selection == i + 1);
+            let item = PartyItem::new(feature.name(), feature.description(), status, self.selection == i + 1, tick);
             let item_rect = Rect::new(0, (i + 1) as u16 * ITEM_HEIGHT, content_width, ITEM_HEIGHT);
             scroll_view.render_widget(item, item_rect);
         }

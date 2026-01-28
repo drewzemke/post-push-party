@@ -88,7 +88,7 @@ impl<'a> Widget for BonusItem<'a> {
         let border_style = if self.selected {
             Style::default().cyan()
         } else {
-            Style::default().white()
+            Style::reset()
         };
 
         let block = Block::default()
@@ -108,11 +108,11 @@ impl<'a> Widget for BonusItem<'a> {
         .split(inner);
 
         // title
-        let title = Text::from(self.track.name).white().bold();
+        let title = Text::from(self.track.name).reset().bold();
         title.render(chunks[0], buf);
 
         // description
-        let description = Text::from(self.track.description).white();
+        let description = Text::from(self.track.description).reset();
         description.render(chunks[1], buf);
 
         // tiers - calculate visible range based on scroll offset
@@ -232,7 +232,7 @@ impl BonusesView {
 }
 
 impl View for BonusesView {
-    fn render(&self, frame: &mut Frame, area: Rect, state: &State) {
+    fn render(&self, frame: &mut Frame, area: Rect, state: &State, _tick: u32) {
         // split out header
         let chunks = Layout::vertical([Constraint::Length(2), Constraint::Fill(1)]).split(area);
 
@@ -242,7 +242,7 @@ impl View for BonusesView {
             .border_style(Style::default().dark_gray());
         let header = Paragraph::new("Bonuses")
             .alignment(Alignment::Center)
-            .style(Style::default().fg(Color::White))
+            .style(Style::default().fg(Color::Reset))
             .block(block);
         frame.render_widget(header, chunks[0]);
 

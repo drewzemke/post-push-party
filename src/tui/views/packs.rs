@@ -9,7 +9,7 @@ use super::{Action, Route, View, ViewResult};
 pub struct PacksView;
 
 impl View for PacksView {
-    fn render(&self, frame: &mut Frame, area: Rect, _state: &State) {
+    fn render(&self, frame: &mut Frame, area: Rect, _state: &State, _tick: u32) {
         let text = Paragraph::new("Packs coming soon...")
             .alignment(Alignment::Center)
             .style(Style::default().fg(Color::DarkGray));

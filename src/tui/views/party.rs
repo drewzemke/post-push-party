@@ -129,7 +129,7 @@ impl View for PartyView {
         let unlocked = Self::unlocked_features(state);
 
         let content_area = area.inner(Margin::new(1, 0));
-        let content_width = content_area.width;
+        let content_width = content_area.width.saturating_sub(1); // leave room for scrollbar
         let content_height = Self::item_count(state) as u16 * ITEM_HEIGHT;
 
         let mut scroll_view = ScrollView::new(Size::new(content_width, content_height))

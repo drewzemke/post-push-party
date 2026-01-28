@@ -226,7 +226,7 @@ impl View for BonusesView {
 
         // content area with scrollview
         let content_area = chunks[1].inner(Margin::new(1, 0));
-        let content_width = content_area.width;
+        let content_width = content_area.width.saturating_sub(1); // leave room for scrollbar
         let content_height = BONUS_TRACKS.len() as u16 * ITEM_HEIGHT;
 
         let mut scroll_view = ScrollView::new(Size::new(content_width, content_height))

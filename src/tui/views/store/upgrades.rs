@@ -155,7 +155,7 @@ impl View for UpgradesView {
 
         // content area
         let content_area = chunks[1].inner(Margin::new(1, 0));
-        let content_width = content_area.width;
+        let content_width = content_area.width.saturating_sub(1); // leave room for scrollbar
         let content_height = self.item_count() as u16 * ITEM_HEIGHT;
 
         let mut scroll_view = ScrollView::new(Size::new(content_width, content_height))

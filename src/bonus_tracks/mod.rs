@@ -1,4 +1,8 @@
+mod commit_value;
 mod first_push;
+
+pub use commit_value::CommitValue;
+pub use first_push::FirstPush;
 
 use crate::history::PushHistory;
 
@@ -45,15 +49,18 @@ pub struct Tier {
 }
 
 /// a bonus track that can be unlocked and upgraded
-pub trait BonusTrack {
+pub trait BonusTrack: Sync {
+    /// unique identifier for state storage
+    fn id(&self) -> &'static str;
+
     /// display name for the UI
     fn name(&self) -> &'static str;
 
     /// description for the UI
     fn description(&self) -> &'static str;
 
-    /// iterator over tiers (cost, reward). may be infinite.
-    fn tiers(&self) -> impl Iterator<Item = Tier>;
+    /// all tiers for this track
+    fn tiers(&self) -> &'static [Tier];
 
     /// how many times does this bonus apply to the current push?
     /// returns 0 if it doesn't apply, 1+ if it does.
@@ -67,6 +74,16 @@ pub trait BonusTrack {
         if level == 0 {
             return None;
         }
-        self.tiers().nth(level as usize - 1).map(|t| t.reward)
+        self.tiers().get(level as usize - 1).map(|t| t.reward)
     }
 }
+
+// static instances for ALL_TRACKS
+static COMMIT_VALUE: CommitValue = CommitValue;
+static FIRST_PUSH: FirstPush = FirstPush;
+
+/// all bonus tracks in display order
+pub static ALL_TRACKS: &[&'static dyn BonusTrack] = &[
+    &COMMIT_VALUE,
+    &FIRST_PUSH,
+];

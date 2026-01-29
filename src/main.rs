@@ -9,6 +9,7 @@ mod init;
 mod log;
 mod party;
 mod patch_ids;
+mod scoring;
 mod state;
 mod tui;
 
@@ -25,8 +26,15 @@ fn main() {
         Some(Command::Hook) => {
             if let Some(push) = hook::run() {
                 let mut s = state::load();
+                let history = history::load();
+                let clock = scoring::now();
 
-                let points_earned = push.commits_counted * s.points_per_commit();
+                let points_earned = scoring::calculate_points(
+                    push.commits_counted,
+                    &s,
+                    &history,
+                    &clock,
+                );
                 s.party_points += points_earned;
 
                 if let Err(e) = state::save(&s) {
@@ -52,5 +60,7 @@ fn main() {
         Some(Command::Push { commits }) => dev::push(commits),
         #[cfg(feature = "dev")]
         Some(Command::Reset) => dev::reset(),
+        #[cfg(feature = "dev")]
+        Some(Command::Unlock { track, level }) => dev::unlock(&track, level),
     }
 }

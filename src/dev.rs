@@ -1,28 +1,37 @@
-use crate::{history, party, state};
+use crate::{history, party, scoring, state};
 
 pub fn cheat(amount: i64) {
-    let mut state = state::load();
-    let old = state.party_points;
+    let mut s = state::load();
+    let old = s.party_points;
     if amount < 0 {
-        state.party_points = state.party_points.saturating_sub(amount.unsigned_abs());
+        s.party_points = s.party_points.saturating_sub(amount.unsigned_abs());
     } else {
-        state.party_points = state.party_points.saturating_add(amount as u64);
+        s.party_points = s.party_points.saturating_add(amount as u64);
     }
-    if let Err(e) = state::save(&state) {
+    if let Err(e) = state::save(&s) {
         eprintln!("error saving state: {e}");
         std::process::exit(1);
     }
-    println!("{} → {} party points", old, state.party_points);
+    println!("{} → {} party points", old, s.party_points);
 }
 
 pub fn push(commits: u64) {
-    let mut state = state::load();
-    let points_earned = commits * state.points_per_commit();
-    state.party_points += points_earned;
-    if let Err(e) = state::save(&state) {
+    // mirror the actual hook flow as closely as possible
+    let mut s = state::load();
+    let hist = history::load();
+    let clock = scoring::now();
+
+    let points_earned = scoring::calculate_points(commits, &s, &hist, &clock);
+    s.party_points += points_earned;
+
+    if let Err(e) = state::save(&s) {
         eprintln!("warning: could not save state: {e}");
     }
-    party::display(&state, commits, commits, points_earned);
+
+    // record this push in history (like the real hook does)
+    history::record("dev://fake", "main", commits);
+
+    party::display(&s, commits, commits, points_earned);
 }
 
 pub fn reset() {
@@ -39,4 +48,24 @@ pub fn reset() {
     }
 
     println!("state and history reset to defaults");
+}
+
+pub fn unlock(track_id: &str, level: u32) {
+    use crate::bonus_tracks::ALL_TRACKS;
+
+    // verify track exists
+    let track = ALL_TRACKS.iter().find(|t| t.id() == track_id);
+    if track.is_none() {
+        eprintln!("unknown track: {}", track_id);
+        eprintln!("available: {:?}", ALL_TRACKS.iter().map(|t| t.id()).collect::<Vec<_>>());
+        std::process::exit(1);
+    }
+
+    let mut s = state::load();
+    s.set_bonus_level(track_id, level);
+    if let Err(e) = state::save(&s) {
+        eprintln!("error saving state: {e}");
+        std::process::exit(1);
+    }
+    println!("{} set to level {}", track_id, level);
 }

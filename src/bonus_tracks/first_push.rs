@@ -1,6 +1,6 @@
 use crate::history::PushHistory;
 
-use super::{BonusTrack, Commit, Reward, Tier};
+use super::{BonusTrack, Clock, Commit, Reward, Tier};
 
 /// bonus for the first push of each calendar day
 pub struct FirstPush;
@@ -14,12 +14,17 @@ impl BonusTrack for FirstPush {
         "Earn bonus points on your first push each day."
     }
 
-    fn tiers(&self) -> Box<dyn Iterator<Item = Tier>> {
-        todo!()
+    fn tiers(&self) -> impl Iterator<Item = Tier> {
+        std::iter::empty() // TODO: define actual tiers
     }
 
-    fn applies(&self, _commits: &[Commit], _history: &PushHistory, _now: u64) -> u32 {
-        todo!()
+    fn applies(&self, _commits: &[Commit], history: &PushHistory, clock: &Clock) -> u32 {
+        let pushed_today = history
+            .entries
+            .iter()
+            .any(|e| clock.day_of(e.timestamp) == clock.today());
+
+        if pushed_today { 0 } else { 1 }
     }
 
     fn reward_at_level(&self, _level: u32) -> Option<Reward> {
@@ -53,20 +58,22 @@ mod tests {
         }
     }
 
+    fn utc(now: u64) -> Clock {
+        Clock { now, tz_offset_secs: 0 }
+    }
+
     // timestamps for testing (2026-01-28)
-    const TODAY_9AM: u64 = 1769594400;  // 2026-01-28 09:00 UTC
-    const TODAY_3PM: u64 = 1769616000;  // 2026-01-28 15:00 UTC
-    const YESTERDAY_9AM: u64 = 1769508000;  // 2026-01-27 09:00 UTC
+    const TODAY_9AM: u64 = 1769594400; // 2026-01-28 09:00 UTC
+    const TODAY_3PM: u64 = 1769616000; // 2026-01-28 15:00 UTC
+    const YESTERDAY_9AM: u64 = 1769508000; // 2026-01-27 09:00 UTC
 
     #[test]
     fn applies_when_no_pushes_today() {
         let bonus = FirstPush;
         let commits = vec![make_commit(TODAY_9AM)];
-        let history = make_history(vec![
-            make_push(YESTERDAY_9AM),
-        ]);
+        let history = make_history(vec![make_push(YESTERDAY_9AM)]);
 
-        assert_eq!(bonus.applies(&commits, &history, TODAY_9AM), 1);
+        assert_eq!(bonus.applies(&commits, &history, &utc(TODAY_9AM)), 1);
     }
 
     #[test]
@@ -74,10 +81,10 @@ mod tests {
         let bonus = FirstPush;
         let commits = vec![make_commit(TODAY_3PM)];
         let history = make_history(vec![
-            make_push(TODAY_9AM),  // already pushed earlier today
+            make_push(TODAY_9AM), // already pushed earlier today
         ]);
 
-        assert_eq!(bonus.applies(&commits, &history, TODAY_3PM), 0);
+        assert_eq!(bonus.applies(&commits, &history, &utc(TODAY_3PM)), 0);
     }
 
     #[test]
@@ -86,6 +93,6 @@ mod tests {
         let commits = vec![make_commit(TODAY_9AM)];
         let history = make_history(vec![]);
 
-        assert_eq!(bonus.applies(&commits, &history, TODAY_9AM), 1);
+        assert_eq!(bonus.applies(&commits, &history, &utc(TODAY_9AM)), 1);
     }
 }

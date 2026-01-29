@@ -10,7 +10,7 @@ use crate::tui::widgets::ShimmerBlock;
 
 const ITEM_HEIGHT: u16 = 8;
 const SCROLL_PADDING: u16 = ITEM_HEIGHT;
-const TIER_WIDTH: u16 = 10;
+const TIER_WIDTH: u16 = 11;
 
 struct BonusItem<'a> {
     name: &'static str,
@@ -137,7 +137,12 @@ impl<'a> Widget for BonusItem<'a> {
                 .alignment(Alignment::Center);
             label_text.render(inner_chunks[0], buf);
 
-            let cost_text = Text::from(format_cost(tier_cost))
+            let cost_display = if idx < owned_level {
+                "✓".to_string()
+            } else {
+                format_cost(tier_cost)
+            };
+            let cost_text = Text::from(cost_display)
                 .style(style)
                 .alignment(Alignment::Center);
             cost_text.render(inner_chunks[1], buf);
@@ -246,10 +251,7 @@ impl View for BonusesView {
                 if state.party_points >= next_tier.cost {
                     state.party_points -= next_tier.cost;
                     state.set_bonus_level(track.id(), current_level + 1);
-                    ViewResult::Message(
-                        MessageType::Success,
-                        format!("Upgraded {}!", track.name()),
-                    )
+                    ViewResult::Message(MessageType::Success, format!("Upgraded {}!", track.name()))
                 } else {
                     ViewResult::Message(MessageType::Error, "Not enough points.".to_string())
                 }

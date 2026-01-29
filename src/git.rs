@@ -115,6 +115,40 @@ pub fn list_unique_commits(repo_path: &Path, branches: &[&str]) -> Vec<String> {
     }
 }
 
+/// Returns total lines changed (added + removed) for a commit.
+pub fn get_lines_changed(repo_path: &Path, sha: &str) -> Option<u64> {
+    // git show --stat --format="" <sha>
+    // outputs lines like: " file.rs | 10 ++++----"
+    // with summary: " 3 files changed, 10 insertions(+), 5 deletions(-)"
+    let output = Command::new("git")
+        .args(["show", "--stat", "--format=", sha])
+        .current_dir(repo_path)
+        .output()
+        .ok()?;
+
+    if !output.status.success() {
+        return None;
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    // parse the last line for the summary
+    let last_line = stdout.lines().last()?;
+
+    let mut insertions = 0u64;
+    let mut deletions = 0u64;
+
+    // look for "N insertion" and "N deletion" patterns
+    for word in last_line.split_whitespace().collect::<Vec<_>>().windows(2) {
+        if word[1].starts_with("insertion") {
+            insertions = word[0].parse().unwrap_or(0);
+        } else if word[1].starts_with("deletion") {
+            deletions = word[0].parse().unwrap_or(0);
+        }
+    }
+
+    Some(insertions + deletions)
+}
+
 /// Get the patch-id for a commit. Returns None if the commit has no diff (e.g., merge commits).
 pub fn get_patch_id(repo_path: &Path, sha: &str) -> Option<String> {
     // git show <sha> | git patch-id --stable
@@ -146,5 +180,142 @@ pub fn get_patch_id(repo_path: &Path, sha: &str) -> Option<String> {
         line.split_whitespace().next().map(|s| s.to_string())
     } else {
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::process::Command;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static TEST_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+    struct TestRepo {
+        path: std::path::PathBuf,
+    }
+
+    impl TestRepo {
+        fn new() -> Self {
+            let id = TEST_COUNTER.fetch_add(1, Ordering::SeqCst);
+            let path =
+                std::env::temp_dir().join(format!("party-test-{}-{}", std::process::id(), id));
+            fs::create_dir_all(&path).unwrap();
+
+            // init repo
+            Command::new("git")
+                .args(["init"])
+                .current_dir(&path)
+                .output()
+                .unwrap();
+
+            // configure user (required for commits)
+            Command::new("git")
+                .args(["config", "user.email", "test@test.com"])
+                .current_dir(&path)
+                .output()
+                .unwrap();
+            Command::new("git")
+                .args(["config", "user.name", "Test"])
+                .current_dir(&path)
+                .output()
+                .unwrap();
+
+            Self { path }
+        }
+
+        fn write_file(&self, name: &str, content: &str) {
+            fs::write(self.path.join(name), content).unwrap();
+        }
+
+        fn commit(&self, msg: &str) -> String {
+            Command::new("git")
+                .args(["add", "."])
+                .current_dir(&self.path)
+                .output()
+                .unwrap();
+
+            Command::new("git")
+                .args(["commit", "-m", msg])
+                .current_dir(&self.path)
+                .output()
+                .unwrap();
+
+            // get the sha
+            let output = Command::new("git")
+                .args(["rev-parse", "HEAD"])
+                .current_dir(&self.path)
+                .output()
+                .unwrap();
+
+            String::from_utf8_lossy(&output.stdout).trim().to_string()
+        }
+    }
+
+    impl Drop for TestRepo {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.path);
+        }
+    }
+
+    #[test]
+    fn lines_changed_counts_insertions() {
+        let repo = TestRepo::new();
+        repo.write_file("test.txt", "line1\nline2\nline3\n");
+        let sha = repo.commit("add 3 lines");
+
+        let lines = get_lines_changed(&repo.path, &sha);
+        assert_eq!(lines, Some(3));
+    }
+
+    #[test]
+    fn lines_changed_counts_deletions() {
+        let repo = TestRepo::new();
+        repo.write_file("test.txt", "line1\nline2\nline3\n");
+        repo.commit("initial");
+
+        repo.write_file("test.txt", "line1\n");
+        let sha = repo.commit("delete 2 lines");
+
+        let lines = get_lines_changed(&repo.path, &sha);
+        assert_eq!(lines, Some(2));
+    }
+
+    #[test]
+    fn lines_changed_counts_both() {
+        let repo = TestRepo::new();
+        repo.write_file("test.txt", "aaa\nbbb\nccc\n");
+        repo.commit("initial");
+
+        repo.write_file("test.txt", "aaa\nBBB\nccc\nddd\n");
+        let sha = repo.commit("modify and add");
+
+        // 1 deletion (bbb) + 2 insertions (BBB, ddd) = 3
+        let lines = get_lines_changed(&repo.path, &sha);
+        assert_eq!(lines, Some(3));
+    }
+
+    #[test]
+    fn lines_changed_single_line_addition() {
+        let repo = TestRepo::new();
+        repo.write_file("test.txt", "line1\nline2\n");
+        repo.commit("initial");
+
+        repo.write_file("test.txt", "line1\nline2\nline3\n");
+        let sha = repo.commit("add one line");
+
+        let lines = get_lines_changed(&repo.path, &sha);
+        assert_eq!(lines, Some(1));
+    }
+
+    #[test]
+    fn lines_changed_invalid_sha_returns_none() {
+        let repo = TestRepo::new();
+        repo.write_file("test.txt", "content\n");
+        repo.commit("initial");
+
+        let lines = get_lines_changed(&repo.path, "invalid-sha");
+        assert_eq!(lines, None);
     }
 }

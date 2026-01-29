@@ -40,7 +40,7 @@ What a bonus awards when it applies.
 
 ```rust
 pub enum Reward {
-    Multiplier(f64),
+    Multiplier(u32),  // whole number multipliers only (2x, 3x, etc.)
     FlatPoints(u64),
 }
 ```

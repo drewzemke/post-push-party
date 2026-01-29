@@ -1,4 +1,4 @@
-use crate::{party, state};
+use crate::{history, party, state};
 
 pub fn cheat(amount: i64) {
     let mut state = state::load();
@@ -31,5 +31,12 @@ pub fn reset() {
         eprintln!("error saving state: {e}");
         std::process::exit(1);
     }
-    println!("state reset to defaults");
+
+    let history = history::PushHistory::default();
+    if let Err(e) = history::save(&history) {
+        eprintln!("error saving history: {e}");
+        std::process::exit(1);
+    }
+
+    println!("state and history reset to defaults");
 }

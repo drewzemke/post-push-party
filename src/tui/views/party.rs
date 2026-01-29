@@ -72,18 +72,10 @@ impl Widget for PartyItem {
     }
 }
 
+#[derive(Default)]
 pub struct PartyView {
     selection: usize,
     scroll_state: ScrollViewState,
-}
-
-impl Default for PartyView {
-    fn default() -> Self {
-        Self {
-            selection: 0,
-            scroll_state: ScrollViewState::default(),
-        }
-    }
 }
 
 impl PartyView {

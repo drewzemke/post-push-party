@@ -31,9 +31,9 @@ pub struct Commit {
 }
 
 /// what a bonus awards when it applies
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Reward {
-    Multiplier(f64),
+    Multiplier(u32),
     FlatPoints(u64),
 }
 
@@ -63,5 +63,10 @@ pub trait BonusTrack {
 
     /// what reward does the user get at the given level?
     /// level 0 = not unlocked, level 1 = first tier, etc.
-    fn reward_at_level(&self, level: u32) -> Option<Reward>;
+    fn reward_at_level(&self, level: u32) -> Option<Reward> {
+        if level == 0 {
+            return None;
+        }
+        self.tiers().nth(level as usize - 1).map(|t| t.reward)
+    }
 }

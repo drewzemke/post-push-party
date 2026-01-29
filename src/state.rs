@@ -2,13 +2,14 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
+use crate::bonus_tracks::{Reward, ALL_TRACKS};
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct State {
     pub party_points: u64,
-    pub commit_value_level: u32,
 
     #[serde(default)]
-    pub bonuses: HashMap<BonusType, u32>,
+    pub bonus_levels: HashMap<String, u32>,
 
     #[serde(default)]
     pub unlocked_features: HashSet<PartyFeature>,
@@ -20,12 +21,6 @@ pub struct State {
     pub unlocked_colors: HashMap<PartyFeature, HashSet<Color>>,
     #[serde(default)]
     pub active_color: HashMap<PartyFeature, ColorSelection>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum BonusType {
-    FirstPushOfDay,
-    // Streak, BigPush, SpreadTheLove, RapidFire, FridayDeploy, WeekendWarrior
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -97,10 +92,12 @@ impl PartyFeature {
 
 impl Default for State {
     fn default() -> Self {
+        let mut bonus_levels = HashMap::new();
+        bonus_levels.insert("commit_value".to_string(), 1); // users start at tier 1
+
         Self {
             party_points: 0,
-            commit_value_level: 1,
-            bonuses: HashMap::new(),
+            bonus_levels,
             unlocked_features: HashSet::new(),
             enabled_features: HashSet::new(),
             unlocked_colors: HashMap::new(),
@@ -110,13 +107,28 @@ impl Default for State {
 }
 
 impl State {
-    pub fn points_per_commit(&self) -> u64 {
-        self.commit_value_level as u64
+    pub fn bonus_level(&self, id: &str) -> u32 {
+        self.bonus_levels.get(id).copied().unwrap_or(0)
     }
 
-    pub fn upgrade_cost(&self) -> u64 {
-        // 25 → 100 → 400 → 1600 ...
-        25 * 4u64.pow(self.commit_value_level - 1)
+    pub fn set_bonus_level(&mut self, id: &str, level: u32) {
+        self.bonus_levels.insert(id.to_string(), level);
+    }
+
+    pub fn points_per_commit(&self) -> u64 {
+        let level = self.bonus_level("commit_value");
+        if level == 0 {
+            return 1;
+        }
+        // find commit_value track and get reward
+        for track in ALL_TRACKS.iter() {
+            if track.id() == "commit_value" {
+                if let Some(Reward::FlatPoints(n)) = track.reward_at_level(level) {
+                    return n;
+                }
+            }
+        }
+        1
     }
 
     pub fn is_unlocked(&self, feature: PartyFeature) -> bool {
@@ -176,9 +188,8 @@ pub fn status() {
 pub fn dump() {
     let state = load();
     println!("party_points: {}", state.party_points);
-    println!("commit_value_level: {}", state.commit_value_level);
     println!("points_per_commit: {}", state.points_per_commit());
-    println!("upgrade_cost: {}", state.upgrade_cost());
+    println!("bonus_levels: {:?}", state.bonus_levels);
     println!("unlocked_features: {:?}", state.unlocked_features);
     println!("enabled_features: {:?}", state.enabled_features);
 }
@@ -210,9 +221,9 @@ mod tests {
     }
 
     #[test]
-    fn default_state_has_level_one() {
+    fn default_state_has_commit_value_at_level_one() {
         let state = State::default();
-        assert_eq!(state.commit_value_level, 1);
+        assert_eq!(state.bonus_level("commit_value"), 1);
     }
 
     #[test]
@@ -223,24 +234,28 @@ mod tests {
     }
 
     #[test]
-    fn points_per_commit_equals_level() {
-        let mut state = State::default();
-        assert_eq!(state.points_per_commit(), 1);
-
-        state.commit_value_level = 5;
-        assert_eq!(state.points_per_commit(), 5);
+    fn bonus_level_returns_zero_for_missing() {
+        let state = State::default();
+        assert_eq!(state.bonus_level("nonexistent"), 0);
     }
 
     #[test]
-    fn upgrade_cost_scales() {
+    fn set_bonus_level_works() {
         let mut state = State::default();
-        assert_eq!(state.upgrade_cost(), 25); // 25 * 4^0
+        state.set_bonus_level("first_push", 3);
+        assert_eq!(state.bonus_level("first_push"), 3);
+    }
 
-        state.commit_value_level = 2;
-        assert_eq!(state.upgrade_cost(), 100); // 25 * 4^1
+    #[test]
+    fn points_per_commit_uses_commit_value_level() {
+        let mut state = State::default();
+        assert_eq!(state.points_per_commit(), 1);
 
-        state.commit_value_level = 3;
-        assert_eq!(state.upgrade_cost(), 400); // 25 * 4^2
+        state.set_bonus_level("commit_value", 2);
+        assert_eq!(state.points_per_commit(), 2);
+
+        state.set_bonus_level("commit_value", 5);
+        assert_eq!(state.points_per_commit(), 5);
     }
 
     #[test]
@@ -278,9 +293,10 @@ mod tests {
 
         let mut state = State {
             party_points: 42,
-            commit_value_level: 3,
             ..State::default()
         };
+        state.set_bonus_level("commit_value", 3);
+        state.set_bonus_level("first_push", 2);
         state.unlock_feature(PartyFeature::Exclamations);
 
         save_to_path(&state, &path).unwrap();

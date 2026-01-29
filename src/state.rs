@@ -43,17 +43,12 @@ pub enum Color {
     // Blue, Green, ..., Rainbow, ...
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ColorSelection {
+    #[default]
     White,
     Specific(Color),
     Random,
-}
-
-impl Default for ColorSelection {
-    fn default() -> Self {
-        Self::White
-    }
 }
 
 // costs for unlocking each party feature

@@ -29,14 +29,9 @@ const GRID_ITEMS: [(StoreRoute, &str, &str); 4] = [
     ),
 ];
 
+#[derive(Default)]
 pub struct GridView {
     selection: usize,
-}
-
-impl Default for GridView {
-    fn default() -> Self {
-        Self { selection: 0 }
-    }
 }
 
 impl View for GridView {
@@ -91,7 +86,7 @@ impl View for GridView {
                 ViewResult::Redraw
             }
             Action::Right => {
-                if self.selection % 2 == 0 {
+                if self.selection.is_multiple_of(2) {
                     self.selection += 1;
                 }
                 ViewResult::Redraw

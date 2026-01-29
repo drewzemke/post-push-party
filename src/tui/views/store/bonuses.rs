@@ -150,18 +150,10 @@ impl<'a> Widget for BonusItem<'a> {
     }
 }
 
+#[derive(Default)]
 pub struct BonusesView {
     selection: usize,
     scroll_state: ScrollViewState,
-}
-
-impl Default for BonusesView {
-    fn default() -> Self {
-        Self {
-            selection: 0,
-            scroll_state: ScrollViewState::default(),
-        }
-    }
 }
 
 impl BonusesView {

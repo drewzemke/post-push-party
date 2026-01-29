@@ -96,18 +96,10 @@ impl Widget for UpgradeItem {
     }
 }
 
+#[derive(Default)]
 pub struct UpgradesView {
     selection: usize,
     scroll_state: ScrollViewState,
-}
-
-impl Default for UpgradesView {
-    fn default() -> Self {
-        Self {
-            selection: 0,
-            scroll_state: ScrollViewState::default(),
-        }
-    }
 }
 
 impl UpgradesView {

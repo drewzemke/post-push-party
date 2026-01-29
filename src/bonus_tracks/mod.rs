@@ -1,8 +1,10 @@
 mod commit_value;
 mod first_push;
+mod sniper;
 
 pub use commit_value::CommitValue;
 pub use first_push::FirstPush;
+pub use sniper::Sniper;
 
 use crate::history::PushHistory;
 
@@ -81,9 +83,11 @@ pub trait BonusTrack: Sync {
 // static instances for ALL_TRACKS
 static COMMIT_VALUE: CommitValue = CommitValue;
 static FIRST_PUSH: FirstPush = FirstPush;
+static SNIPER: Sniper = Sniper;
 
 /// all bonus tracks in display order
 pub static ALL_TRACKS: &[&'static dyn BonusTrack] = &[
     &COMMIT_VALUE,
     &FIRST_PUSH,
+    &SNIPER,
 ];

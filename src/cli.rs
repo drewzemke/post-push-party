@@ -37,6 +37,9 @@ pub enum Command {
     Push {
         /// number of commits to simulate
         commits: u64,
+        /// lines changed per commit (comma-separated, cycles if fewer than commits)
+        #[arg(long, value_delimiter = ',')]
+        lines: Option<Vec<u64>>,
     },
     /// reset all state to defaults (dev only)
     #[cfg(feature = "dev")]

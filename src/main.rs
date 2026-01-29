@@ -30,7 +30,7 @@ fn main() {
                 let clock = scoring::now();
 
                 let breakdown = scoring::calculate_points(
-                    push.commits_counted,
+                    &push.commits,
                     &s,
                     &history,
                     &clock,
@@ -57,7 +57,7 @@ fn main() {
         #[cfg(feature = "dev")]
         Some(Command::Cheat { amount }) => dev::cheat(amount),
         #[cfg(feature = "dev")]
-        Some(Command::Push { commits }) => dev::push(commits),
+        Some(Command::Push { commits, lines }) => dev::push(commits, lines),
         #[cfg(feature = "dev")]
         Some(Command::Reset) => dev::reset(),
         #[cfg(feature = "dev")]

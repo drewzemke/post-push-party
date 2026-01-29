@@ -54,8 +54,17 @@ pub fn snapshot_refs(repo_path: &std::path::Path) {
     let _ = save_refs(&branch_refs);
 }
 
+/// data about a single commit in a push
+#[derive(Debug, Clone)]
+pub struct CommitInfo {
+    pub sha: String,
+    pub lines_changed: u64,
+    pub timestamp: u64,
+}
+
 #[derive(Debug)]
 pub struct PushInfo {
+    pub commits: Vec<CommitInfo>,
     pub commits_pushed: u64,
     pub commits_counted: u64,
 }
@@ -128,13 +137,26 @@ pub fn run() -> Option<PushInfo> {
     let total_commits = commits.len();
     crate::debug_log!("hook: {} commits to check", total_commits);
 
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
     let mut new_patch_ids = Vec::new();
+    let mut new_commits = Vec::new();
+
     for sha in commits {
         if let Some(patch_id) = git::get_patch_id(&repo_path, &sha) {
             if !seen.contains(&patch_id) {
-                crate::debug_log!("hook: new commit {} ({})", sha, patch_id);
+                let lines_changed = git::get_lines_changed(&repo_path, &sha).unwrap_or(0);
+                crate::debug_log!("hook: new commit {} ({}) - {} lines", sha, patch_id, lines_changed);
                 seen.insert(patch_id.clone());
                 new_patch_ids.push(patch_id);
+                new_commits.push(CommitInfo {
+                    sha,
+                    lines_changed,
+                    timestamp: now,
+                });
             }
         }
     }
@@ -145,7 +167,7 @@ pub fn run() -> Option<PushInfo> {
     }
     let _ = save_refs(&branch_refs);
 
-    let commits_counted = new_patch_ids.len() as u64;
+    let commits_counted = new_commits.len() as u64;
 
     // persist new patch-ids (if any)
     if !new_patch_ids.is_empty() {
@@ -160,6 +182,7 @@ pub fn run() -> Option<PushInfo> {
     crate::debug_log!("hook: {} new commits", commits_counted);
 
     Some(PushInfo {
+        commits: new_commits,
         commits_pushed: total_commits as u64,
         commits_counted,
     })

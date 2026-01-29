@@ -1,4 +1,4 @@
-use crate::scoring::PointsBreakdown;
+use crate::scoring::{AppliedBonus, PointsBreakdown};
 use crate::state::{self, PartyFeature};
 
 const EXCLAMATIONS: &[&str] = &[
@@ -90,9 +90,18 @@ pub fn display(breakdown: &PointsBreakdown) {
             breakdown.commits, commit_word, breakdown.points_per_commit, point_word
         );
 
-        // multiplier bonuses
+        // flat bonuses first (they add to base)
         for bonus in &breakdown.applied {
-            println!("   × {} {}", bonus.multiplier, bonus.name);
+            if let AppliedBonus::FlatBonus { name, points, count } = bonus {
+                println!("   + {} {} ({} ×)", points, name, count);
+            }
+        }
+
+        // multiplier bonuses (they multiply the total)
+        for bonus in &breakdown.applied {
+            if let AppliedBonus::Multiplier { name, value } = bonus {
+                println!("   × {} {}", value, name);
+            }
         }
         println!();
     } else {

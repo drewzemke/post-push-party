@@ -2,13 +2,14 @@
 
 use crate::bonus_tracks::{Clock, Commit, Reward, ALL_TRACKS};
 use crate::history::PushHistory;
+use crate::hook::CommitInfo;
 use crate::state::State;
 
 /// A bonus that was applied to this push.
 #[derive(Debug, Clone)]
-pub struct AppliedBonus {
-    pub name: &'static str,
-    pub multiplier: u32,
+pub enum AppliedBonus {
+    Multiplier { name: &'static str, value: u32 },
+    FlatBonus { name: &'static str, points: u64, count: u32 },
 }
 
 /// Breakdown of points earned for a push.
@@ -16,6 +17,7 @@ pub struct AppliedBonus {
 pub struct PointsBreakdown {
     pub commits: u64,
     pub points_per_commit: u64,
+    pub flat_bonus_total: u64,
     pub total_multiplier: u64,
     pub total: u64,
     pub applied: Vec<AppliedBonus>,
@@ -23,24 +25,26 @@ pub struct PointsBreakdown {
 
 /// Calculate points earned for a push.
 pub fn calculate_points(
-    commits_counted: u64,
+    commit_info: &[CommitInfo],
     state: &State,
     history: &PushHistory,
     clock: &Clock,
 ) -> PointsBreakdown {
-    // FIXME: build fake commit data for now (we don't have real line counts yet)
-    let commits: Vec<Commit> = (0..commits_counted)
-        .map(|i| Commit {
-            sha: format!("fake{}", i),
-            lines_changed: 0,
-            timestamp: clock.now,
+    // convert CommitInfo to bonus_tracks::Commit
+    let commits: Vec<Commit> = commit_info
+        .iter()
+        .map(|c| Commit {
+            sha: c.sha.clone(),
+            lines_changed: c.lines_changed,
+            timestamp: c.timestamp,
         })
         .collect();
 
     let points_per_commit = state.points_per_commit();
-    let base_points = commits_counted * points_per_commit;
+    let base_points = commits.len() as u64 * points_per_commit;
 
     let mut total_multiplier: u64 = 1;
+    let mut flat_bonus_total: u64 = 0;
     let mut applied = Vec::new();
 
     for track in ALL_TRACKS.iter() {
@@ -59,20 +63,36 @@ pub fn calculate_points(
             continue;
         }
 
-        if let Some(Reward::Multiplier(m)) = track.reward_at_level(level) {
-            total_multiplier *= m as u64;
-            applied.push(AppliedBonus {
-                name: track.name(),
-                multiplier: m,
-            });
+        match track.reward_at_level(level) {
+            Some(Reward::Multiplier(m)) => {
+                total_multiplier *= m as u64;
+                applied.push(AppliedBonus::Multiplier {
+                    name: track.name(),
+                    value: m,
+                });
+            }
+            Some(Reward::FlatPoints(pts)) => {
+                let bonus = pts * count as u64;
+                flat_bonus_total += bonus;
+                applied.push(AppliedBonus::FlatBonus {
+                    name: track.name(),
+                    points: bonus,
+                    count,
+                });
+            }
+            None => {}
         }
     }
 
+    // formula: final_points = (base_points + flat_bonus_total) * total_multiplier
+    let total = (base_points + flat_bonus_total) * total_multiplier;
+
     PointsBreakdown {
-        commits: commits_counted,
+        commits: commits.len() as u64,
         points_per_commit,
+        flat_bonus_total,
         total_multiplier,
-        total: base_points * total_multiplier,
+        total,
         applied,
     }
 }

@@ -41,4 +41,12 @@ pub enum Command {
     /// reset all state to defaults (dev only)
     #[cfg(feature = "dev")]
     Reset,
+    /// set a bonus track to a specific level (dev only)
+    #[cfg(feature = "dev")]
+    Unlock {
+        /// track id (e.g. "first_push")
+        track: String,
+        /// level to set (1 = first tier)
+        level: u32,
+    },
 }

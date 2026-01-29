@@ -56,6 +56,22 @@ pub struct Tier {
 }
 ```
 
+### Clock
+
+Time context for bonus calculations, passed explicitly for testability.
+
+```rust
+pub struct Clock {
+    pub now: u64,           // unix timestamp
+    pub tz_offset_secs: i32, // positive = east of UTC, negative = west
+}
+
+impl Clock {
+    pub fn day_of(&self, timestamp: u64) -> i64;  // local day number
+    pub fn today(&self) -> i64;                    // day_of(self.now)
+}
+```
+
 ### BonusTrack Trait
 
 ```rust
@@ -67,21 +83,19 @@ pub trait BonusTrack {
     fn description(&self) -> &'static str;
 
     /// Iterator over tiers (cost, reward). May be infinite.
-    fn tiers(&self) -> Box<dyn Iterator<Item = Tier>>;
+    fn tiers(&self) -> impl Iterator<Item = Tier>;
 
     /// How many times does this bonus apply to the current push?
     /// Returns 0 if it doesn't apply, 1+ if it does.
     /// For multipliers, any non-zero count means the multiplier applies once.
     /// For flat bonuses, the count is multiplied by the flat amount.
-    fn applies(&self, commits: &[Commit], history: &PushHistory, now: DateTime) -> u32;
+    fn applies(&self, commits: &[Commit], history: &PushHistory, clock: &Clock) -> u32;
 
     /// What reward does the user get at the given level?
     /// Level 0 = not unlocked, level 1 = first tier, etc.
     fn reward_at_level(&self, level: u32) -> Option<Reward>;
 }
 ```
-
-Note: `now: DateTime` is passed explicitly to make testing easier (no hidden dependency on system time).
 
 ## PushHistory Helpers
 

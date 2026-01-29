@@ -2,6 +2,26 @@ mod first_push;
 
 use crate::history::PushHistory;
 
+/// time context for bonus calculations
+#[derive(Debug, Clone, Copy)]
+pub struct Clock {
+    pub now: u64,
+    pub tz_offset_secs: i32,
+}
+
+impl Clock {
+    /// convert a utc timestamp to local day number
+    pub fn day_of(&self, timestamp: u64) -> i64 {
+        const SECONDS_PER_DAY: i64 = 86400;
+        (timestamp as i64 + self.tz_offset_secs as i64) / SECONDS_PER_DAY
+    }
+
+    /// local day number for `now`
+    pub fn today(&self) -> i64 {
+        self.day_of(self.now)
+    }
+}
+
 /// data about a single commit in the current push
 #[derive(Debug, Clone)]
 pub struct Commit {
@@ -33,13 +53,13 @@ pub trait BonusTrack {
     fn description(&self) -> &'static str;
 
     /// iterator over tiers (cost, reward). may be infinite.
-    fn tiers(&self) -> Box<dyn Iterator<Item = Tier>>;
+    fn tiers(&self) -> impl Iterator<Item = Tier>;
 
     /// how many times does this bonus apply to the current push?
     /// returns 0 if it doesn't apply, 1+ if it does.
     /// for multipliers, any non-zero count means the multiplier applies once.
     /// for flat bonuses, the count is multiplied by the flat amount.
-    fn applies(&self, commits: &[Commit], history: &PushHistory, now: u64) -> u32;
+    fn applies(&self, commits: &[Commit], history: &PushHistory, clock: &Clock) -> u32;
 
     /// what reward does the user get at the given level?
     /// level 0 = not unlocked, level 1 = first tier, etc.

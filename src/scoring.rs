@@ -4,14 +4,31 @@ use crate::bonus_tracks::{Clock, Commit, Reward, ALL_TRACKS};
 use crate::history::PushHistory;
 use crate::state::State;
 
+/// A bonus that was applied to this push.
+#[derive(Debug, Clone)]
+pub struct AppliedBonus {
+    pub name: &'static str,
+    pub multiplier: u32,
+}
+
+/// Breakdown of points earned for a push.
+#[derive(Debug, Clone)]
+pub struct PointsBreakdown {
+    pub commits: u64,
+    pub points_per_commit: u64,
+    pub total_multiplier: u64,
+    pub total: u64,
+    pub applied: Vec<AppliedBonus>,
+}
+
 /// Calculate points earned for a push.
 pub fn calculate_points(
     commits_counted: u64,
     state: &State,
     history: &PushHistory,
     clock: &Clock,
-) -> u64 {
-    // build fake commit data for now (we don't have real line counts yet)
+) -> PointsBreakdown {
+    // FIXME: build fake commit data for now (we don't have real line counts yet)
     let commits: Vec<Commit> = (0..commits_counted)
         .map(|i| Commit {
             sha: format!("fake{}", i),
@@ -20,33 +37,44 @@ pub fn calculate_points(
         })
         .collect();
 
-    // base points from commit value
-    let base_points = commits_counted * state.points_per_commit();
+    let points_per_commit = state.points_per_commit();
+    let base_points = commits_counted * points_per_commit;
 
-    // calculate multiplier from all applicable bonus tracks
     let mut total_multiplier: u64 = 1;
+    let mut applied = Vec::new();
 
     for track in ALL_TRACKS.iter() {
+        // skip commit_value, it's handled separately
+        if track.id() == "commit_value" {
+            continue;
+        }
+
         let level = state.bonus_level(track.id());
         if level == 0 {
-            continue; // not unlocked
+            continue;
         }
 
         let count = track.applies(&commits, history, clock);
         if count == 0 {
-            continue; // doesn't apply to this push
+            continue;
         }
 
-        if let Some(reward) = track.reward_at_level(level) {
-            if let Reward::Multiplier(m) = reward {
-                total_multiplier *= m as u64;
-            }
-            // FlatPoints bonuses would be added here when we have tracks that use them
-            // (CommitValue is handled separately via points_per_commit)
+        if let Some(Reward::Multiplier(m)) = track.reward_at_level(level) {
+            total_multiplier *= m as u64;
+            applied.push(AppliedBonus {
+                name: track.name(),
+                multiplier: m,
+            });
         }
     }
 
-    base_points * total_multiplier
+    PointsBreakdown {
+        commits: commits_counted,
+        points_per_commit,
+        total_multiplier,
+        total: base_points * total_multiplier,
+        applied,
+    }
 }
 
 /// Create a Clock for the current moment.

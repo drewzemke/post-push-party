@@ -21,8 +21,8 @@ pub fn push(commits: u64) {
     let hist = history::load();
     let clock = scoring::now();
 
-    let points_earned = scoring::calculate_points(commits, &s, &hist, &clock);
-    s.party_points += points_earned;
+    let breakdown = scoring::calculate_points(commits, &s, &hist, &clock);
+    s.party_points += breakdown.total;
 
     if let Err(e) = state::save(&s) {
         eprintln!("warning: could not save state: {e}");
@@ -31,7 +31,7 @@ pub fn push(commits: u64) {
     // record this push in history (like the real hook does)
     history::record("dev://fake", "main", commits);
 
-    party::display(&s, commits, commits, points_earned);
+    party::display(&breakdown);
 }
 
 pub fn reset() {

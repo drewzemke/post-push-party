@@ -1,4 +1,5 @@
-use crate::state::{PartyFeature, State};
+use crate::scoring::PointsBreakdown;
+use crate::state::{self, PartyFeature};
 
 const EXCLAMATIONS: &[&str] = &[
     "NICE!",
@@ -43,12 +44,13 @@ fn random_pick<T>(items: &[T]) -> &T {
     items.choose(&mut rand::rng()).unwrap()
 }
 
-pub fn display(state: &State, commits_pushed: u64, commits_counted: u64, points_earned: u64) {
+pub fn display(breakdown: &PointsBreakdown) {
+    let state = state::load();
     let use_exclamations = state.is_enabled(PartyFeature::Exclamations);
     let use_quotes = state.is_enabled(PartyFeature::Quotes);
     let use_big_text = state.is_enabled(PartyFeature::BigText);
 
-    let use_color = use_exclamations || use_big_text; // color when exclamations or big text
+    let use_color = use_exclamations || use_big_text;
     let color = if use_color { random_pick(COLORS) } else { "" };
     let reset = if use_color { RESET } else { "" };
     let bold = if use_color { BOLD } else { "" };
@@ -72,31 +74,31 @@ pub fn display(state: &State, commits_pushed: u64, commits_counted: u64, points_
         println!();
     }
 
-    // summary (always shown)
-    if points_earned > 0 {
-        if use_big_text {
-            println!("🎉 +{} party points!", points_earned);
-        } else {
-            println!(
-                "{}🎉 You earned {} party points!{}",
-                color, points_earned, reset
-            );
-        }
-        if commits_pushed != commits_counted {
-            println!(
-                "   ({} commits pushed, {} counted)",
-                commits_pushed, commits_counted
-            );
-        } else if commits_counted > 1 {
-            println!("   ({} commits)", commits_counted);
-        }
-    } else {
+    // main points line
+    if breakdown.total > 0 {
         println!(
-            "{}🎉 Pushed {} commits! (already counted){}",
-            color, commits_pushed, reset
+            "{}🎉 You earned {} party points!{}",
+            color, breakdown.total, reset
         );
+        println!();
+
+        // breakdown: commits × points per commit
+        let commit_word = if breakdown.commits == 1 { "commit" } else { "commits" };
+        let point_word = if breakdown.points_per_commit == 1 { "point" } else { "points" };
+        println!(
+            "   {} {} × {} {} per commit",
+            breakdown.commits, commit_word, breakdown.points_per_commit, point_word
+        );
+
+        // multiplier bonuses
+        for bonus in &breakdown.applied {
+            println!("   × {} {}", bonus.multiplier, bonus.name);
+        }
+        println!();
+    } else {
+        println!("{}🎉 Pushed! (already counted){}", color, reset);
+        println!();
     }
-    println!();
 
     // quote
     if use_quotes {

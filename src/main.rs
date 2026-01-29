@@ -29,19 +29,19 @@ fn main() {
                 let history = history::load();
                 let clock = scoring::now();
 
-                let points_earned = scoring::calculate_points(
+                let breakdown = scoring::calculate_points(
                     push.commits_counted,
                     &s,
                     &history,
                     &clock,
                 );
-                s.party_points += points_earned;
+                s.party_points += breakdown.total;
 
                 if let Err(e) = state::save(&s) {
                     eprintln!("warning: could not save state: {e}");
                 }
 
-                party::display(&s, push.commits_pushed, push.commits_counted, points_earned);
+                party::display(&breakdown);
             }
         }
         Some(Command::Dump) => state::dump(),

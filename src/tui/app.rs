@@ -41,6 +41,10 @@ impl App {
         self.tick = self.tick.wrapping_add(1);
     }
 
+    pub fn save(&self) {
+        let _ = state::save(&self.state);
+    }
+
     pub fn handle(&mut self, action: Action) -> bool {
         // clear message on any action
         self.message = None;
@@ -53,9 +57,7 @@ impl App {
         };
 
         match result {
-            ViewResult::Redraw => {
-                let _ = state::save(&self.state);
-            }
+            ViewResult::Redraw => {}
 
             ViewResult::Navigate(route) => {
                 // if navigating within store, update store's sub-route
@@ -67,6 +69,7 @@ impl App {
 
             ViewResult::Message(ty, msg) => {
                 self.message = Some((ty, msg));
+                let _ = state::save(&self.state);
             }
 
             ViewResult::Exit => return false,

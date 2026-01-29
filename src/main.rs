@@ -1,3 +1,4 @@
+mod bonus_tracks;
 mod cli;
 #[cfg(feature = "dev")]
 mod dev;

@@ -5,16 +5,19 @@ use super::{BonusTrack, Clock, Commit, Reward, Tier};
 /// bonus for the first push of each calendar day
 pub struct FirstPush;
 
-// (cost, multiplier)
-const TIERS: &[(u64, u32)] = &[
-    (100, 2),
-    (500, 3),
-    (1500, 4),
-    (5000, 5),
-    (15000, 6),
+static TIERS: &[Tier] = &[
+    Tier { cost: 100, reward: Reward::Multiplier(2) },
+    Tier { cost: 500, reward: Reward::Multiplier(3) },
+    Tier { cost: 1500, reward: Reward::Multiplier(4) },
+    Tier { cost: 5000, reward: Reward::Multiplier(5) },
+    Tier { cost: 15000, reward: Reward::Multiplier(6) },
 ];
 
 impl BonusTrack for FirstPush {
+    fn id(&self) -> &'static str {
+        "first_push"
+    }
+
     fn name(&self) -> &'static str {
         "First Push of the Day"
     }
@@ -23,11 +26,8 @@ impl BonusTrack for FirstPush {
         "Earn bonus points on your first push each day."
     }
 
-    fn tiers(&self) -> impl Iterator<Item = Tier> {
-        TIERS.iter().map(|&(cost, mult)| Tier {
-            cost,
-            reward: Reward::Multiplier(mult),
-        })
+    fn tiers(&self) -> &'static [Tier] {
+        TIERS
     }
 
     fn applies(&self, _commits: &[Commit], history: &PushHistory, clock: &Clock) -> u32 {
@@ -82,6 +82,11 @@ mod tests {
     const UTC_MINUS_5: i32 = -5 * 3600;
 
     #[test]
+    fn has_correct_id() {
+        assert_eq!(FirstPush.id(), "first_push");
+    }
+
+    #[test]
     fn respects_local_timezone() {
         // push at 11pm local time - in UTC this is already Jan 29,
         // but in local time it's still Jan 28
@@ -127,8 +132,7 @@ mod tests {
 
     #[test]
     fn tiers_returns_expected_values() {
-        let bonus = FirstPush;
-        let tiers: Vec<_> = bonus.tiers().collect();
+        let tiers = FirstPush.tiers();
 
         assert_eq!(tiers.len(), 5);
         assert_eq!(tiers[0].cost, 100);
@@ -139,12 +143,10 @@ mod tests {
 
     #[test]
     fn reward_at_level_returns_correct_reward() {
-        let bonus = FirstPush;
-
-        assert_eq!(bonus.reward_at_level(0), None);
-        assert_eq!(bonus.reward_at_level(1), Some(Reward::Multiplier(2)));
-        assert_eq!(bonus.reward_at_level(3), Some(Reward::Multiplier(4)));
-        assert_eq!(bonus.reward_at_level(5), Some(Reward::Multiplier(6)));
-        assert_eq!(bonus.reward_at_level(6), None); // beyond max tier
+        assert_eq!(FirstPush.reward_at_level(0), None);
+        assert_eq!(FirstPush.reward_at_level(1), Some(Reward::Multiplier(2)));
+        assert_eq!(FirstPush.reward_at_level(3), Some(Reward::Multiplier(4)));
+        assert_eq!(FirstPush.reward_at_level(5), Some(Reward::Multiplier(6)));
+        assert_eq!(FirstPush.reward_at_level(6), None); // beyond max tier
     }
 }

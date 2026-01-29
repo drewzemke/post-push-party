@@ -49,6 +49,7 @@ pub fn run() -> io::Result<()> {
         }
     }
 
+    app.save();
     io::stdout().execute(LeaveAlternateScreen)?;
     disable_raw_mode()?;
     Ok(())

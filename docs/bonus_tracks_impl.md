@@ -97,9 +97,9 @@ pub trait BonusTrack {
 }
 ```
 
-## PushHistory Helpers
+## PushHistory Helpers [TODO]
 
-Add convenience methods to `PushHistory` for common queries:
+Add convenience methods to `PushHistory` for common queries (needed for remaining bonuses):
 
 ```rust
 impl PushHistory {
@@ -120,7 +120,7 @@ impl PushHistory {
 }
 ```
 
-## Git Module Additions
+## Git Module Additions [DONE]
 
 Add function to get lines changed for a commit:
 
@@ -131,17 +131,23 @@ pub fn get_lines_changed(repo_path: &Path, sha: &str) -> Option<u64>;
 
 Implementation: `git show --stat --format="" <sha>` and parse the summary line.
 
-## Hook Changes
+## Hook Changes [DONE]
 
 Enhance `hook::run()` to:
-1. Build `Vec<Commit>` with sha, lines_changed, and timestamp for each new commit
-2. Return this along with the counts (or replace `PushInfo` with richer struct)
+1. Build `Vec<CommitInfo>` with sha, lines_changed, and timestamp for each new commit
+2. Return this along with the counts
 
 ```rust
-pub struct PushResult {
-    pub commits: Vec<Commit>,
-    pub commits_pushed: u64,   // total in push (including dupes)
-    pub commits_counted: u64,  // new commits (awarded points)
+pub struct CommitInfo {
+    pub sha: String,
+    pub lines_changed: u64,
+    pub timestamp: u64,
+}
+
+pub struct PushInfo {
+    pub commits: Vec<CommitInfo>,
+    pub commits_pushed: u64,
+    pub commits_counted: u64,
 }
 ```
 
@@ -150,8 +156,9 @@ pub struct PushResult {
 ```
 src/bonus_tracks/
   mod.rs           # trait definition, Commit, Reward, Tier types
-  commit_value.rs  # Base points per commit (users start at tier 1)
-  first_push.rs    # First Push of the Day
+  commit_value.rs  # [DONE] Base points per commit (users start at tier 1)
+  first_push.rs    # [DONE] First Push of the Day
+  sniper.rs        # [DONE] Commit with exactly 1 line changed
   weekend.rs       # Weekend Warrior
   friday.rs        # Friday Afternoon Deploy
   big_push.rs      # Big Push (10+ commits)
@@ -159,7 +166,6 @@ src/bonus_tracks/
   rapid_fire.rs    # Push twice within an hour
   spread_love.rs   # 3+ repos in a day
   loc_champion.rs  # Commit with 1000+ lines changed
-  bug_sniper.rs    # Commit with exactly 1 line changed
 ```
 
 Each file contains:
@@ -169,18 +175,18 @@ Each file contains:
 
 ## Bonus Tracks Summary
 
-| Bonus                   | Trigger                              | Reward     | Notes                 |
-|-------------------------|--------------------------------------|------------|-----------------------|
-| Commit Value            | Always (per commit)                  | Flat       | Users start at tier 1 |
-| First Push of the Day   | First push each calendar day         | Multiplier |                       |
-| Weekend Warrior         | Push on Saturday or Sunday           | Multiplier |                       |
-| Friday Afternoon Deploy | Push on Friday after 3pm             | Multiplier |                       |
-| Big Push                | 10+ commits in one push              | Multiplier |                       |
-| Streak                  | 3+ consecutive days pushing          | Multiplier |                       |
-| Rapid Fire              | Second+ push within an hour          | Multiplier |                       |
-| Spread the Love         | 3+ different repos in a day          | Multiplier |                       |
-| LoC Champion            | Any commit with 1000+ lines changed  | Flat       | Per-commit            |
-| Bug Sniper              | Any commit with exactly 1 line       | Flat       | Per-commit            |
+| Bonus                   | Trigger                              | Reward     | Status |
+|-------------------------|--------------------------------------|------------|--------|
+| Commit Value            | Always (per commit)                  | Flat       | ✓ Done |
+| First Push of the Day   | First push each calendar day         | Multiplier | ✓ Done |
+| Sniper                  | Any commit with exactly 1 line       | Flat       | ✓ Done |
+| Weekend Warrior         | Push on Saturday or Sunday           | Multiplier |        |
+| Friday Afternoon Deploy | Push on Friday after 3pm             | Multiplier |        |
+| Big Push                | 10+ commits in one push              | Multiplier |        |
+| Streak                  | 3+ consecutive days pushing          | Multiplier |        |
+| Rapid Fire              | Second+ push within an hour          | Multiplier |        |
+| Spread the Love         | 3+ different repos in a day          | Multiplier |        |
+| LoC Champion            | Any commit with 1000+ lines changed  | Flat       |        |
 
 ## Calculation Flow
 

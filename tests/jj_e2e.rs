@@ -291,3 +291,48 @@ fn init_after_existing_commits_only_counts_new() {
         "init after existing commits should not retroactively award points"
     );
 }
+
+#[test]
+fn duplicate_feature_onto_fetched_trunk_only_awards_for_my_work() {
+    let env = jj_env();
+    env.party(&["init"]);
+
+    // push initial commit to main
+    env.vcs.commit_file("README.md", "# Test", "initial commit");
+    env.vcs.push();
+
+    // create and push a feature branch
+    env.vcs.cmd(&["new", "main"]);
+    env.vcs
+        .commit_file("feature.rs", "// feature", "feature work");
+    env.vcs.cmd(&["bookmark", "create", "feature", "-r", "@-"]);
+    env.vcs.push_branch("feature");
+    let points_after_feature = env.get_points();
+
+    // someone else pushes to main (multiple commits to simulate "behind by many")
+    env.simulate_external_push_to_main("external1.rs", "// ext1", "external commit 1");
+    env.simulate_external_push_to_main("external2.rs", "// ext2", "external commit 2");
+    env.simulate_external_push_to_main("external3.rs", "// ext3", "external commit 3");
+
+    // I fetch their changes
+    env.vcs.fetch();
+
+    // I duplicate my feature commit onto the new main (jj duplicate style)
+    // This creates a new commit with the same content but different parents
+    env.vcs.cmd(&["new", "main@origin"]);
+    env.vcs
+        .commit_file("feature.rs", "// feature", "feature work");
+    env.vcs
+        .cmd(&["bookmark", "set", "feature", "-r", "@-", "--allow-backwards"]);
+
+    // push the feature branch (which is now based on updated main)
+    env.vcs.push_branch("feature");
+
+    // should NOT get credit for external commits, only 0 for the duplicate
+    // (same patch-id as original feature commit)
+    assert_eq!(
+        env.get_points(),
+        points_after_feature,
+        "duplicating feature onto fetched trunk should not award points for fetched commits"
+    );
+}

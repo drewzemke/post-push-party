@@ -67,6 +67,8 @@ pub struct PushInfo {
     pub commits: Vec<CommitInfo>,
     pub commits_pushed: u64,
     pub commits_counted: u64,
+    pub remote_url: String,
+    pub branch: String,
 }
 
 pub fn run() -> Option<PushInfo> {
@@ -175,15 +177,15 @@ pub fn run() -> Option<PushInfo> {
         let _ = patch_ids::save(&patch_store);
     }
 
-    if let Some(branch) = pushed_branch {
-        crate::history::record(&remote_url, &branch, commits_counted);
-    }
-
     crate::debug_log!("hook: {} new commits", commits_counted);
 
+    // note: history::record() must be called by the caller AFTER scoring,
+    // so that first_push_of_day bonus can see history without the current push
     Some(PushInfo {
         commits: new_commits,
         commits_pushed: total_commits as u64,
         commits_counted,
+        remote_url,
+        branch: pushed_branch.unwrap_or_default(),
     })
 }

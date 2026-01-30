@@ -257,3 +257,26 @@ fn init_after_existing_commits_only_counts_new() {
         "init after existing commits should not retroactively award points"
     );
 }
+
+#[test]
+#[cfg(feature = "dev")]
+fn first_push_of_day_bonus_applies() {
+    let env = git_env();
+    env.party(&["init"]);
+
+    // unlock first_push bonus at level 1 (2x multiplier)
+    env.party(&["unlock", "first_push", "1"]);
+
+    env.vcs.commit_file("README.md", "# Test", "initial commit");
+    env.vcs.ensure_main();
+    env.vcs.push();
+
+    // with first_push bonus at level 1 (2x multiplier):
+    // 10 starter + (1 commit × 2) = 12 points
+    // BUG: currently gives 10 + 1 = 11 because history is recorded before scoring
+    assert_eq!(
+        env.get_points(),
+        12,
+        "first push of day should apply 2x multiplier"
+    );
+}

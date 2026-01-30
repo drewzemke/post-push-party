@@ -81,6 +81,59 @@ pub fn list_commits_in_range(repo_path: &Path, old_sha: &str, new_sha: &str) -> 
     }
 }
 
+/// Check if a commit is reachable from any remote branch OTHER than the specified ones.
+/// Used to filter out commits that came from fetch but are in the push range due to rebasing.
+pub fn is_reachable_from_other_remote(
+    repo_path: &Path,
+    sha: &str,
+    exclude_branches: &[&str],
+) -> bool {
+    // Get all remote branches except the ones we're pushing
+    let refs_output = Command::new("git")
+        .args([
+            "for-each-ref",
+            "--format=%(refname)",
+            "refs/remotes/origin/",
+        ])
+        .current_dir(repo_path)
+        .output();
+
+    let other_refs: Vec<String> = match refs_output {
+        Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout)
+            .lines()
+            .filter(|r| {
+                let dominated = exclude_branches
+                    .iter()
+                    .any(|b| r.ends_with(&format!("/{}", b)));
+                !dominated && !r.ends_with("/HEAD")
+            })
+            .map(|s| s.to_string())
+            .collect(),
+        _ => return false,
+    };
+
+    if other_refs.is_empty() {
+        return false;
+    }
+
+    // Check if commit is reachable from any of these refs
+    // git merge-base --is-ancestor <sha> <ref> returns 0 if sha is ancestor of ref
+    for ref_name in &other_refs {
+        let result = Command::new("git")
+            .args(["merge-base", "--is-ancestor", sha, ref_name])
+            .current_dir(repo_path)
+            .output();
+
+        if let Ok(o) = result {
+            if o.status.success() {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
 /// List commits on the given branches that aren't reachable from any other remote branch.
 /// Used for first-time pushes where we don't have an old SHA.
 pub fn list_unique_commits(repo_path: &Path, branches: &[&str]) -> Vec<String> {

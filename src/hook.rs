@@ -89,7 +89,7 @@ pub fn run() -> Option<PushInfo> {
     // collect commits from pushed branches
     let mut commits = Vec::new();
     let mut first_time_branches = Vec::new();
-    let mut pushed_branch = None;
+    let mut pushed_branches = Vec::new();
 
     for (branch, new_sha) in &current_refs {
         let local_sha = git::get_local_ref(&repo_path, branch);
@@ -107,9 +107,7 @@ pub fn run() -> Option<PushInfo> {
             old_sha,
             new_sha
         );
-        if pushed_branch.is_none() {
-            pushed_branch = Some(branch.clone());
-        }
+        pushed_branches.push(branch.clone());
 
         match old_sha {
             Some(old) => {
@@ -147,7 +145,18 @@ pub fn run() -> Option<PushInfo> {
     let mut new_patch_ids = Vec::new();
     let mut new_commits = Vec::new();
 
+    // build list of branches to exclude from filtering (all branches we're pushing)
+    let exclude_branches: Vec<&str> = pushed_branches.iter().map(|s| s.as_str()).collect();
+
     for sha in commits {
+        // skip commits reachable from other remote branches (handles stale refs after jj fetch)
+        if !exclude_branches.is_empty()
+            && git::is_reachable_from_other_remote(&repo_path, &sha, &exclude_branches)
+        {
+            crate::debug_log!("hook: skipping {} (reachable from other remote)", sha);
+            continue;
+        }
+
         if let Some(patch_id) = git::get_patch_id(&repo_path, &sha) {
             if !seen.contains(&patch_id) {
                 let lines_changed = git::get_lines_changed(&repo_path, &sha).unwrap_or(0);
@@ -186,6 +195,6 @@ pub fn run() -> Option<PushInfo> {
         commits_pushed: total_commits as u64,
         commits_counted,
         remote_url,
-        branch: pushed_branch.unwrap_or_default(),
+        branch: pushed_branches.into_iter().next().unwrap_or_default(),
     })
 }

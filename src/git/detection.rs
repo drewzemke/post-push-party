@@ -1,10 +1,10 @@
-//! Hook entry point for detecting pushes and counting new commits.
+//! Push detection: identifies new commits by comparing remote refs and filtering via patch-ids.
 
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::git;
+use crate::git::{commands, CommitInfo, PushInfo};
 
 /// Tracks last-known SHA per branch per repo.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -36,11 +36,11 @@ fn save_refs(refs: &BranchRefs) -> std::io::Result<()> {
 /// Snapshot current remote refs so future pushes are calculated correctly.
 /// Called during init to avoid crediting pre-existing commits.
 pub fn snapshot_refs(repo_path: &std::path::Path) {
-    let Some(remote_url) = git::get_remote_url(repo_path) else {
+    let Some(remote_url) = commands::get_remote_url(repo_path) else {
         return;
     };
 
-    let current_refs = git::get_all_remote_refs(repo_path);
+    let current_refs = commands::get_all_remote_refs(repo_path);
     if current_refs.is_empty() {
         return;
     }
@@ -53,30 +53,14 @@ pub fn snapshot_refs(repo_path: &std::path::Path) {
     let _ = save_refs(&branch_refs);
 }
 
-/// data about a single commit in a push
-#[derive(Debug, Clone)]
-pub struct CommitInfo {
-    pub sha: String,
-    pub lines_changed: u64,
-    pub timestamp: u64,
-}
-
-#[derive(Debug)]
-pub struct PushInfo {
-    pub commits: Vec<CommitInfo>,
-    pub commits_pushed: u64,
-    pub commits_counted: u64,
-    pub remote_url: String,
-    pub branch: String,
-}
-
-pub fn run() -> Option<PushInfo> {
+/// Detect commits from recent push. Loads/saves refs and patch-id state as side effects.
+pub fn get_pushed_commits() -> Option<PushInfo> {
     let repo_path = std::env::current_dir().expect("could not get current directory");
 
-    let remote_url = git::get_remote_url(&repo_path)?;
+    let remote_url = commands::get_remote_url(&repo_path)?;
     crate::debug_log!("hook: remote_url = {}", remote_url);
 
-    let current_refs = git::get_all_remote_refs(&repo_path);
+    let current_refs = commands::get_all_remote_refs(&repo_path);
     crate::debug_log!("hook: current_refs = {:?}", current_refs);
 
     let mut branch_refs = load_refs();
@@ -91,7 +75,7 @@ pub fn run() -> Option<PushInfo> {
     let mut pushed_branches = Vec::new();
 
     for (branch, new_sha) in &current_refs {
-        let local_sha = git::get_local_ref(&repo_path, branch);
+        let local_sha = commands::get_local_ref(&repo_path, branch);
         if local_sha.as_ref() != Some(new_sha) {
             continue; // fetch, not push
         }
@@ -111,7 +95,7 @@ pub fn run() -> Option<PushInfo> {
         match old_sha {
             Some(old) => {
                 // update: get exact range (fast)
-                commits.extend(git::list_commits_in_range(&repo_path, old, new_sha));
+                commits.extend(commands::list_commits_in_range(&repo_path, old, new_sha));
             }
             None => {
                 // first-time push: need to process with other first-time branches
@@ -122,7 +106,10 @@ pub fn run() -> Option<PushInfo> {
 
     // first-time pushes processed together to handle shared history
     if !first_time_branches.is_empty() {
-        commits.extend(git::list_unique_commits(&repo_path, &first_time_branches));
+        commits.extend(commands::list_unique_commits(
+            &repo_path,
+            &first_time_branches,
+        ));
     }
 
     if commits.is_empty() {
@@ -150,15 +137,15 @@ pub fn run() -> Option<PushInfo> {
     for sha in commits {
         // skip commits reachable from other remote branches (handles stale refs after jj fetch)
         if !exclude_branches.is_empty()
-            && git::is_reachable_from_other_remote(&repo_path, &sha, &exclude_branches)
+            && commands::is_reachable_from_other_remote(&repo_path, &sha, &exclude_branches)
         {
             crate::debug_log!("hook: skipping {} (reachable from other remote)", sha);
             continue;
         }
 
-        if let Some(patch_id) = git::get_patch_id(&repo_path, &sha) {
+        if let Some(patch_id) = commands::get_patch_id(&repo_path, &sha) {
             if !seen.contains(&patch_id) {
-                let lines_changed = git::get_lines_changed(&repo_path, &sha).unwrap_or(0);
+                let lines_changed = commands::get_lines_changed(&repo_path, &sha).unwrap_or(0);
                 crate::debug_log!(
                     "hook: new commit {} ({}) - {} lines",
                     sha,
@@ -192,8 +179,6 @@ pub fn run() -> Option<PushInfo> {
 
     crate::debug_log!("hook: {} new commits", commits_counted);
 
-    // note: history::record() must be called by the caller AFTER scoring,
-    // so that first_push_of_day bonus can see history without the current push
     Some(PushInfo {
         commits: new_commits,
         commits_pushed: total_commits as u64,

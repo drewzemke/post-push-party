@@ -1,4 +1,4 @@
-use crate::{git::detection::CommitInfo, history, party, scoring, state};
+use crate::{git::CommitInfo, history, party, scoring, state};
 
 pub fn cheat(amount: i64) {
     let mut s = state::load();

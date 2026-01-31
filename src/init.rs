@@ -37,7 +37,7 @@ pub fn run() {
     }
 
     // snapshot current refs so we don't credit pre-existing commits
-    git::detection::snapshot_refs(&cwd);
+    git::snapshot_refs(&cwd);
 
     // give starter points on first init
     let mut s = state::load();

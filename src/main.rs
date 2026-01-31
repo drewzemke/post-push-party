@@ -4,11 +4,9 @@ mod cli;
 mod dev;
 mod git;
 mod history;
-mod hook;
 mod init;
 mod log;
 mod party;
-mod patch_ids;
 mod scoring;
 mod state;
 mod tui;
@@ -24,17 +22,12 @@ fn main() {
         Some(Command::Uninit) => init::run_uninit(),
         Some(Command::Status) => state::status(),
         Some(Command::Hook) => {
-            if let Some(push) = hook::run() {
+            if let Some(push) = git::detection::run() {
                 let mut s = state::load();
                 let history = history::load();
                 let clock = scoring::now();
 
-                let breakdown = scoring::calculate_points(
-                    &push.commits,
-                    &s,
-                    &history,
-                    &clock,
-                );
+                let breakdown = scoring::calculate_points(&push.commits, &s, &history, &clock);
                 s.party_points += breakdown.total;
 
                 if let Err(e) = state::save(&s) {
@@ -53,7 +46,7 @@ fn main() {
         Some(Command::Dump) => state::dump(),
         Some(Command::Snapshot) => {
             let cwd = std::env::current_dir().expect("could not get current directory");
-            hook::snapshot_refs(&cwd);
+            git::detection::snapshot_refs(&cwd);
         }
         None => tui::run().unwrap_or_else(|e| {
             eprintln!("error running TUI: {e}");

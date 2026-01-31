@@ -1,15 +1,22 @@
 //! Point calculation for pushes, applying all bonus tracks.
 
 use crate::bonus_tracks::{Clock, Commit, Reward, ALL_TRACKS};
+use crate::git::detection::CommitInfo;
 use crate::history::PushHistory;
-use crate::hook::CommitInfo;
 use crate::state::State;
 
 /// A bonus that was applied to this push.
 #[derive(Debug, Clone)]
 pub enum AppliedBonus {
-    Multiplier { name: &'static str, value: u32 },
-    FlatBonus { name: &'static str, points: u64, count: u32 },
+    Multiplier {
+        name: &'static str,
+        value: u32,
+    },
+    FlatBonus {
+        name: &'static str,
+        points: u64,
+        count: u32,
+    },
 }
 
 /// Breakdown of points earned for a push.

@@ -5,7 +5,6 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::git;
-use crate::patch_ids;
 
 /// Tracks last-known SHA per branch per repo.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -83,7 +82,7 @@ pub fn run() -> Option<PushInfo> {
     let mut branch_refs = load_refs();
     let stored = branch_refs.repos.entry(remote_url.clone()).or_default();
 
-    let mut patch_store = patch_ids::load();
+    let mut patch_store = super::patch_ids::load();
     let mut seen = patch_store.get_set(&remote_url);
 
     // collect commits from pushed branches
@@ -160,7 +159,12 @@ pub fn run() -> Option<PushInfo> {
         if let Some(patch_id) = git::get_patch_id(&repo_path, &sha) {
             if !seen.contains(&patch_id) {
                 let lines_changed = git::get_lines_changed(&repo_path, &sha).unwrap_or(0);
-                crate::debug_log!("hook: new commit {} ({}) - {} lines", sha, patch_id, lines_changed);
+                crate::debug_log!(
+                    "hook: new commit {} ({}) - {} lines",
+                    sha,
+                    patch_id,
+                    lines_changed
+                );
                 seen.insert(patch_id.clone());
                 new_patch_ids.push(patch_id);
                 new_commits.push(CommitInfo {
@@ -183,7 +187,7 @@ pub fn run() -> Option<PushInfo> {
     // persist new patch-ids (if any)
     if !new_patch_ids.is_empty() {
         patch_store.record(&remote_url, &new_patch_ids);
-        let _ = patch_ids::save(&patch_store);
+        let _ = super::patch_ids::save(&patch_store);
     }
 
     crate::debug_log!("hook: {} new commits", commits_counted);

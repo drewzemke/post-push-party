@@ -1,7 +1,6 @@
 use std::path::Path;
 
-use crate::hook;
-use crate::state;
+use crate::{git, state};
 
 const STARTER_POINTS: u64 = 10;
 
@@ -38,7 +37,7 @@ pub fn run() {
     }
 
     // snapshot current refs so we don't credit pre-existing commits
-    hook::snapshot_refs(&cwd);
+    git::detection::snapshot_refs(&cwd);
 
     // give starter points on first init
     let mut s = state::load();

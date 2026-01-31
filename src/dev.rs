@@ -1,4 +1,4 @@
-use crate::{history, hook::CommitInfo, party, scoring, state};
+use crate::{git::detection::CommitInfo, history, party, scoring, state};
 
 pub fn cheat(amount: i64) {
     let mut s = state::load();
@@ -72,7 +72,10 @@ pub fn unlock(track_id: &str, level: u32) {
     let track = ALL_TRACKS.iter().find(|t| t.id() == track_id);
     if track.is_none() {
         eprintln!("unknown track: {}", track_id);
-        eprintln!("available: {:?}", ALL_TRACKS.iter().map(|t| t.id()).collect::<Vec<_>>());
+        eprintln!(
+            "available: {:?}",
+            ALL_TRACKS.iter().map(|t| t.id()).collect::<Vec<_>>()
+        );
         std::process::exit(1);
     }
 

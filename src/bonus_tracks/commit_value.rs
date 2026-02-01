@@ -52,6 +52,7 @@ impl BonusTrack for CommitValue {
 mod tests {
     use super::*;
     use crate::bonus_tracks::Clock;
+    use crate::git::Push;
     use crate::history::PushHistory;
 
     #[test]
@@ -63,11 +64,15 @@ mod tests {
 
     #[test]
     fn always_applies() {
+        let push = Push {
+            commits: vec![],
+            remote_url: "git@github.com:user/repo.git".to_string(),
+            branch: "main".to_string(),
+        };
         let ctx = PushContext {
-            commits: &[],
+            push: &push,
             history: &PushHistory::default(),
             clock: &Clock::default(),
-            repo: "git@github.com:user/repo.git",
         };
         assert_eq!(CommitValue.applies(&ctx), 1);
     }

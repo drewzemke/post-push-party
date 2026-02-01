@@ -70,7 +70,7 @@ impl BonusTrack for Streak {
     }
 
     fn applies(&self, ctx: &PushContext) -> u32 {
-        if ctx.commits.is_empty() {
+        if ctx.push.commits.is_empty() {
             return 0;
         }
 
@@ -85,7 +85,7 @@ impl BonusTrack for Streak {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bonus_tracks::Commit;
+    use crate::git::{Commit, Push};
     use crate::history::PushEntry;
 
     fn make_commit() -> Commit {
@@ -93,6 +93,14 @@ mod tests {
             sha: "abc123".to_string(),
             lines_changed: 10,
             timestamp: 0,
+        }
+    }
+
+    fn make_push(commits: Vec<Commit>) -> Push {
+        Push {
+            commits,
+            remote_url: "git@github.com:user/repo.git".to_string(),
+            branch: "main".to_string(),
         }
     }
 
@@ -105,7 +113,7 @@ mod tests {
         }
     }
 
-    fn push_on_day(day: u64) -> PushEntry {
+    fn history_entry_on_day(day: u64) -> PushEntry {
         PushEntry {
             timestamp: day * SECONDS_PER_DAY + 3600,
             remote_url: "git@github.com:user/repo.git".to_string(),
@@ -117,121 +125,91 @@ mod tests {
     #[test]
     fn applies_with_3_day_streak() {
         let bonus = Streak;
-        let commits = vec![make_commit()];
+        let push = make_push(vec![make_commit()]);
 
         let mut history = PushHistory::default();
-        history.add(push_on_day(100));
-        history.add(push_on_day(101));
-        history.add(push_on_day(102));
+        history.add(history_entry_on_day(100));
+        history.add(history_entry_on_day(101));
+        history.add(history_entry_on_day(102));
 
         let clock = clock_at_day(102);
-        let ctx = PushContext {
-            commits: &commits,
-            history: &history,
-            clock: &clock,
-            repo: "git@github.com:user/repo.git",
-        };
+        let ctx = PushContext { push: &push, history: &history, clock: &clock };
         assert_eq!(bonus.applies(&ctx), 1);
     }
 
     #[test]
     fn applies_with_longer_streak() {
         let bonus = Streak;
-        let commits = vec![make_commit()];
+        let push = make_push(vec![make_commit()]);
 
         let mut history = PushHistory::default();
         for day in 95..=102 {
-            history.add(push_on_day(day));
+            history.add(history_entry_on_day(day));
         }
 
         let clock = clock_at_day(102);
-        let ctx = PushContext {
-            commits: &commits,
-            history: &history,
-            clock: &clock,
-            repo: "git@github.com:user/repo.git",
-        };
+        let ctx = PushContext { push: &push, history: &history, clock: &clock };
         assert_eq!(bonus.applies(&ctx), 1);
     }
 
     #[test]
     fn does_not_apply_with_2_day_streak() {
         let bonus = Streak;
-        let commits = vec![make_commit()];
+        let push = make_push(vec![make_commit()]);
 
         let mut history = PushHistory::default();
-        history.add(push_on_day(101));
-        history.add(push_on_day(102));
+        history.add(history_entry_on_day(101));
+        history.add(history_entry_on_day(102));
 
         let clock = clock_at_day(102);
-        let ctx = PushContext {
-            commits: &commits,
-            history: &history,
-            clock: &clock,
-            repo: "git@github.com:user/repo.git",
-        };
+        let ctx = PushContext { push: &push, history: &history, clock: &clock };
         assert_eq!(bonus.applies(&ctx), 0);
     }
 
     #[test]
     fn does_not_apply_with_gap() {
         let bonus = Streak;
-        let commits = vec![make_commit()];
+        let push = make_push(vec![make_commit()]);
 
         let mut history = PushHistory::default();
-        history.add(push_on_day(99));
-        history.add(push_on_day(100));
+        history.add(history_entry_on_day(99));
+        history.add(history_entry_on_day(100));
         // gap on day 101
-        history.add(push_on_day(102));
+        history.add(history_entry_on_day(102));
 
         let clock = clock_at_day(102);
-        let ctx = PushContext {
-            commits: &commits,
-            history: &history,
-            clock: &clock,
-            repo: "git@github.com:user/repo.git",
-        };
+        let ctx = PushContext { push: &push, history: &history, clock: &clock };
         assert_eq!(bonus.applies(&ctx), 0);
     }
 
     #[test]
     fn does_not_apply_if_no_push_today() {
         let bonus = Streak;
-        let commits = vec![make_commit()];
+        let push = make_push(vec![make_commit()]);
 
         let mut history = PushHistory::default();
-        history.add(push_on_day(99));
-        history.add(push_on_day(100));
-        history.add(push_on_day(101));
+        history.add(history_entry_on_day(99));
+        history.add(history_entry_on_day(100));
+        history.add(history_entry_on_day(101));
 
         // clock is on day 102, but no push today
         let clock = clock_at_day(102);
-        let ctx = PushContext {
-            commits: &commits,
-            history: &history,
-            clock: &clock,
-            repo: "git@github.com:user/repo.git",
-        };
+        let ctx = PushContext { push: &push, history: &history, clock: &clock };
         assert_eq!(bonus.applies(&ctx), 0);
     }
 
     #[test]
     fn does_not_apply_to_empty_pushes() {
         let bonus = Streak;
-        let commits = vec![];
+        let push = make_push(vec![]);
 
         let mut history = PushHistory::default();
-        history.add(push_on_day(100));
-        history.add(push_on_day(101));
-        history.add(push_on_day(102));
+        history.add(history_entry_on_day(100));
+        history.add(history_entry_on_day(101));
+        history.add(history_entry_on_day(102));
 
         let clock = clock_at_day(102);
-        let ctx = PushContext {
-            commits: &commits,
-            history: &history,
-            clock: &clock,
-            repo: "git@github.com:user/repo.git",
-        };
+        let ctx = PushContext { push: &push, history: &history, clock: &clock };
         assert_eq!(bonus.applies(&ctx), 0);
     }
 }

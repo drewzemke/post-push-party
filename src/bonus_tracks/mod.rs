@@ -1,6 +1,7 @@
 mod big_push;
 mod clock;
 mod commit_value;
+mod context;
 mod first_push;
 mod friday_afternoon_push;
 mod many_lines_changed;
@@ -11,6 +12,7 @@ mod streak;
 mod weekend_push;
 
 pub use clock::Clock;
+pub use context::PushContext;
 
 use big_push::BigPush;
 use commit_value::CommitValue;
@@ -22,27 +24,6 @@ use one_line_change::OneLineChange;
 use rapid_fire::RapidFire;
 use streak::Streak;
 use weekend_push::WeekendPush;
-
-use crate::history::PushHistory;
-
-/// data about a single commit in the current push
-#[derive(Debug, Clone)]
-pub struct Commit {
-    pub lines_changed: u64,
-
-    #[expect(dead_code)]
-    pub sha: String,
-    #[expect(dead_code)]
-    pub timestamp: u64,
-}
-
-/// context for evaluating bonuses on a push
-pub struct PushContext<'a> {
-    pub commits: &'a [Commit],
-    pub history: &'a PushHistory,
-    pub clock: &'a Clock,
-    pub repo: &'a str,
-}
 
 /// what a bonus awards when it applies
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -47,7 +47,7 @@ impl BonusTrack for RapidFire {
     }
 
     fn applies(&self, ctx: &PushContext) -> u32 {
-        if ctx.commits.is_empty() {
+        if ctx.push.commits.is_empty() {
             return 0;
         }
 
@@ -65,7 +65,8 @@ impl BonusTrack for RapidFire {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bonus_tracks::{Clock, Commit};
+    use crate::bonus_tracks::Clock;
+    use crate::git::{Commit, Push};
     use crate::history::{PushEntry, PushHistory};
 
     fn make_commit() -> Commit {
@@ -73,6 +74,14 @@ mod tests {
             sha: "abc123".to_string(),
             lines_changed: 10,
             timestamp: 0,
+        }
+    }
+
+    fn make_push(commits: Vec<Commit>) -> Push {
+        Push {
+            commits,
+            remote_url: "git@github.com:user/repo.git".to_string(),
+            branch: "main".to_string(),
         }
     }
 
@@ -84,7 +93,7 @@ mod tests {
         history
     }
 
-    fn push_at(timestamp: u64) -> PushEntry {
+    fn history_entry_at(timestamp: u64) -> PushEntry {
         PushEntry {
             timestamp,
             remote_url: "git@github.com:user/repo.git".to_string(),
@@ -96,16 +105,11 @@ mod tests {
     #[test]
     fn applies_when_pushed_within_window() {
         let bonus = RapidFire;
-        let commits = vec![make_commit()];
-        let history = make_history(vec![push_at(1000)]);
+        let push = make_push(vec![make_commit()]);
+        let history = make_history(vec![history_entry_at(1000)]);
         let clock = Clock { now: 1000 + 5 * 60, tz_offset_secs: 0 };
 
-        let ctx = PushContext {
-            commits: &commits,
-            history: &history,
-            clock: &clock,
-            repo: "git@github.com:user/repo.git",
-        };
+        let ctx = PushContext { push: &push, history: &history, clock: &clock };
 
         assert_eq!(bonus.applies(&ctx), 1);
     }
@@ -113,16 +117,11 @@ mod tests {
     #[test]
     fn applies_at_exact_boundary() {
         let bonus = RapidFire;
-        let commits = vec![make_commit()];
-        let history = make_history(vec![push_at(1000)]);
+        let push = make_push(vec![make_commit()]);
+        let history = make_history(vec![history_entry_at(1000)]);
         let clock = Clock { now: 1000 + RAPID_FIRE_WINDOW_SECS, tz_offset_secs: 0 };
 
-        let ctx = PushContext {
-            commits: &commits,
-            history: &history,
-            clock: &clock,
-            repo: "git@github.com:user/repo.git",
-        };
+        let ctx = PushContext { push: &push, history: &history, clock: &clock };
 
         assert_eq!(bonus.applies(&ctx), 1);
     }
@@ -130,16 +129,11 @@ mod tests {
     #[test]
     fn does_not_apply_outside_window() {
         let bonus = RapidFire;
-        let commits = vec![make_commit()];
-        let history = make_history(vec![push_at(1000)]);
+        let push = make_push(vec![make_commit()]);
+        let history = make_history(vec![history_entry_at(1000)]);
         let clock = Clock { now: 1000 + RAPID_FIRE_WINDOW_SECS + 60, tz_offset_secs: 0 };
 
-        let ctx = PushContext {
-            commits: &commits,
-            history: &history,
-            clock: &clock,
-            repo: "git@github.com:user/repo.git",
-        };
+        let ctx = PushContext { push: &push, history: &history, clock: &clock };
 
         assert_eq!(bonus.applies(&ctx), 0);
     }
@@ -147,16 +141,11 @@ mod tests {
     #[test]
     fn does_not_apply_with_no_history() {
         let bonus = RapidFire;
-        let commits = vec![make_commit()];
+        let push = make_push(vec![make_commit()]);
         let history = PushHistory::default();
         let clock = Clock { now: 1000, tz_offset_secs: 0 };
 
-        let ctx = PushContext {
-            commits: &commits,
-            history: &history,
-            clock: &clock,
-            repo: "git@github.com:user/repo.git",
-        };
+        let ctx = PushContext { push: &push, history: &history, clock: &clock };
 
         assert_eq!(bonus.applies(&ctx), 0);
     }
@@ -164,16 +153,11 @@ mod tests {
     #[test]
     fn does_not_apply_to_empty_pushes() {
         let bonus = RapidFire;
-        let commits = vec![];
-        let history = make_history(vec![push_at(1000)]);
+        let push = make_push(vec![]);
+        let history = make_history(vec![history_entry_at(1000)]);
         let clock = Clock { now: 1000 + 5 * 60, tz_offset_secs: 0 };
 
-        let ctx = PushContext {
-            commits: &commits,
-            history: &history,
-            clock: &clock,
-            repo: "git@github.com:user/repo.git",
-        };
+        let ctx = PushContext { push: &push, history: &history, clock: &clock };
 
         assert_eq!(bonus.applies(&ctx), 0);
     }

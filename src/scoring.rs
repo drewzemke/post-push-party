@@ -24,8 +24,6 @@ pub enum AppliedBonus {
 pub struct PointsBreakdown {
     pub commits: u64,
     pub points_per_commit: u64,
-    pub flat_bonus_total: u64,
-    pub total_multiplier: u64,
     pub total: u64,
     pub applied: Vec<AppliedBonus>,
 }
@@ -105,8 +103,6 @@ pub fn calculate_points(
     PointsBreakdown {
         commits: commits.len() as u64,
         points_per_commit,
-        flat_bonus_total,
-        total_multiplier,
         total,
         applied,
     }
@@ -203,7 +199,7 @@ mod tests {
         let result = calculate_points(&commits, &state, &PushHistory::default(), &clock(), "git@github.com:user/repo.git");
 
         let flat_per = get_flat("one_line_change", 1);
-        assert_eq!(result.flat_bonus_total, 3 * flat_per);
+        // 4 base points + (3 sniper commits × flat_per)
         assert_eq!(result.total, 4 + 3 * flat_per);
     }
 }

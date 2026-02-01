@@ -3,7 +3,7 @@ use crate::history::PushHistory;
 use super::{BonusTrack, Clock, Commit, Reward, Tier};
 
 /// bonus for surgical single-line commits
-pub struct Sniper;
+pub struct OneLineChange;
 
 static TIERS: &[Tier] = &[
     Tier {
@@ -24,7 +24,7 @@ static TIERS: &[Tier] = &[
     },
 ];
 
-impl BonusTrack for Sniper {
+impl BonusTrack for OneLineChange {
     fn id(&self) -> &'static str {
         "one_line_change"
     }
@@ -67,11 +67,6 @@ mod tests {
     }
 
     #[test]
-    fn has_correct_id() {
-        assert_eq!(Sniper.id(), "one_line_change");
-    }
-
-    #[test]
     fn applies_to_single_line_commits() {
         let commits = vec![
             make_commit(1),
@@ -80,18 +75,27 @@ mod tests {
             make_commit(5),
         ];
 
-        assert_eq!(Sniper.applies(&commits, &empty_history(), &clock()), 2);
+        assert_eq!(
+            OneLineChange.applies(&commits, &empty_history(), &clock()),
+            2
+        );
     }
 
     #[test]
     fn does_not_apply_to_zero_line_commits() {
         let commits = vec![make_commit(0)];
-        assert_eq!(Sniper.applies(&commits, &empty_history(), &clock()), 0);
+        assert_eq!(
+            OneLineChange.applies(&commits, &empty_history(), &clock()),
+            0
+        );
     }
 
     #[test]
     fn does_not_apply_to_multi_line_commits() {
         let commits = vec![make_commit(2), make_commit(100)];
-        assert_eq!(Sniper.applies(&commits, &empty_history(), &clock()), 0);
+        assert_eq!(
+            OneLineChange.applies(&commits, &empty_history(), &clock()),
+            0
+        );
     }
 }

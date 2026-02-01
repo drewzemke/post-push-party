@@ -1,10 +1,10 @@
 mod commit_value;
 mod first_push;
-mod sniper;
+mod one_line_change;
 
 pub use commit_value::CommitValue;
 pub use first_push::FirstPush;
-pub use sniper::Sniper;
+pub use one_line_change::OneLineChange;
 
 use crate::history::PushHistory;
 
@@ -86,7 +86,7 @@ pub trait BonusTrack: Sync {
 // static instances for ALL_TRACKS
 static COMMIT_VALUE: CommitValue = CommitValue;
 static FIRST_PUSH: FirstPush = FirstPush;
-static SNIPER: Sniper = Sniper;
+static ONE_LINE_CHANGE: OneLineChange = OneLineChange;
 
 /// all bonus tracks in display order
-pub static ALL_TRACKS: &[&'static dyn BonusTrack] = &[&COMMIT_VALUE, &FIRST_PUSH, &SNIPER];
+pub static ALL_TRACKS: &[&'static dyn BonusTrack] = &[&COMMIT_VALUE, &FIRST_PUSH, &ONE_LINE_CHANGE];

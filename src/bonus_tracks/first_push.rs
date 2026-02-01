@@ -47,7 +47,7 @@ impl BonusTrack for FirstPush {
 
     fn applies(&self, _commits: &[Commit], history: &PushHistory, clock: &Clock) -> u32 {
         let pushed_today = history
-            .entries
+            .entries()
             .iter()
             .any(|e| clock.day_of(e.timestamp) == clock.today());
 
@@ -73,7 +73,11 @@ mod tests {
     }
 
     fn make_history(entries: Vec<PushEntry>) -> PushHistory {
-        PushHistory { entries }
+        let mut history = PushHistory::default();
+        for entry in entries {
+            history.add(entry);
+        }
+        history
     }
 
     fn make_push(timestamp: u64) -> PushEntry {

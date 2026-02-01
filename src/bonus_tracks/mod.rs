@@ -5,6 +5,7 @@ mod first_push;
 mod friday_afternoon_push;
 mod many_lines_changed;
 mod one_line_change;
+mod streak;
 mod weekend_push;
 
 pub use clock::Clock;
@@ -15,6 +16,7 @@ use first_push::FirstPush;
 use friday_afternoon_push::FridayAfternoon;
 use many_lines_changed::ManyLinesChanged;
 use one_line_change::OneLineChange;
+use streak::Streak;
 use weekend_push::WeekendPush;
 
 use crate::history::PushHistory;
@@ -81,6 +83,7 @@ static FIRST_PUSH: FirstPush = FirstPush;
 static FRIDAY_AFTERNOON: FridayAfternoon = FridayAfternoon;
 static MANY_LINES_CHANGED: ManyLinesChanged = ManyLinesChanged;
 static ONE_LINE_CHANGE: OneLineChange = OneLineChange;
+static STREAK: Streak = Streak;
 static WEEKEND_PUSH: WeekendPush = WeekendPush;
 
 /// all bonus tracks in display order
@@ -91,5 +94,6 @@ pub static ALL_TRACKS: &[&'static dyn BonusTrack] = &[
     &FRIDAY_AFTERNOON,
     &MANY_LINES_CHANGED,
     &ONE_LINE_CHANGE,
+    &STREAK,
     &WEEKEND_PUSH,
 ];

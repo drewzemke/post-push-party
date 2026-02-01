@@ -3,6 +3,7 @@ mod clock;
 mod commit_value;
 mod first_push;
 mod friday_afternoon_push;
+mod many_lines_changed;
 mod one_line_change;
 mod weekend_push;
 
@@ -12,6 +13,7 @@ use big_push::BigPush;
 use commit_value::CommitValue;
 use first_push::FirstPush;
 use friday_afternoon_push::FridayAfternoon;
+use many_lines_changed::ManyLinesChanged;
 use one_line_change::OneLineChange;
 use weekend_push::WeekendPush;
 
@@ -77,6 +79,7 @@ static BIG_PUSH: BigPush = BigPush;
 static COMMIT_VALUE: CommitValue = CommitValue;
 static FIRST_PUSH: FirstPush = FirstPush;
 static FRIDAY_AFTERNOON: FridayAfternoon = FridayAfternoon;
+static MANY_LINES_CHANGED: ManyLinesChanged = ManyLinesChanged;
 static ONE_LINE_CHANGE: OneLineChange = OneLineChange;
 static WEEKEND_PUSH: WeekendPush = WeekendPush;
 
@@ -86,6 +89,7 @@ pub static ALL_TRACKS: &[&'static dyn BonusTrack] = &[
     &COMMIT_VALUE,
     &FIRST_PUSH,
     &FRIDAY_AFTERNOON,
+    &MANY_LINES_CHANGED,
     &ONE_LINE_CHANGE,
     &WEEKEND_PUSH,
 ];

@@ -1,10 +1,12 @@
 mod commit_value;
 mod first_push;
 mod one_line_change;
+mod weekend_push;
 
 pub use commit_value::CommitValue;
 pub use first_push::FirstPush;
 pub use one_line_change::OneLineChange;
+pub use weekend_push::WeekendPush;
 
 use crate::history::PushHistory;
 
@@ -25,6 +27,12 @@ impl Clock {
     /// local day number for `now`
     pub fn today(&self) -> i64 {
         self.day_of(self.now)
+    }
+
+    /// day of the week for `now`
+    /// Thursday is 0, Friday is 1, etc
+    pub fn day_of_week(&self) -> i64 {
+        self.day_of(self.now).rem_euclid(7)
     }
 }
 
@@ -87,6 +95,8 @@ pub trait BonusTrack: Sync {
 static COMMIT_VALUE: CommitValue = CommitValue;
 static FIRST_PUSH: FirstPush = FirstPush;
 static ONE_LINE_CHANGE: OneLineChange = OneLineChange;
+static WEEKEND_PUSH: WeekendPush = WeekendPush;
 
 /// all bonus tracks in display order
-pub static ALL_TRACKS: &[&'static dyn BonusTrack] = &[&COMMIT_VALUE, &FIRST_PUSH, &ONE_LINE_CHANGE];
+pub static ALL_TRACKS: &[&'static dyn BonusTrack] =
+    &[&COMMIT_VALUE, &FIRST_PUSH, &ONE_LINE_CHANGE, &WEEKEND_PUSH];

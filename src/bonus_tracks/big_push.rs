@@ -1,6 +1,4 @@
-use crate::history::PushHistory;
-
-use super::{BonusTrack, Clock, Commit, Reward, Tier};
+use super::{BonusTrack, PushContext, Reward, Tier};
 
 /// bonus for pushing a lot of commits at once
 pub struct BigPush;
@@ -49,8 +47,8 @@ impl BonusTrack for BigPush {
         TIERS
     }
 
-    fn applies(&self, commits: &[Commit], _history: &PushHistory, _clock: &Clock) -> u32 {
-        if commits.len() >= BIG_PUSH_COMMIT_COUNT {
+    fn applies(&self, ctx: &PushContext) -> u32 {
+        if ctx.commits.len() >= BIG_PUSH_COMMIT_COUNT {
             1
         } else {
             0
@@ -61,6 +59,8 @@ impl BonusTrack for BigPush {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bonus_tracks::{Clock, Commit};
+    use crate::history::PushHistory;
 
     fn make_commit() -> Commit {
         Commit {
@@ -70,37 +70,53 @@ mod tests {
         }
     }
 
-    fn make_history() -> PushHistory {
-        PushHistory::default()
-    }
-
     #[test]
     fn applies_to_big_pushes() {
         let bonus = BigPush;
-        let history = make_history();
+        let history = PushHistory::default();
         let clock = Clock::default();
 
         let commits = vec![make_commit(); BIG_PUSH_COMMIT_COUNT];
-
-        assert_eq!(bonus.applies(&commits, &history, &clock), 1);
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
+        };
+        assert_eq!(bonus.applies(&ctx), 1);
 
         let commits = vec![make_commit(); 1_000];
-
-        assert_eq!(bonus.applies(&commits, &history, &clock), 1);
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
+        };
+        assert_eq!(bonus.applies(&ctx), 1);
     }
 
     #[test]
     fn does_not_apply_to_small_pushes() {
         let bonus = BigPush;
-        let history = make_history();
+        let history = PushHistory::default();
         let clock = Clock::default();
 
         let commits = vec![make_commit(); BIG_PUSH_COMMIT_COUNT - 1];
-
-        assert_eq!(bonus.applies(&commits, &history, &clock), 0);
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
+        };
+        assert_eq!(bonus.applies(&ctx), 0);
 
         let commits = vec![make_commit(); 1];
-
-        assert_eq!(bonus.applies(&commits, &history, &clock), 0);
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
+        };
+        assert_eq!(bonus.applies(&ctx), 0);
     }
 }

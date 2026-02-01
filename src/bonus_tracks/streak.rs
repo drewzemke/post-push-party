@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::history::PushHistory;
 
-use super::{BonusTrack, Clock, Commit, Reward, Tier};
+use super::{BonusTrack, Clock, PushContext, Reward, Tier};
 
 /// bonus for pushing consistently over multiple days
 pub struct Streak;
@@ -69,12 +69,12 @@ impl BonusTrack for Streak {
         TIERS
     }
 
-    fn applies(&self, commits: &[Commit], history: &PushHistory, clock: &Clock) -> u32 {
-        if commits.is_empty() {
+    fn applies(&self, ctx: &PushContext) -> u32 {
+        if ctx.commits.is_empty() {
             return 0;
         }
 
-        if consecutive_push_days(history, clock) >= MIN_STREAK_DAYS {
+        if consecutive_push_days(ctx.history, ctx.clock) >= MIN_STREAK_DAYS {
             1
         } else {
             0
@@ -85,6 +85,7 @@ impl BonusTrack for Streak {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bonus_tracks::Commit;
     use crate::history::PushEntry;
 
     fn make_commit() -> Commit {
@@ -124,7 +125,13 @@ mod tests {
         history.add(push_on_day(102));
 
         let clock = clock_at_day(102);
-        assert_eq!(bonus.applies(&commits, &history, &clock), 1);
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
+        };
+        assert_eq!(bonus.applies(&ctx), 1);
     }
 
     #[test]
@@ -138,7 +145,13 @@ mod tests {
         }
 
         let clock = clock_at_day(102);
-        assert_eq!(bonus.applies(&commits, &history, &clock), 1);
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
+        };
+        assert_eq!(bonus.applies(&ctx), 1);
     }
 
     #[test]
@@ -151,7 +164,13 @@ mod tests {
         history.add(push_on_day(102));
 
         let clock = clock_at_day(102);
-        assert_eq!(bonus.applies(&commits, &history, &clock), 0);
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
+        };
+        assert_eq!(bonus.applies(&ctx), 0);
     }
 
     #[test]
@@ -166,7 +185,13 @@ mod tests {
         history.add(push_on_day(102));
 
         let clock = clock_at_day(102);
-        assert_eq!(bonus.applies(&commits, &history, &clock), 0);
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
+        };
+        assert_eq!(bonus.applies(&ctx), 0);
     }
 
     #[test]
@@ -181,7 +206,13 @@ mod tests {
 
         // clock is on day 102, but no push today
         let clock = clock_at_day(102);
-        assert_eq!(bonus.applies(&commits, &history, &clock), 0);
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
+        };
+        assert_eq!(bonus.applies(&ctx), 0);
     }
 
     #[test]
@@ -195,6 +226,12 @@ mod tests {
         history.add(push_on_day(102));
 
         let clock = clock_at_day(102);
-        assert_eq!(bonus.applies(&commits, &history, &clock), 0);
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
+        };
+        assert_eq!(bonus.applies(&ctx), 0);
     }
 }

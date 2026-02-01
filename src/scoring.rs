@@ -1,6 +1,6 @@
 //! Point calculation for pushes, applying all bonus tracks.
 
-use crate::bonus_tracks::{Clock, Commit, Reward, ALL_TRACKS};
+use crate::bonus_tracks::{Clock, Commit, PushContext, Reward, ALL_TRACKS};
 use crate::git::CommitInfo;
 use crate::history::PushHistory;
 use crate::state::State;
@@ -36,6 +36,7 @@ pub fn calculate_points(
     state: &State,
     history: &PushHistory,
     clock: &Clock,
+    repo: &str,
 ) -> PointsBreakdown {
     // convert CommitInfo to bonus_tracks::Commit
     let commits: Vec<Commit> = commit_info
@@ -54,6 +55,13 @@ pub fn calculate_points(
     let mut flat_bonus_total: u64 = 0;
     let mut applied = Vec::new();
 
+    let ctx = PushContext {
+        commits: &commits,
+        history,
+        clock,
+        repo,
+    };
+
     for track in ALL_TRACKS.iter() {
         // skip commit_value, it's handled separately
         if track.id() == "commit_value" {
@@ -65,7 +73,7 @@ pub fn calculate_points(
             continue;
         }
 
-        let count = track.applies(&commits, history, clock);
+        let count = track.applies(&ctx);
         if count == 0 {
             continue;
         }
@@ -163,7 +171,7 @@ mod tests {
         let state = State::default();
         let commits = vec![commit(10), commit(20), commit(30)];
 
-        let result = calculate_points(&commits, &state, &PushHistory::default(), &clock());
+        let result = calculate_points(&commits, &state, &PushHistory::default(), &clock(), "git@github.com:user/repo.git");
 
         assert_eq!(result.total, 3); // 3 commits × 1 point
     }
@@ -177,7 +185,7 @@ mod tests {
         // 2 commits, 1 qualifies for sniper
         let commits = vec![commit(1), commit(10)];
 
-        let result = calculate_points(&commits, &state, &PushHistory::default(), &clock());
+        let result = calculate_points(&commits, &state, &PushHistory::default(), &clock(), "git@github.com:user/repo.git");
 
         let mult = get_multiplier("first_push", 1);
         let flat = get_flat("one_line_change", 1);
@@ -192,7 +200,7 @@ mod tests {
         // 3 sniper commits, 1 non-sniper
         let commits = vec![commit(1), commit(1), commit(1), commit(50)];
 
-        let result = calculate_points(&commits, &state, &PushHistory::default(), &clock());
+        let result = calculate_points(&commits, &state, &PushHistory::default(), &clock(), "git@github.com:user/repo.git");
 
         let flat_per = get_flat("one_line_change", 1);
         assert_eq!(result.flat_bonus_total, 3 * flat_per);

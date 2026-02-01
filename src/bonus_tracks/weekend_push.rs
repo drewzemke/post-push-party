@@ -1,4 +1,4 @@
-use super::{BonusTrack, Clock, Commit, Reward, Tier};
+use super::{BonusTrack, PushContext, Reward, Tier};
 
 /// bonus points for pushing on saturday or sunday
 pub struct WeekendPush;
@@ -43,14 +43,9 @@ impl BonusTrack for WeekendPush {
         TIERS
     }
 
-    fn applies(
-        &self,
-        commits: &[Commit],
-        _history: &crate::history::PushHistory,
-        clock: &Clock,
-    ) -> u32 {
-        let day_of_week = clock.day_of_week();
-        if (day_of_week == 2 || day_of_week == 3) && !commits.is_empty() {
+    fn applies(&self, ctx: &PushContext) -> u32 {
+        let day_of_week = ctx.clock.day_of_week();
+        if (day_of_week == 2 || day_of_week == 3) && !ctx.commits.is_empty() {
             1
         } else {
             0
@@ -61,7 +56,8 @@ impl BonusTrack for WeekendPush {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::history::{PushEntry, PushHistory};
+    use crate::bonus_tracks::{Clock, Commit};
+    use crate::history::PushHistory;
 
     fn make_commit() -> Commit {
         Commit {
@@ -69,10 +65,6 @@ mod tests {
             lines_changed: 10,
             timestamp: 0,
         }
-    }
-
-    fn make_history() -> PushHistory {
-        PushHistory::default()
     }
 
     const FRI_2AM_LOCAL: u64 = 1769842800;
@@ -83,71 +75,71 @@ mod tests {
 
     #[test]
     fn applies_on_saturday_and_sunday() {
-        // saturday
         let bonus = WeekendPush;
         let commits = vec![make_commit()];
-        let history = make_history();
+        let history = PushHistory::default();
 
-        let clock = Clock {
-            now: SAT_2AM_LOCAL,
-            tz_offset_secs: UTC_MINUS_8,
+        // saturday
+        let clock = Clock { now: SAT_2AM_LOCAL, tz_offset_secs: UTC_MINUS_8 };
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
         };
-
-        assert_eq!(bonus.applies(&commits, &history, &clock), 1);
+        assert_eq!(bonus.applies(&ctx), 1);
 
         // sunday
-        let bonus = WeekendPush;
-        let commits = vec![make_commit()];
-        let history = make_history();
-
-        let clock = Clock {
-            now: SUN_11PM_LOCAL,
-            tz_offset_secs: UTC_MINUS_8,
+        let clock = Clock { now: SUN_11PM_LOCAL, tz_offset_secs: UTC_MINUS_8 };
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
         };
-
-        assert_eq!(bonus.applies(&commits, &history, &clock), 1);
+        assert_eq!(bonus.applies(&ctx), 1);
     }
 
     #[test]
     fn does_not_apply_on_friday_or_monday() {
-        // friday
         let bonus = WeekendPush;
         let commits = vec![make_commit()];
-        let history = make_history();
+        let history = PushHistory::default();
 
-        let clock = Clock {
-            now: FRI_2AM_LOCAL,
-            tz_offset_secs: UTC_MINUS_8,
+        // friday
+        let clock = Clock { now: FRI_2AM_LOCAL, tz_offset_secs: UTC_MINUS_8 };
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
         };
-
-        assert_eq!(bonus.applies(&commits, &history, &clock), 0);
+        assert_eq!(bonus.applies(&ctx), 0);
 
         // monday
-        let bonus = WeekendPush;
-        let commits = vec![make_commit()];
-        let history = make_history();
-
-        let clock = Clock {
-            now: MON_2AM_LOCAL,
-            tz_offset_secs: UTC_MINUS_8,
+        let clock = Clock { now: MON_2AM_LOCAL, tz_offset_secs: UTC_MINUS_8 };
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
         };
-
-        assert_eq!(bonus.applies(&commits, &history, &clock), 0);
+        assert_eq!(bonus.applies(&ctx), 0);
     }
 
     #[test]
     fn does_not_apply_to_empty_pushes() {
         let bonus = WeekendPush;
-
-        // no commits
         let commits = vec![];
-        let history = make_history();
+        let history = PushHistory::default();
+        let clock = Clock { now: SUN_11PM_LOCAL, tz_offset_secs: UTC_MINUS_8 };
 
-        let clock = Clock {
-            now: SUN_11PM_LOCAL,
-            tz_offset_secs: UTC_MINUS_8,
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
         };
-
-        assert_eq!(bonus.applies(&commits, &history, &clock), 0);
+        assert_eq!(bonus.applies(&ctx), 0);
     }
 }

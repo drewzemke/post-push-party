@@ -1,3 +1,4 @@
+mod big_push;
 mod clock;
 mod commit_value;
 mod first_push;
@@ -6,11 +7,13 @@ mod one_line_change;
 mod weekend_push;
 
 pub use clock::Clock;
-pub use commit_value::CommitValue;
-pub use first_push::FirstPush;
-pub use friday_afternoon_push::FridayAfternoon;
-pub use one_line_change::OneLineChange;
-pub use weekend_push::WeekendPush;
+
+use big_push::BigPush;
+use commit_value::CommitValue;
+use first_push::FirstPush;
+use friday_afternoon_push::FridayAfternoon;
+use one_line_change::OneLineChange;
+use weekend_push::WeekendPush;
 
 use crate::history::PushHistory;
 
@@ -70,6 +73,7 @@ pub trait BonusTrack: Sync {
 }
 
 // static instances for ALL_TRACKS
+static BIG_PUSH: BigPush = BigPush;
 static COMMIT_VALUE: CommitValue = CommitValue;
 static FIRST_PUSH: FirstPush = FirstPush;
 static FRIDAY_AFTERNOON: FridayAfternoon = FridayAfternoon;
@@ -78,6 +82,7 @@ static WEEKEND_PUSH: WeekendPush = WeekendPush;
 
 /// all bonus tracks in display order
 pub static ALL_TRACKS: &[&'static dyn BonusTrack] = &[
+    &BIG_PUSH,
     &COMMIT_VALUE,
     &FIRST_PUSH,
     &FRIDAY_AFTERNOON,

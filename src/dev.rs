@@ -1,4 +1,5 @@
-use crate::{git::CommitInfo, history, party, scoring, state};
+use crate::git::{Commit, Push};
+use crate::{history, party, scoring, state};
 
 pub fn cheat(amount: i64) {
     let mut s = state::load();
@@ -15,20 +16,20 @@ pub fn cheat(amount: i64) {
     println!("{} → {} party points", old, s.party_points);
 }
 
-pub fn push(commits: u64, lines: Option<Vec<u64>>) {
+pub fn push(num_commits: u64, lines: Option<Vec<u64>>) {
     // mirror the actual hook flow as closely as possible
     let mut s = state::load();
     let hist = history::load();
     let clock = scoring::now();
 
     // build fake commits with specified or default line counts
-    let commit_info: Vec<CommitInfo> = (0..commits)
+    let commits: Vec<Commit> = (0..num_commits)
         .map(|i| {
             let lines_changed = lines
                 .as_ref()
                 .map(|l| l[i as usize % l.len()])
                 .unwrap_or(10); // default 10 lines per commit
-            CommitInfo {
+            Commit {
                 sha: format!("fake{}", i),
                 lines_changed,
                 timestamp: clock.now,
@@ -36,7 +37,13 @@ pub fn push(commits: u64, lines: Option<Vec<u64>>) {
         })
         .collect();
 
-    let breakdown = scoring::calculate_points(&commit_info, &s, &hist, &clock, "dev://fake");
+    let push = Push {
+        commits,
+        remote_url: "dev://fake".to_string(),
+        branch: "main".to_string(),
+    };
+
+    let breakdown = scoring::calculate_points(&push, &s, &hist, &clock);
     s.party_points += breakdown.total;
 
     if let Err(e) = state::save(&s) {
@@ -44,7 +51,7 @@ pub fn push(commits: u64, lines: Option<Vec<u64>>) {
     }
 
     // record this push in history (like the real hook does)
-    history::record("dev://fake", "main", commits);
+    history::record("dev://fake", "main", num_commits);
 
     party::display(&breakdown);
 }

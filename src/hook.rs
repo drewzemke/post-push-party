@@ -6,7 +6,7 @@ pub fn post_push() {
         let history = history::load();
         let clock = scoring::now();
 
-        let breakdown = scoring::calculate_points(&push.commits, &s, &history, &clock, &push.remote_url);
+        let breakdown = scoring::calculate_points(&push, &s, &history, &clock);
         s.party_points += breakdown.total;
 
         if let Err(e) = state::save(&s) {

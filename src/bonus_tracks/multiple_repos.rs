@@ -46,7 +46,7 @@ impl BonusTrack for MultipleRepos {
     }
 
     fn applies(&self, ctx: &PushContext) -> u32 {
-        if ctx.commits.is_empty() {
+        if ctx.push.commits.is_empty() {
             return 0;
         }
 
@@ -62,7 +62,7 @@ impl BonusTrack for MultipleRepos {
         // bonus applies if:
         // 1. we've pushed to at least one repo today (so this isn't our first)
         // 2. the current repo is not one we've already pushed to today
-        let is_new_repo = !repos_pushed_today.contains(ctx.repo);
+        let is_new_repo = !repos_pushed_today.contains(ctx.push.remote_url.as_str());
         let has_pushed_before_today = !repos_pushed_today.is_empty();
 
         if is_new_repo && has_pushed_before_today {
@@ -76,7 +76,8 @@ impl BonusTrack for MultipleRepos {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bonus_tracks::{Clock, Commit};
+    use crate::bonus_tracks::Clock;
+    use crate::git::{Commit, Push};
     use crate::history::{PushEntry, PushHistory};
 
     fn make_commit() -> Commit {
@@ -84,6 +85,14 @@ mod tests {
             sha: "abc123".to_string(),
             lines_changed: 10,
             timestamp: 0,
+        }
+    }
+
+    fn make_push(commits: Vec<Commit>, repo: &str) -> Push {
+        Push {
+            commits,
+            remote_url: repo.to_string(),
+            branch: "main".to_string(),
         }
     }
 
@@ -95,7 +104,7 @@ mod tests {
         history
     }
 
-    fn push_to_repo(timestamp: u64, repo: &str) -> PushEntry {
+    fn history_entry(timestamp: u64, repo: &str) -> PushEntry {
         PushEntry {
             timestamp,
             remote_url: repo.to_string(),
@@ -120,21 +129,16 @@ mod tests {
     #[test]
     fn applies_on_second_repo() {
         let bonus = MultipleRepos;
-        let commits = vec![make_commit()];
         let clock = clock_at_day(100);
 
         // already pushed to repo1 today
         let history = make_history(vec![
-            push_to_repo(timestamp_on_day(100), "git@github.com:user/repo1.git"),
+            history_entry(timestamp_on_day(100), "git@github.com:user/repo1.git"),
         ]);
 
         // now pushing to repo2
-        let ctx = PushContext {
-            commits: &commits,
-            history: &history,
-            clock: &clock,
-            repo: "git@github.com:user/repo2.git",
-        };
+        let push = make_push(vec![make_commit()], "git@github.com:user/repo2.git");
+        let ctx = PushContext { push: &push, history: &history, clock: &clock };
 
         assert_eq!(bonus.applies(&ctx), 1);
     }
@@ -142,21 +146,16 @@ mod tests {
     #[test]
     fn applies_on_third_repo() {
         let bonus = MultipleRepos;
-        let commits = vec![make_commit()];
         let clock = clock_at_day(100);
 
         let history = make_history(vec![
-            push_to_repo(timestamp_on_day(100), "git@github.com:user/repo1.git"),
-            push_to_repo(timestamp_on_day(100), "git@github.com:user/repo2.git"),
+            history_entry(timestamp_on_day(100), "git@github.com:user/repo1.git"),
+            history_entry(timestamp_on_day(100), "git@github.com:user/repo2.git"),
         ]);
 
         // now pushing to repo3
-        let ctx = PushContext {
-            commits: &commits,
-            history: &history,
-            clock: &clock,
-            repo: "git@github.com:user/repo3.git",
-        };
+        let push = make_push(vec![make_commit()], "git@github.com:user/repo3.git");
+        let ctx = PushContext { push: &push, history: &history, clock: &clock };
 
         assert_eq!(bonus.applies(&ctx), 1);
     }
@@ -164,18 +163,13 @@ mod tests {
     #[test]
     fn does_not_apply_on_first_repo() {
         let bonus = MultipleRepos;
-        let commits = vec![make_commit()];
         let clock = clock_at_day(100);
 
         // no pushes today yet
         let history = PushHistory::default();
 
-        let ctx = PushContext {
-            commits: &commits,
-            history: &history,
-            clock: &clock,
-            repo: "git@github.com:user/repo1.git",
-        };
+        let push = make_push(vec![make_commit()], "git@github.com:user/repo1.git");
+        let ctx = PushContext { push: &push, history: &history, clock: &clock };
 
         assert_eq!(bonus.applies(&ctx), 0);
     }
@@ -183,21 +177,16 @@ mod tests {
     #[test]
     fn does_not_apply_on_repeat_push_to_same_repo() {
         let bonus = MultipleRepos;
-        let commits = vec![make_commit()];
         let clock = clock_at_day(100);
 
         // already pushed to repo1 today
         let history = make_history(vec![
-            push_to_repo(timestamp_on_day(100), "git@github.com:user/repo1.git"),
+            history_entry(timestamp_on_day(100), "git@github.com:user/repo1.git"),
         ]);
 
         // pushing to repo1 again
-        let ctx = PushContext {
-            commits: &commits,
-            history: &history,
-            clock: &clock,
-            repo: "git@github.com:user/repo1.git",
-        };
+        let push = make_push(vec![make_commit()], "git@github.com:user/repo1.git");
+        let ctx = PushContext { push: &push, history: &history, clock: &clock };
 
         assert_eq!(bonus.applies(&ctx), 0);
     }
@@ -205,22 +194,17 @@ mod tests {
     #[test]
     fn does_not_count_repos_from_other_days() {
         let bonus = MultipleRepos;
-        let commits = vec![make_commit()];
         let clock = clock_at_day(100);
 
         // pushed to repos yesterday, not today
         let history = make_history(vec![
-            push_to_repo(timestamp_on_day(99), "git@github.com:user/repo1.git"),
-            push_to_repo(timestamp_on_day(99), "git@github.com:user/repo2.git"),
+            history_entry(timestamp_on_day(99), "git@github.com:user/repo1.git"),
+            history_entry(timestamp_on_day(99), "git@github.com:user/repo2.git"),
         ]);
 
         // first push today
-        let ctx = PushContext {
-            commits: &commits,
-            history: &history,
-            clock: &clock,
-            repo: "git@github.com:user/repo3.git",
-        };
+        let push = make_push(vec![make_commit()], "git@github.com:user/repo3.git");
+        let ctx = PushContext { push: &push, history: &history, clock: &clock };
 
         assert_eq!(bonus.applies(&ctx), 0);
     }
@@ -228,19 +212,14 @@ mod tests {
     #[test]
     fn does_not_apply_to_empty_pushes() {
         let bonus = MultipleRepos;
-        let commits = vec![];
         let clock = clock_at_day(100);
 
         let history = make_history(vec![
-            push_to_repo(timestamp_on_day(100), "git@github.com:user/repo1.git"),
+            history_entry(timestamp_on_day(100), "git@github.com:user/repo1.git"),
         ]);
 
-        let ctx = PushContext {
-            commits: &commits,
-            history: &history,
-            clock: &clock,
-            repo: "git@github.com:user/repo2.git",
-        };
+        let push = make_push(vec![], "git@github.com:user/repo2.git");
+        let ctx = PushContext { push: &push, history: &history, clock: &clock };
 
         assert_eq!(bonus.applies(&ctx), 0);
     }

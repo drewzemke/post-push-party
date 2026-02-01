@@ -48,7 +48,7 @@ impl BonusTrack for BigPush {
     }
 
     fn applies(&self, ctx: &PushContext) -> u32 {
-        if ctx.commits.len() >= BIG_PUSH_COMMIT_COUNT {
+        if ctx.push.commits.len() >= BIG_PUSH_COMMIT_COUNT {
             1
         } else {
             0
@@ -59,7 +59,8 @@ impl BonusTrack for BigPush {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bonus_tracks::{Clock, Commit};
+    use crate::bonus_tracks::Clock;
+    use crate::git::{Commit, Push};
     use crate::history::PushHistory;
 
     fn make_commit() -> Commit {
@@ -70,27 +71,33 @@ mod tests {
         }
     }
 
+    fn make_push(commits: Vec<Commit>) -> Push {
+        Push {
+            commits,
+            remote_url: "git@github.com:user/repo.git".to_string(),
+            branch: "main".to_string(),
+        }
+    }
+
     #[test]
     fn applies_to_big_pushes() {
         let bonus = BigPush;
         let history = PushHistory::default();
         let clock = Clock::default();
 
-        let commits = vec![make_commit(); BIG_PUSH_COMMIT_COUNT];
+        let push = make_push(vec![make_commit(); BIG_PUSH_COMMIT_COUNT]);
         let ctx = PushContext {
-            commits: &commits,
+            push: &push,
             history: &history,
             clock: &clock,
-            repo: "git@github.com:user/repo.git",
         };
         assert_eq!(bonus.applies(&ctx), 1);
 
-        let commits = vec![make_commit(); 1_000];
+        let push = make_push(vec![make_commit(); 1_000]);
         let ctx = PushContext {
-            commits: &commits,
+            push: &push,
             history: &history,
             clock: &clock,
-            repo: "git@github.com:user/repo.git",
         };
         assert_eq!(bonus.applies(&ctx), 1);
     }
@@ -101,21 +108,19 @@ mod tests {
         let history = PushHistory::default();
         let clock = Clock::default();
 
-        let commits = vec![make_commit(); BIG_PUSH_COMMIT_COUNT - 1];
+        let push = make_push(vec![make_commit(); BIG_PUSH_COMMIT_COUNT - 1]);
         let ctx = PushContext {
-            commits: &commits,
+            push: &push,
             history: &history,
             clock: &clock,
-            repo: "git@github.com:user/repo.git",
         };
         assert_eq!(bonus.applies(&ctx), 0);
 
-        let commits = vec![make_commit(); 1];
+        let push = make_push(vec![make_commit(); 1]);
         let ctx = PushContext {
-            commits: &commits,
+            push: &push,
             history: &history,
             clock: &clock,
-            repo: "git@github.com:user/repo.git",
         };
         assert_eq!(bonus.applies(&ctx), 0);
     }

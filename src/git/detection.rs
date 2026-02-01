@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::git::{commands, CommitInfo, PushInfo};
+use crate::git::{commands, Commit, Push};
 
 /// Tracks last-known SHA per branch per repo.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -54,7 +54,7 @@ pub fn snapshot_refs(repo_path: &std::path::Path) {
 }
 
 /// Detect commits from recent push. Loads/saves refs and patch-id state as side effects.
-pub fn get_pushed_commits() -> Option<PushInfo> {
+pub fn get_pushed_commits() -> Option<Push> {
     let repo_path = std::env::current_dir().expect("could not get current directory");
 
     let remote_url = commands::get_remote_url(&repo_path)?;
@@ -153,7 +153,7 @@ pub fn get_pushed_commits() -> Option<PushInfo> {
                 );
                 seen.insert(patch_id.clone());
                 new_patch_ids.push(patch_id);
-                new_commits.push(CommitInfo {
+                new_commits.push(Commit {
                     sha,
                     lines_changed,
                     timestamp: now,
@@ -176,7 +176,7 @@ pub fn get_pushed_commits() -> Option<PushInfo> {
 
     crate::debug_log!("hook: {} new commits", new_commits.len());
 
-    Some(PushInfo {
+    Some(Push {
         commits: new_commits,
         remote_url,
         branch: pushed_branches.into_iter().next().unwrap_or_default(),

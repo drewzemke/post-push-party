@@ -4,6 +4,7 @@ mod commit_value;
 mod first_push;
 mod friday_afternoon_push;
 mod many_lines_changed;
+mod multiple_repos;
 mod one_line_change;
 mod rapid_fire;
 mod streak;
@@ -16,6 +17,7 @@ use commit_value::CommitValue;
 use first_push::FirstPush;
 use friday_afternoon_push::FridayAfternoon;
 use many_lines_changed::ManyLinesChanged;
+use multiple_repos::MultipleRepos;
 use one_line_change::OneLineChange;
 use rapid_fire::RapidFire;
 use streak::Streak;
@@ -32,6 +34,14 @@ pub struct Commit {
     pub sha: String,
     #[expect(dead_code)]
     pub timestamp: u64,
+}
+
+/// context for evaluating bonuses on a push
+pub struct PushContext<'a> {
+    pub commits: &'a [Commit],
+    pub history: &'a PushHistory,
+    pub clock: &'a Clock,
+    pub repo: &'a str,
 }
 
 /// what a bonus awards when it applies
@@ -66,7 +76,7 @@ pub trait BonusTrack: Sync {
     /// returns 0 if it doesn't apply, 1+ if it does.
     /// for multipliers, any non-zero count means the multiplier applies once.
     /// for flat bonuses, the count is multiplied by the flat amount.
-    fn applies(&self, commits: &[Commit], history: &PushHistory, clock: &Clock) -> u32;
+    fn applies(&self, ctx: &PushContext) -> u32;
 
     /// what reward does the user get at the given level?
     /// level 0 = not unlocked, level 1 = first tier, etc.
@@ -84,6 +94,7 @@ static COMMIT_VALUE: CommitValue = CommitValue;
 static FIRST_PUSH: FirstPush = FirstPush;
 static FRIDAY_AFTERNOON: FridayAfternoon = FridayAfternoon;
 static MANY_LINES_CHANGED: ManyLinesChanged = ManyLinesChanged;
+static MULTIPLE_REPOS: MultipleRepos = MultipleRepos;
 static ONE_LINE_CHANGE: OneLineChange = OneLineChange;
 static RAPID_FIRE: RapidFire = RapidFire;
 static STREAK: Streak = Streak;
@@ -96,6 +107,7 @@ pub static ALL_TRACKS: &[&'static dyn BonusTrack] = &[
     &FIRST_PUSH,
     &FRIDAY_AFTERNOON,
     &MANY_LINES_CHANGED,
+    &MULTIPLE_REPOS,
     &ONE_LINE_CHANGE,
     &RAPID_FIRE,
     &STREAK,

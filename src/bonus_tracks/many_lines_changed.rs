@@ -1,6 +1,4 @@
-use crate::history::PushHistory;
-
-use super::{BonusTrack, Clock, Commit, Reward, Tier};
+use super::{BonusTrack, PushContext, Reward, Tier};
 
 /// how many lines is considered "many"
 const MANY_LINES_COUNT: u64 = 1_000;
@@ -44,8 +42,8 @@ impl BonusTrack for ManyLinesChanged {
         TIERS
     }
 
-    fn applies(&self, commits: &[Commit], _history: &PushHistory, _clock: &Clock) -> u32 {
-        commits
+    fn applies(&self, ctx: &PushContext) -> u32 {
+        ctx.commits
             .iter()
             .filter(|c| c.lines_changed >= MANY_LINES_COUNT)
             .count() as u32
@@ -55,6 +53,8 @@ impl BonusTrack for ManyLinesChanged {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bonus_tracks::{Clock, Commit};
+    use crate::history::PushHistory;
 
     fn make_commit(lines_changed: u64) -> Commit {
         Commit {
@@ -64,56 +64,71 @@ mod tests {
         }
     }
 
-    fn empty_history() -> PushHistory {
-        PushHistory::default()
-    }
-
-    fn clock() -> Clock {
-        Clock::default()
-    }
-
     #[test]
     fn applies_to_multiple_commits() {
+        let history = PushHistory::default();
+        let clock = Clock::default();
         let commits = vec![
             make_commit(MANY_LINES_COUNT + 1),
             make_commit(10),
             make_commit(MANY_LINES_COUNT + 1),
             make_commit(5),
         ];
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
+        };
 
-        assert_eq!(
-            ManyLinesChanged.applies(&commits, &empty_history(), &clock()),
-            2
-        );
+        assert_eq!(ManyLinesChanged.applies(&ctx), 2);
     }
 
     #[test]
     fn applies_to_big_commits() {
+        let history = PushHistory::default();
+        let clock = Clock::default();
+
         let commits = vec![make_commit(MANY_LINES_COUNT)];
-        assert_eq!(
-            ManyLinesChanged.applies(&commits, &empty_history(), &clock()),
-            1
-        );
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
+        };
+        assert_eq!(ManyLinesChanged.applies(&ctx), 1);
 
         let commits = vec![make_commit(MANY_LINES_COUNT + 1)];
-        assert_eq!(
-            ManyLinesChanged.applies(&commits, &empty_history(), &clock()),
-            1
-        );
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
+        };
+        assert_eq!(ManyLinesChanged.applies(&ctx), 1);
     }
 
     #[test]
     fn does_not_apply_to_small_commits() {
+        let history = PushHistory::default();
+        let clock = Clock::default();
+
         let commits = vec![make_commit(0)];
-        assert_eq!(
-            ManyLinesChanged.applies(&commits, &empty_history(), &clock()),
-            0
-        );
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
+        };
+        assert_eq!(ManyLinesChanged.applies(&ctx), 0);
 
         let commits = vec![make_commit(MANY_LINES_COUNT - 1)];
-        assert_eq!(
-            ManyLinesChanged.applies(&commits, &empty_history(), &clock()),
-            0
-        );
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
+        };
+        assert_eq!(ManyLinesChanged.applies(&ctx), 0);
     }
 }

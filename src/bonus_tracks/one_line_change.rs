@@ -1,6 +1,4 @@
-use crate::history::PushHistory;
-
-use super::{BonusTrack, Clock, Commit, Reward, Tier};
+use super::{BonusTrack, PushContext, Reward, Tier};
 
 /// bonus for surgical single-line commits
 pub struct OneLineChange;
@@ -41,14 +39,16 @@ impl BonusTrack for OneLineChange {
         TIERS
     }
 
-    fn applies(&self, commits: &[Commit], _history: &PushHistory, _clock: &Clock) -> u32 {
-        commits.iter().filter(|c| c.lines_changed == 1).count() as u32
+    fn applies(&self, ctx: &PushContext) -> u32 {
+        ctx.commits.iter().filter(|c| c.lines_changed == 1).count() as u32
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bonus_tracks::{Clock, Commit};
+    use crate::history::PushHistory;
 
     fn make_commit(lines_changed: u64) -> Commit {
         Commit {
@@ -58,44 +58,51 @@ mod tests {
         }
     }
 
-    fn empty_history() -> PushHistory {
-        PushHistory::default()
-    }
-
-    fn clock() -> Clock {
-        Clock::default()
-    }
-
     #[test]
     fn applies_to_single_line_commits() {
+        let history = PushHistory::default();
+        let clock = Clock::default();
         let commits = vec![
             make_commit(1),
             make_commit(10),
             make_commit(1),
             make_commit(5),
         ];
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
+        };
 
-        assert_eq!(
-            OneLineChange.applies(&commits, &empty_history(), &clock()),
-            2
-        );
+        assert_eq!(OneLineChange.applies(&ctx), 2);
     }
 
     #[test]
     fn does_not_apply_to_zero_line_commits() {
+        let history = PushHistory::default();
+        let clock = Clock::default();
         let commits = vec![make_commit(0)];
-        assert_eq!(
-            OneLineChange.applies(&commits, &empty_history(), &clock()),
-            0
-        );
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
+        };
+        assert_eq!(OneLineChange.applies(&ctx), 0);
     }
 
     #[test]
     fn does_not_apply_to_multi_line_commits() {
+        let history = PushHistory::default();
+        let clock = Clock::default();
         let commits = vec![make_commit(2), make_commit(100)];
-        assert_eq!(
-            OneLineChange.applies(&commits, &empty_history(), &clock()),
-            0
-        );
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
+        };
+        assert_eq!(OneLineChange.applies(&ctx), 0);
     }
 }

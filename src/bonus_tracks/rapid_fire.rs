@@ -1,6 +1,4 @@
-use crate::history::PushHistory;
-
-use super::{BonusTrack, Clock, Commit, Reward, Tier};
+use super::{BonusTrack, PushContext, Reward, Tier};
 
 /// bonus for pushing multiple times in quick succession
 pub struct RapidFire;
@@ -48,13 +46,13 @@ impl BonusTrack for RapidFire {
         TIERS
     }
 
-    fn applies(&self, commits: &[Commit], history: &PushHistory, clock: &Clock) -> u32 {
-        if commits.is_empty() {
+    fn applies(&self, ctx: &PushContext) -> u32 {
+        if ctx.commits.is_empty() {
             return 0;
         }
 
-        let cutoff = clock.now.saturating_sub(RAPID_FIRE_WINDOW_SECS);
-        let has_recent_push = history.entries().iter().any(|e| e.timestamp >= cutoff);
+        let cutoff = ctx.clock.now.saturating_sub(RAPID_FIRE_WINDOW_SECS);
+        let has_recent_push = ctx.history.entries().iter().any(|e| e.timestamp >= cutoff);
 
         if has_recent_push {
             1
@@ -67,7 +65,8 @@ impl BonusTrack for RapidFire {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::history::PushEntry;
+    use crate::bonus_tracks::{Clock, Commit};
+    use crate::history::{PushEntry, PushHistory};
 
     fn make_commit() -> Commit {
         Commit {
@@ -94,47 +93,55 @@ mod tests {
         }
     }
 
-    fn clock_at(now: u64) -> Clock {
-        Clock {
-            now,
-            tz_offset_secs: 0,
-        }
-    }
-
     #[test]
     fn applies_when_pushed_within_window() {
         let bonus = RapidFire;
         let commits = vec![make_commit()];
-
-        // pushed 5 minutes ago
         let history = make_history(vec![push_at(1000)]);
-        let clock = clock_at(1000 + 5 * 60);
+        let clock = Clock { now: 1000 + 5 * 60, tz_offset_secs: 0 };
 
-        assert_eq!(bonus.applies(&commits, &history, &clock), 1);
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
+        };
+
+        assert_eq!(bonus.applies(&ctx), 1);
     }
 
     #[test]
     fn applies_at_exact_boundary() {
         let bonus = RapidFire;
         let commits = vec![make_commit()];
-
-        // pushed exactly 15 minutes ago
         let history = make_history(vec![push_at(1000)]);
-        let clock = clock_at(1000 + RAPID_FIRE_WINDOW_SECS);
+        let clock = Clock { now: 1000 + RAPID_FIRE_WINDOW_SECS, tz_offset_secs: 0 };
 
-        assert_eq!(bonus.applies(&commits, &history, &clock), 1);
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
+        };
+
+        assert_eq!(bonus.applies(&ctx), 1);
     }
 
     #[test]
     fn does_not_apply_outside_window() {
         let bonus = RapidFire;
         let commits = vec![make_commit()];
-
-        // pushed 16 minutes ago
         let history = make_history(vec![push_at(1000)]);
-        let clock = clock_at(1000 + RAPID_FIRE_WINDOW_SECS + 60);
+        let clock = Clock { now: 1000 + RAPID_FIRE_WINDOW_SECS + 60, tz_offset_secs: 0 };
 
-        assert_eq!(bonus.applies(&commits, &history, &clock), 0);
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
+        };
+
+        assert_eq!(bonus.applies(&ctx), 0);
     }
 
     #[test]
@@ -142,9 +149,16 @@ mod tests {
         let bonus = RapidFire;
         let commits = vec![make_commit()];
         let history = PushHistory::default();
-        let clock = clock_at(1000);
+        let clock = Clock { now: 1000, tz_offset_secs: 0 };
 
-        assert_eq!(bonus.applies(&commits, &history, &clock), 0);
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
+        };
+
+        assert_eq!(bonus.applies(&ctx), 0);
     }
 
     #[test]
@@ -152,8 +166,15 @@ mod tests {
         let bonus = RapidFire;
         let commits = vec![];
         let history = make_history(vec![push_at(1000)]);
-        let clock = clock_at(1000 + 5 * 60);
+        let clock = Clock { now: 1000 + 5 * 60, tz_offset_secs: 0 };
 
-        assert_eq!(bonus.applies(&commits, &history, &clock), 0);
+        let ctx = PushContext {
+            commits: &commits,
+            history: &history,
+            clock: &clock,
+            repo: "git@github.com:user/repo.git",
+        };
+
+        assert_eq!(bonus.applies(&ctx), 0);
     }
 }

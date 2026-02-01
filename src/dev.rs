@@ -36,7 +36,7 @@ pub fn push(commits: u64, lines: Option<Vec<u64>>) {
         })
         .collect();
 
-    let breakdown = scoring::calculate_points(&commit_info, &s, &hist, &clock);
+    let breakdown = scoring::calculate_points(&commit_info, &s, &hist, &clock, "dev://fake");
     s.party_points += breakdown.total;
 
     if let Err(e) = state::save(&s) {

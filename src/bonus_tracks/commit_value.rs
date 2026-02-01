@@ -1,6 +1,4 @@
-use crate::history::PushHistory;
-
-use super::{BonusTrack, Clock, Commit, Reward, Tier};
+use super::{BonusTrack, PushContext, Reward, Tier};
 
 /// base points earned per commit
 pub struct CommitValue;
@@ -45,7 +43,7 @@ impl BonusTrack for CommitValue {
         TIERS
     }
 
-    fn applies(&self, _commits: &[Commit], _history: &PushHistory, _clock: &Clock) -> u32 {
+    fn applies(&self, _ctx: &PushContext) -> u32 {
         1 // always applies
     }
 }
@@ -53,6 +51,8 @@ impl BonusTrack for CommitValue {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bonus_tracks::Clock;
+    use crate::history::PushHistory;
 
     #[test]
     fn tiers_start_free() {
@@ -63,8 +63,12 @@ mod tests {
 
     #[test]
     fn always_applies() {
-        let clock = Clock::default();
-        let history = PushHistory::default();
-        assert_eq!(CommitValue.applies(&[], &history, &clock), 1);
+        let ctx = PushContext {
+            commits: &[],
+            history: &PushHistory::default(),
+            clock: &Clock::default(),
+            repo: "git@github.com:user/repo.git",
+        };
+        assert_eq!(CommitValue.applies(&ctx), 1);
     }
 }

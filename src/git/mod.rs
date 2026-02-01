@@ -18,8 +18,6 @@ pub struct CommitInfo {
 #[derive(Debug)]
 pub struct PushInfo {
     pub commits: Vec<CommitInfo>,
-    pub commits_pushed: u64,
-    pub commits_counted: u64,
     pub remote_url: String,
     pub branch: String,
 }

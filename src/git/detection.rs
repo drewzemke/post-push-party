@@ -120,8 +120,7 @@ pub fn get_pushed_commits() -> Option<PushInfo> {
         return None;
     }
 
-    let total_commits = commits.len();
-    crate::debug_log!("hook: {} commits to check", total_commits);
+    crate::debug_log!("hook: {} commits to check", commits.len());
 
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -169,20 +168,16 @@ pub fn get_pushed_commits() -> Option<PushInfo> {
     }
     let _ = save_refs(&branch_refs);
 
-    let commits_counted = new_commits.len() as u64;
-
     // persist new patch-ids (if any)
     if !new_patch_ids.is_empty() {
         patch_store.record(&remote_url, &new_patch_ids);
         let _ = super::patch_ids::save(&patch_store);
     }
 
-    crate::debug_log!("hook: {} new commits", commits_counted);
+    crate::debug_log!("hook: {} new commits", new_commits.len());
 
     Some(PushInfo {
         commits: new_commits,
-        commits_pushed: total_commits as u64,
-        commits_counted,
         remote_url,
         branch: pushed_branches.into_iter().next().unwrap_or_default(),
     })

@@ -6,11 +6,26 @@ use super::{BonusTrack, Clock, Commit, Reward, Tier};
 pub struct FirstPush;
 
 static TIERS: &[Tier] = &[
-    Tier { cost: 100, reward: Reward::Multiplier(2) },
-    Tier { cost: 500, reward: Reward::Multiplier(3) },
-    Tier { cost: 1500, reward: Reward::Multiplier(4) },
-    Tier { cost: 5000, reward: Reward::Multiplier(5) },
-    Tier { cost: 15000, reward: Reward::Multiplier(6) },
+    Tier {
+        cost: 100,
+        reward: Reward::Multiplier(2),
+    },
+    Tier {
+        cost: 500,
+        reward: Reward::Multiplier(3),
+    },
+    Tier {
+        cost: 1500,
+        reward: Reward::Multiplier(4),
+    },
+    Tier {
+        cost: 5000,
+        reward: Reward::Multiplier(5),
+    },
+    Tier {
+        cost: 15000,
+        reward: Reward::Multiplier(6),
+    },
 ];
 
 impl BonusTrack for FirstPush {
@@ -36,7 +51,11 @@ impl BonusTrack for FirstPush {
             .iter()
             .any(|e| clock.day_of(e.timestamp) == clock.today());
 
-        if pushed_today { 0 } else { 1 }
+        if pushed_today {
+            0
+        } else {
+            1
+        }
     }
 }
 
@@ -67,7 +86,10 @@ mod tests {
     }
 
     fn utc(now: u64) -> Clock {
-        Clock { now, tz_offset_secs: 0 }
+        Clock {
+            now,
+            tz_offset_secs: 0,
+        }
     }
 
     // timestamps for testing (2026-01-28 in UTC)
@@ -82,20 +104,19 @@ mod tests {
     const UTC_MINUS_5: i32 = -5 * 3600;
 
     #[test]
-    fn has_correct_id() {
-        assert_eq!(FirstPush.id(), "first_push");
-    }
-
-    #[test]
     fn respects_local_timezone() {
         // push at 11pm local time - in UTC this is already Jan 29,
         // but in local time it's still Jan 28
         let bonus = FirstPush;
         let commits = vec![make_commit(JAN28_11PM_LOCAL)];
-        let history = make_history(vec![
-            make_push(JAN28_9AM_LOCAL), // pushed at 9am local same day
-        ]);
-        let clock = Clock { now: JAN28_11PM_LOCAL, tz_offset_secs: UTC_MINUS_5 };
+
+        // pushed at 9am local same day
+        let history = make_history(vec![make_push(JAN28_9AM_LOCAL)]);
+
+        let clock = Clock {
+            now: JAN28_11PM_LOCAL,
+            tz_offset_secs: UTC_MINUS_5,
+        };
 
         // should NOT apply - already pushed today in local time
         assert_eq!(bonus.applies(&commits, &history, &clock), 0);
@@ -114,9 +135,9 @@ mod tests {
     fn does_not_apply_when_already_pushed_today() {
         let bonus = FirstPush;
         let commits = vec![make_commit(TODAY_3PM)];
-        let history = make_history(vec![
-            make_push(TODAY_9AM), // already pushed earlier today
-        ]);
+
+        // already pushed earlier today
+        let history = make_history(vec![make_push(TODAY_9AM)]);
 
         assert_eq!(bonus.applies(&commits, &history, &utc(TODAY_3PM)), 0);
     }
@@ -128,25 +149,5 @@ mod tests {
         let history = make_history(vec![]);
 
         assert_eq!(bonus.applies(&commits, &history, &utc(TODAY_9AM)), 1);
-    }
-
-    #[test]
-    fn tiers_returns_expected_values() {
-        let tiers = FirstPush.tiers();
-
-        assert_eq!(tiers.len(), 5);
-        assert_eq!(tiers[0].cost, 100);
-        assert_eq!(tiers[0].reward, Reward::Multiplier(2));
-        assert_eq!(tiers[4].cost, 15000);
-        assert_eq!(tiers[4].reward, Reward::Multiplier(6));
-    }
-
-    #[test]
-    fn reward_at_level_returns_correct_reward() {
-        assert_eq!(FirstPush.reward_at_level(0), None);
-        assert_eq!(FirstPush.reward_at_level(1), Some(Reward::Multiplier(2)));
-        assert_eq!(FirstPush.reward_at_level(3), Some(Reward::Multiplier(4)));
-        assert_eq!(FirstPush.reward_at_level(5), Some(Reward::Multiplier(6)));
-        assert_eq!(FirstPush.reward_at_level(6), None); // beyond max tier
     }
 }

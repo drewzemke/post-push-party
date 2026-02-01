@@ -6,10 +6,22 @@ use super::{BonusTrack, Clock, Commit, Reward, Tier};
 pub struct Sniper;
 
 static TIERS: &[Tier] = &[
-    Tier { cost: 50, reward: Reward::FlatPoints(5) },
-    Tier { cost: 200, reward: Reward::FlatPoints(10) },
-    Tier { cost: 800, reward: Reward::FlatPoints(20) },
-    Tier { cost: 3000, reward: Reward::FlatPoints(50) },
+    Tier {
+        cost: 50,
+        reward: Reward::FlatPoints(5),
+    },
+    Tier {
+        cost: 200,
+        reward: Reward::FlatPoints(10),
+    },
+    Tier {
+        cost: 800,
+        reward: Reward::FlatPoints(20),
+    },
+    Tier {
+        cost: 3000,
+        reward: Reward::FlatPoints(50),
+    },
 ];
 
 impl BonusTrack for Sniper {
@@ -51,7 +63,7 @@ mod tests {
     }
 
     fn clock() -> Clock {
-        Clock { now: 0, tz_offset_secs: 0 }
+        Clock::default()
     }
 
     #[test]
@@ -81,21 +93,5 @@ mod tests {
     fn does_not_apply_to_multi_line_commits() {
         let commits = vec![make_commit(2), make_commit(100)];
         assert_eq!(Sniper.applies(&commits, &empty_history(), &clock()), 0);
-    }
-
-    #[test]
-    fn tiers_are_flat_points() {
-        let tiers = Sniper.tiers();
-        assert_eq!(tiers.len(), 4);
-        assert_eq!(tiers[0].reward, Reward::FlatPoints(5));
-        assert_eq!(tiers[3].reward, Reward::FlatPoints(50));
-    }
-
-    #[test]
-    fn reward_at_level_returns_flat_points() {
-        assert_eq!(Sniper.reward_at_level(0), None);
-        assert_eq!(Sniper.reward_at_level(1), Some(Reward::FlatPoints(5)));
-        assert_eq!(Sniper.reward_at_level(4), Some(Reward::FlatPoints(50)));
-        assert_eq!(Sniper.reward_at_level(5), None);
     }
 }

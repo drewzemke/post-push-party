@@ -9,7 +9,7 @@ pub use sniper::Sniper;
 use crate::history::PushHistory;
 
 /// time context for bonus calculations
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct Clock {
     pub now: u64,
     pub tz_offset_secs: i32,
@@ -31,8 +31,11 @@ impl Clock {
 /// data about a single commit in the current push
 #[derive(Debug, Clone)]
 pub struct Commit {
-    pub sha: String,
     pub lines_changed: u64,
+
+    #[expect(dead_code)]
+    pub sha: String,
+    #[expect(dead_code)]
     pub timestamp: u64,
 }
 
@@ -86,8 +89,4 @@ static FIRST_PUSH: FirstPush = FirstPush;
 static SNIPER: Sniper = Sniper;
 
 /// all bonus tracks in display order
-pub static ALL_TRACKS: &[&'static dyn BonusTrack] = &[
-    &COMMIT_VALUE,
-    &FIRST_PUSH,
-    &SNIPER,
-];
+pub static ALL_TRACKS: &[&'static dyn BonusTrack] = &[&COMMIT_VALUE, &FIRST_PUSH, &SNIPER];

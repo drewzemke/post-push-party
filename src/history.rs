@@ -12,10 +12,14 @@ pub struct PushEntry {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PushHistory {
-    pub entries: Vec<PushEntry>,
+    entries: Vec<PushEntry>,
 }
 
 impl PushHistory {
+    pub fn entries(&self) -> &[PushEntry] {
+        &self.entries
+    }
+
     pub fn add(&mut self, entry: PushEntry) {
         self.entries.push(entry);
     }
@@ -79,14 +83,14 @@ mod tests {
         let json = serde_json::to_string(&history).unwrap();
         let decoded: PushHistory = serde_json::from_str(&json).unwrap();
 
-        assert_eq!(decoded.entries.len(), 1);
-        assert_eq!(decoded.entries[0].commits, 5);
-        assert_eq!(decoded.entries[0].branch, "main");
+        assert_eq!(decoded.entries().len(), 1);
+        assert_eq!(decoded.entries()[0].commits, 5);
+        assert_eq!(decoded.entries()[0].branch, "main");
     }
 
     #[test]
     fn empty_history() {
         let history = PushHistory::default();
-        assert!(history.entries.is_empty());
+        assert!(history.entries().is_empty());
     }
 }

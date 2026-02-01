@@ -59,7 +59,7 @@ mod tests {
     }
 
     fn empty_history() -> PushHistory {
-        PushHistory { entries: vec![] }
+        PushHistory::default()
     }
 
     fn clock() -> Clock {

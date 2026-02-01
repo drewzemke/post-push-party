@@ -1,40 +1,18 @@
+mod clock;
 mod commit_value;
 mod first_push;
+mod friday_afternoon_push;
 mod one_line_change;
 mod weekend_push;
 
+pub use clock::Clock;
 pub use commit_value::CommitValue;
 pub use first_push::FirstPush;
+pub use friday_afternoon_push::FridayAfternoon;
 pub use one_line_change::OneLineChange;
 pub use weekend_push::WeekendPush;
 
 use crate::history::PushHistory;
-
-/// time context for bonus calculations
-#[derive(Debug, Default, Clone, Copy)]
-pub struct Clock {
-    pub now: u64,
-    pub tz_offset_secs: i32,
-}
-
-impl Clock {
-    /// convert a utc timestamp to local day number
-    pub fn day_of(&self, timestamp: u64) -> i64 {
-        const SECONDS_PER_DAY: i64 = 86400;
-        (timestamp as i64 + self.tz_offset_secs as i64) / SECONDS_PER_DAY
-    }
-
-    /// local day number for `now`
-    pub fn today(&self) -> i64 {
-        self.day_of(self.now)
-    }
-
-    /// day of the week for `now`
-    /// Thursday is 0, Friday is 1, etc
-    pub fn day_of_week(&self) -> i64 {
-        self.day_of(self.now).rem_euclid(7)
-    }
-}
 
 /// data about a single commit in the current push
 #[derive(Debug, Clone)]
@@ -94,9 +72,15 @@ pub trait BonusTrack: Sync {
 // static instances for ALL_TRACKS
 static COMMIT_VALUE: CommitValue = CommitValue;
 static FIRST_PUSH: FirstPush = FirstPush;
+static FRIDAY_AFTERNOON: FridayAfternoon = FridayAfternoon;
 static ONE_LINE_CHANGE: OneLineChange = OneLineChange;
 static WEEKEND_PUSH: WeekendPush = WeekendPush;
 
 /// all bonus tracks in display order
-pub static ALL_TRACKS: &[&'static dyn BonusTrack] =
-    &[&COMMIT_VALUE, &FIRST_PUSH, &ONE_LINE_CHANGE, &WEEKEND_PUSH];
+pub static ALL_TRACKS: &[&'static dyn BonusTrack] = &[
+    &COMMIT_VALUE,
+    &FIRST_PUSH,
+    &FRIDAY_AFTERNOON,
+    &ONE_LINE_CHANGE,
+    &WEEKEND_PUSH,
+];

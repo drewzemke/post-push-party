@@ -1,11 +1,23 @@
 /// time context for bonus calculations
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Clock {
-    pub now: u64,
-    pub tz_offset_secs: i32,
+    now: u64,
+    tz_offset_secs: i32,
 }
 
 impl Clock {
+    pub fn at(now: u64) -> Self {
+        Self { now, tz_offset_secs: 0 }
+    }
+
+    pub fn with_offset(now: u64, tz_offset_secs: i32) -> Self {
+        Self { now, tz_offset_secs }
+    }
+
+    pub fn now(&self) -> u64 {
+        self.now
+    }
+
     /// convert a utc timestamp to local day number
     pub fn day_of(&self, timestamp: u64) -> i64 {
         const SECONDS_PER_DAY: i64 = 86400;

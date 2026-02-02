@@ -29,19 +29,11 @@ pub fn push(num_commits: u64, lines: Option<Vec<u64>>) {
                 .as_ref()
                 .map(|l| l[i as usize % l.len()])
                 .unwrap_or(10); // default 10 lines per commit
-            Commit {
-                sha: format!("fake{}", i),
-                lines_changed,
-                timestamp: clock.now,
-            }
+            Commit::new(format!("fake{}", i), lines_changed, clock.now())
         })
         .collect();
 
-    let push = Push {
-        commits,
-        remote_url: "dev://fake".to_string(),
-        branch: "main".to_string(),
-    };
+    let push = Push::with_repo(commits, "dev://fake");
 
     let breakdown = scoring::calculate_points(&push, &s, &hist, &clock);
     s.party_points += breakdown.total;

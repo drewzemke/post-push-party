@@ -12,7 +12,7 @@ fn consecutive_push_days(history: &PushHistory, clock: &Clock) -> u32 {
     let days_with_pushes: HashSet<i64> = history
         .entries()
         .iter()
-        .map(|e| clock.day_of(e.timestamp))
+        .map(|e| clock.day_of(e.timestamp()))
         .collect();
 
     let mut count = 0;
@@ -70,7 +70,7 @@ impl BonusTrack for Streak {
     }
 
     fn applies(&self, ctx: &PushContext) -> u32 {
-        if ctx.push.commits.is_empty() {
+        if ctx.push.commits().is_empty() {
             return 0;
         }
 
@@ -88,49 +88,25 @@ mod tests {
     use crate::git::{Commit, Push};
     use crate::history::PushEntry;
 
-    fn make_commit() -> Commit {
-        Commit {
-            sha: "abc123".to_string(),
-            lines_changed: 10,
-            timestamp: 0,
-        }
-    }
-
-    fn make_push(commits: Vec<Commit>) -> Push {
-        Push {
-            commits,
-            remote_url: "git@github.com:user/repo.git".to_string(),
-            branch: "main".to_string(),
-        }
-    }
-
     const SECONDS_PER_DAY: u64 = 86400;
 
     fn clock_at_day(day: u64) -> Clock {
-        Clock {
-            now: day * SECONDS_PER_DAY + 3600, // 1am on that day
-            tz_offset_secs: 0,
-        }
+        Clock::at(day * SECONDS_PER_DAY + 3600) // 1am on that day
     }
 
-    fn history_entry_on_day(day: u64) -> PushEntry {
-        PushEntry {
-            timestamp: day * SECONDS_PER_DAY + 3600,
-            remote_url: "git@github.com:user/repo.git".to_string(),
-            branch: "main".to_string(),
-            commits: 1,
-        }
+    fn entry_on_day(day: u64) -> PushEntry {
+        PushEntry::at(day * SECONDS_PER_DAY + 3600)
     }
 
     #[test]
     fn applies_with_3_day_streak() {
         let bonus = Streak;
-        let push = make_push(vec![make_commit()]);
-
-        let mut history = PushHistory::default();
-        history.add(history_entry_on_day(100));
-        history.add(history_entry_on_day(101));
-        history.add(history_entry_on_day(102));
+        let push = Push::new(vec![Commit::default()]);
+        let history = PushHistory::from_entries([
+            entry_on_day(100),
+            entry_on_day(101),
+            entry_on_day(102),
+        ]);
 
         let clock = clock_at_day(102);
         let ctx = PushContext { push: &push, history: &history, clock: &clock };
@@ -140,12 +116,8 @@ mod tests {
     #[test]
     fn applies_with_longer_streak() {
         let bonus = Streak;
-        let push = make_push(vec![make_commit()]);
-
-        let mut history = PushHistory::default();
-        for day in 95..=102 {
-            history.add(history_entry_on_day(day));
-        }
+        let push = Push::new(vec![Commit::default()]);
+        let history = PushHistory::from_entries((95..=102).map(entry_on_day));
 
         let clock = clock_at_day(102);
         let ctx = PushContext { push: &push, history: &history, clock: &clock };
@@ -155,11 +127,8 @@ mod tests {
     #[test]
     fn does_not_apply_with_2_day_streak() {
         let bonus = Streak;
-        let push = make_push(vec![make_commit()]);
-
-        let mut history = PushHistory::default();
-        history.add(history_entry_on_day(101));
-        history.add(history_entry_on_day(102));
+        let push = Push::new(vec![Commit::default()]);
+        let history = PushHistory::from_entries([entry_on_day(101), entry_on_day(102)]);
 
         let clock = clock_at_day(102);
         let ctx = PushContext { push: &push, history: &history, clock: &clock };
@@ -169,13 +138,13 @@ mod tests {
     #[test]
     fn does_not_apply_with_gap() {
         let bonus = Streak;
-        let push = make_push(vec![make_commit()]);
-
-        let mut history = PushHistory::default();
-        history.add(history_entry_on_day(99));
-        history.add(history_entry_on_day(100));
-        // gap on day 101
-        history.add(history_entry_on_day(102));
+        let push = Push::new(vec![Commit::default()]);
+        let history = PushHistory::from_entries([
+            entry_on_day(99),
+            entry_on_day(100),
+            // gap on day 101
+            entry_on_day(102),
+        ]);
 
         let clock = clock_at_day(102);
         let ctx = PushContext { push: &push, history: &history, clock: &clock };
@@ -185,12 +154,12 @@ mod tests {
     #[test]
     fn does_not_apply_if_no_push_today() {
         let bonus = Streak;
-        let push = make_push(vec![make_commit()]);
-
-        let mut history = PushHistory::default();
-        history.add(history_entry_on_day(99));
-        history.add(history_entry_on_day(100));
-        history.add(history_entry_on_day(101));
+        let push = Push::new(vec![Commit::default()]);
+        let history = PushHistory::from_entries([
+            entry_on_day(99),
+            entry_on_day(100),
+            entry_on_day(101),
+        ]);
 
         // clock is on day 102, but no push today
         let clock = clock_at_day(102);
@@ -201,12 +170,12 @@ mod tests {
     #[test]
     fn does_not_apply_to_empty_pushes() {
         let bonus = Streak;
-        let push = make_push(vec![]);
-
-        let mut history = PushHistory::default();
-        history.add(history_entry_on_day(100));
-        history.add(history_entry_on_day(101));
-        history.add(history_entry_on_day(102));
+        let push = Push::new(vec![]);
+        let history = PushHistory::from_entries([
+            entry_on_day(100),
+            entry_on_day(101),
+            entry_on_day(102),
+        ]);
 
         let clock = clock_at_day(102);
         let ctx = PushContext { push: &push, history: &history, clock: &clock };

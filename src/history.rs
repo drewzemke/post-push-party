@@ -4,10 +4,51 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PushEntry {
-    pub timestamp: u64, // unix timestamp
-    pub remote_url: String,
-    pub branch: String,
-    pub commits: u64,
+    timestamp: u64, // unix timestamp
+    remote_url: String,
+    branch: String,
+    commits: u64,
+}
+
+impl Default for PushEntry {
+    fn default() -> Self {
+        Self {
+            timestamp: 0,
+            remote_url: "git@github.com:user/repo.git".to_string(),
+            branch: "main".to_string(),
+            commits: 1,
+        }
+    }
+}
+
+impl PushEntry {
+    pub fn new(timestamp: u64, remote_url: impl Into<String>, branch: impl Into<String>, commits: u64) -> Self {
+        Self { timestamp, remote_url: remote_url.into(), branch: branch.into(), commits }
+    }
+
+    pub fn at(timestamp: u64) -> Self {
+        Self { timestamp, ..Default::default() }
+    }
+
+    pub fn with_repo(timestamp: u64, remote_url: impl Into<String>) -> Self {
+        Self { timestamp, remote_url: remote_url.into(), ..Default::default() }
+    }
+
+    pub fn timestamp(&self) -> u64 {
+        self.timestamp
+    }
+
+    pub fn remote_url(&self) -> &str {
+        &self.remote_url
+    }
+
+    pub fn branch(&self) -> &str {
+        &self.branch
+    }
+
+    pub fn commits(&self) -> u64 {
+        self.commits
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -16,6 +57,10 @@ pub struct PushHistory {
 }
 
 impl PushHistory {
+    pub fn from_entries(entries: impl IntoIterator<Item = PushEntry>) -> Self {
+        Self { entries: entries.into_iter().collect() }
+    }
+
     pub fn entries(&self) -> &[PushEntry] {
         &self.entries
     }
@@ -57,12 +102,7 @@ pub fn record(remote_url: &str, branch: &str, commits: u64) {
         .unwrap_or(0);
 
     let mut history = load();
-    history.add(PushEntry {
-        timestamp,
-        remote_url: remote_url.to_string(),
-        branch: branch.to_string(),
-        commits,
-    });
+    history.add(PushEntry::new(timestamp, remote_url, branch, commits));
     let _ = save(&history);
 }
 
@@ -73,19 +113,14 @@ mod tests {
     #[test]
     fn push_history_roundtrips() {
         let mut history = PushHistory::default();
-        history.add(PushEntry {
-            timestamp: 1234567890,
-            remote_url: "git@github.com:user/repo.git".to_string(),
-            branch: "main".to_string(),
-            commits: 5,
-        });
+        history.add(PushEntry::new(1234567890, "git@github.com:user/repo.git", "main", 5));
 
         let json = serde_json::to_string(&history).unwrap();
         let decoded: PushHistory = serde_json::from_str(&json).unwrap();
 
         assert_eq!(decoded.entries().len(), 1);
-        assert_eq!(decoded.entries()[0].commits, 5);
-        assert_eq!(decoded.entries()[0].branch, "main");
+        assert_eq!(decoded.entries()[0].commits(), 5);
+        assert_eq!(decoded.entries()[0].branch(), "main");
     }
 
     #[test]

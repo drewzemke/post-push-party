@@ -153,11 +153,7 @@ pub fn get_pushed_commits() -> Option<Push> {
                 );
                 seen.insert(patch_id.clone());
                 new_patch_ids.push(patch_id);
-                new_commits.push(Commit {
-                    sha,
-                    lines_changed,
-                    timestamp: now,
-                });
+                new_commits.push(Commit::new(sha, lines_changed, now));
             }
         }
     }
@@ -176,9 +172,9 @@ pub fn get_pushed_commits() -> Option<Push> {
 
     crate::debug_log!("hook: {} new commits", new_commits.len());
 
-    Some(Push {
-        commits: new_commits,
+    Some(Push::from_parts(
+        new_commits,
         remote_url,
-        branch: pushed_branches.into_iter().next().unwrap_or_default(),
-    })
+        pushed_branches.into_iter().next().unwrap_or_default(),
+    ))
 }

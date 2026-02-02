@@ -40,7 +40,7 @@ impl BonusTrack for OneLineChange {
     }
 
     fn applies(&self, ctx: &PushContext) -> u32 {
-        ctx.push.commits.iter().filter(|c| c.lines_changed == 1).count() as u32
+        ctx.push.commits().iter().filter(|c| c.lines_changed() == 1).count() as u32
     }
 }
 
@@ -51,31 +51,15 @@ mod tests {
     use crate::git::{Commit, Push};
     use crate::history::PushHistory;
 
-    fn make_commit(lines_changed: u64) -> Commit {
-        Commit {
-            sha: "abc123".to_string(),
-            lines_changed,
-            timestamp: 0,
-        }
-    }
-
-    fn make_push(commits: Vec<Commit>) -> Push {
-        Push {
-            commits,
-            remote_url: "git@github.com:user/repo.git".to_string(),
-            branch: "main".to_string(),
-        }
-    }
-
     #[test]
     fn applies_to_single_line_commits() {
         let history = PushHistory::default();
         let clock = Clock::default();
-        let push = make_push(vec![
-            make_commit(1),
-            make_commit(10),
-            make_commit(1),
-            make_commit(5),
+        let push = Push::new(vec![
+            Commit::with_lines(1),
+            Commit::with_lines(10),
+            Commit::with_lines(1),
+            Commit::with_lines(5),
         ]);
         let ctx = PushContext { push: &push, history: &history, clock: &clock };
 
@@ -86,7 +70,7 @@ mod tests {
     fn does_not_apply_to_zero_line_commits() {
         let history = PushHistory::default();
         let clock = Clock::default();
-        let push = make_push(vec![make_commit(0)]);
+        let push = Push::new(vec![Commit::with_lines(0)]);
         let ctx = PushContext { push: &push, history: &history, clock: &clock };
         assert_eq!(OneLineChange.applies(&ctx), 0);
     }
@@ -95,7 +79,7 @@ mod tests {
     fn does_not_apply_to_multi_line_commits() {
         let history = PushHistory::default();
         let clock = Clock::default();
-        let push = make_push(vec![make_commit(2), make_commit(100)]);
+        let push = Push::new(vec![Commit::with_lines(2), Commit::with_lines(100)]);
         let ctx = PushContext { push: &push, history: &history, clock: &clock };
         assert_eq!(OneLineChange.applies(&ctx), 0);
     }

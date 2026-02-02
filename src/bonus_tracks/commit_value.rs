@@ -64,11 +64,7 @@ mod tests {
 
     #[test]
     fn always_applies() {
-        let push = Push {
-            commits: vec![],
-            remote_url: "git@github.com:user/repo.git".to_string(),
-            branch: "main".to_string(),
-        };
+        let push = Push::new(vec![]);
         let ctx = PushContext {
             push: &push,
             history: &PushHistory::default(),

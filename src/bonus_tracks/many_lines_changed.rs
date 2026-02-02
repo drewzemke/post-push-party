@@ -43,9 +43,9 @@ impl BonusTrack for ManyLinesChanged {
     }
 
     fn applies(&self, ctx: &PushContext) -> u32 {
-        ctx.push.commits
+        ctx.push.commits()
             .iter()
-            .filter(|c| c.lines_changed >= MANY_LINES_COUNT)
+            .filter(|c| c.lines_changed() >= MANY_LINES_COUNT)
             .count() as u32
     }
 }
@@ -57,31 +57,15 @@ mod tests {
     use crate::git::{Commit, Push};
     use crate::history::PushHistory;
 
-    fn make_commit(lines_changed: u64) -> Commit {
-        Commit {
-            sha: "abc123".to_string(),
-            lines_changed,
-            timestamp: 0,
-        }
-    }
-
-    fn make_push(commits: Vec<Commit>) -> Push {
-        Push {
-            commits,
-            remote_url: "git@github.com:user/repo.git".to_string(),
-            branch: "main".to_string(),
-        }
-    }
-
     #[test]
     fn applies_to_multiple_commits() {
         let history = PushHistory::default();
         let clock = Clock::default();
-        let push = make_push(vec![
-            make_commit(MANY_LINES_COUNT + 1),
-            make_commit(10),
-            make_commit(MANY_LINES_COUNT + 1),
-            make_commit(5),
+        let push = Push::new(vec![
+            Commit::with_lines(MANY_LINES_COUNT + 1),
+            Commit::with_lines(10),
+            Commit::with_lines(MANY_LINES_COUNT + 1),
+            Commit::with_lines(5),
         ]);
         let ctx = PushContext { push: &push, history: &history, clock: &clock };
 
@@ -93,11 +77,11 @@ mod tests {
         let history = PushHistory::default();
         let clock = Clock::default();
 
-        let push = make_push(vec![make_commit(MANY_LINES_COUNT)]);
+        let push = Push::new(vec![Commit::with_lines(MANY_LINES_COUNT)]);
         let ctx = PushContext { push: &push, history: &history, clock: &clock };
         assert_eq!(ManyLinesChanged.applies(&ctx), 1);
 
-        let push = make_push(vec![make_commit(MANY_LINES_COUNT + 1)]);
+        let push = Push::new(vec![Commit::with_lines(MANY_LINES_COUNT + 1)]);
         let ctx = PushContext { push: &push, history: &history, clock: &clock };
         assert_eq!(ManyLinesChanged.applies(&ctx), 1);
     }
@@ -107,11 +91,11 @@ mod tests {
         let history = PushHistory::default();
         let clock = Clock::default();
 
-        let push = make_push(vec![make_commit(0)]);
+        let push = Push::new(vec![Commit::with_lines(0)]);
         let ctx = PushContext { push: &push, history: &history, clock: &clock };
         assert_eq!(ManyLinesChanged.applies(&ctx), 0);
 
-        let push = make_push(vec![make_commit(MANY_LINES_COUNT - 1)]);
+        let push = Push::new(vec![Commit::with_lines(MANY_LINES_COUNT - 1)]);
         let ctx = PushContext { push: &push, history: &history, clock: &clock };
         assert_eq!(ManyLinesChanged.applies(&ctx), 0);
     }

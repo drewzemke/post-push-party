@@ -36,7 +36,7 @@ pub fn calculate_points(
     clock: &Clock,
 ) -> PointsBreakdown {
     let points_per_commit = state.points_per_commit();
-    let base_points = push.commits.len() as u64 * points_per_commit;
+    let base_points = push.commits().len() as u64 * points_per_commit;
 
     let mut total_multiplier: u64 = 1;
     let mut flat_bonus_total: u64 = 0;
@@ -89,7 +89,7 @@ pub fn calculate_points(
     let total = (base_points + flat_bonus_total) * total_multiplier;
 
     PointsBreakdown {
-        commits: push.commits.len() as u64,
+        commits: push.commits().len() as u64,
         points_per_commit,
         total,
         applied,
@@ -108,32 +108,13 @@ pub fn now() -> Clock {
     // get local timezone offset
     let tz_offset_secs = chrono::Local::now().offset().local_minus_utc();
 
-    Clock {
-        now,
-        tz_offset_secs,
-    }
+    Clock::with_offset(now, tz_offset_secs)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::git::Commit;
-
-    fn make_commit(lines: u64) -> Commit {
-        Commit { sha: "a".into(), lines_changed: lines, timestamp: 0 }
-    }
-
-    fn make_push(commits: Vec<Commit>) -> Push {
-        Push {
-            commits,
-            remote_url: "git@github.com:user/repo.git".to_string(),
-            branch: "main".to_string(),
-        }
-    }
-
-    fn clock() -> Clock {
-        Clock { now: 1000, tz_offset_secs: 0 }
-    }
 
     fn get_multiplier(id: &str, level: u32) -> u64 {
         ALL_TRACKS
@@ -162,9 +143,13 @@ mod tests {
     #[test]
     fn base_points_without_bonuses() {
         let state = State::default();
-        let push = make_push(vec![make_commit(10), make_commit(20), make_commit(30)]);
+        let push = Push::new(vec![
+            Commit::with_lines(10),
+            Commit::with_lines(20),
+            Commit::with_lines(30),
+        ]);
 
-        let result = calculate_points(&push, &state, &PushHistory::default(), &clock());
+        let result = calculate_points(&push, &state, &PushHistory::default(), &Clock::at(1000));
 
         assert_eq!(result.total, 3); // 3 commits × 1 point
     }
@@ -176,9 +161,9 @@ mod tests {
         state.set_bonus_level("one_line_change", 1);
 
         // 2 commits, 1 qualifies for sniper
-        let push = make_push(vec![make_commit(1), make_commit(10)]);
+        let push = Push::new(vec![Commit::with_lines(1), Commit::with_lines(10)]);
 
-        let result = calculate_points(&push, &state, &PushHistory::default(), &clock());
+        let result = calculate_points(&push, &state, &PushHistory::default(), &Clock::at(1000));
 
         let mult = get_multiplier("first_push", 1);
         let flat = get_flat("one_line_change", 1);
@@ -191,9 +176,14 @@ mod tests {
         state.set_bonus_level("one_line_change", 1);
 
         // 3 sniper commits, 1 non-sniper
-        let push = make_push(vec![make_commit(1), make_commit(1), make_commit(1), make_commit(50)]);
+        let push = Push::new(vec![
+            Commit::with_lines(1),
+            Commit::with_lines(1),
+            Commit::with_lines(1),
+            Commit::with_lines(50),
+        ]);
 
-        let result = calculate_points(&push, &state, &PushHistory::default(), &clock());
+        let result = calculate_points(&push, &state, &PushHistory::default(), &Clock::at(1000));
 
         let flat_per = get_flat("one_line_change", 1);
         // 4 base points + (3 sniper commits × flat_per)

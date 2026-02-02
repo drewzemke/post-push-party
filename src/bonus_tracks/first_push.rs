@@ -48,7 +48,7 @@ impl BonusTrack for FirstPush {
             .history
             .entries()
             .iter()
-            .any(|e| ctx.clock.day_of(e.timestamp) == ctx.clock.today());
+            .any(|e| ctx.clock.day_of(e.timestamp()) == ctx.clock.today());
 
         if pushed_today {
             0
@@ -64,39 +64,6 @@ mod tests {
     use crate::bonus_tracks::Clock;
     use crate::git::{Commit, Push};
     use crate::history::{PushEntry, PushHistory};
-
-    fn make_commit(timestamp: u64) -> Commit {
-        Commit {
-            sha: "abc123".to_string(),
-            lines_changed: 10,
-            timestamp,
-        }
-    }
-
-    fn make_push_obj(commits: Vec<Commit>) -> Push {
-        Push {
-            commits,
-            remote_url: "git@github.com:user/repo.git".to_string(),
-            branch: "main".to_string(),
-        }
-    }
-
-    fn make_history(entries: Vec<PushEntry>) -> PushHistory {
-        let mut history = PushHistory::default();
-        for entry in entries {
-            history.add(entry);
-        }
-        history
-    }
-
-    fn make_history_entry(timestamp: u64) -> PushEntry {
-        PushEntry {
-            timestamp,
-            remote_url: "git@github.com:user/repo.git".to_string(),
-            branch: "main".to_string(),
-            commits: 1,
-        }
-    }
 
     // timestamps for testing (2026-01-28 in UTC)
     const TODAY_9AM: u64 = 1769594400; // 2026-01-28 09:00 UTC
@@ -114,18 +81,11 @@ mod tests {
         // push at 11pm local time - in UTC this is already Jan 29,
         // but in local time it's still Jan 28
         let bonus = FirstPush;
-        let push = make_push_obj(vec![make_commit(JAN28_11PM_LOCAL)]);
-        let history = make_history(vec![make_history_entry(JAN28_9AM_LOCAL)]);
-        let clock = Clock {
-            now: JAN28_11PM_LOCAL,
-            tz_offset_secs: UTC_MINUS_5,
-        };
+        let push = Push::new(vec![Commit::default()]);
+        let history = PushHistory::from_entries([PushEntry::at(JAN28_9AM_LOCAL)]);
+        let clock = Clock::with_offset(JAN28_11PM_LOCAL, UTC_MINUS_5);
 
-        let ctx = PushContext {
-            push: &push,
-            history: &history,
-            clock: &clock,
-        };
+        let ctx = PushContext { push: &push, history: &history, clock: &clock };
 
         // should NOT apply - already pushed today in local time
         assert_eq!(bonus.applies(&ctx), 0);
@@ -134,15 +94,11 @@ mod tests {
     #[test]
     fn applies_when_no_pushes_today() {
         let bonus = FirstPush;
-        let push = make_push_obj(vec![make_commit(TODAY_9AM)]);
-        let history = make_history(vec![make_history_entry(YESTERDAY_9AM)]);
-        let clock = Clock { now: TODAY_9AM, tz_offset_secs: 0 };
+        let push = Push::new(vec![Commit::default()]);
+        let history = PushHistory::from_entries([PushEntry::at(YESTERDAY_9AM)]);
+        let clock = Clock::at(TODAY_9AM);
 
-        let ctx = PushContext {
-            push: &push,
-            history: &history,
-            clock: &clock,
-        };
+        let ctx = PushContext { push: &push, history: &history, clock: &clock };
 
         assert_eq!(bonus.applies(&ctx), 1);
     }
@@ -150,15 +106,11 @@ mod tests {
     #[test]
     fn does_not_apply_when_already_pushed_today() {
         let bonus = FirstPush;
-        let push = make_push_obj(vec![make_commit(TODAY_3PM)]);
-        let history = make_history(vec![make_history_entry(TODAY_9AM)]);
-        let clock = Clock { now: TODAY_3PM, tz_offset_secs: 0 };
+        let push = Push::new(vec![Commit::default()]);
+        let history = PushHistory::from_entries([PushEntry::at(TODAY_9AM)]);
+        let clock = Clock::at(TODAY_3PM);
 
-        let ctx = PushContext {
-            push: &push,
-            history: &history,
-            clock: &clock,
-        };
+        let ctx = PushContext { push: &push, history: &history, clock: &clock };
 
         assert_eq!(bonus.applies(&ctx), 0);
     }
@@ -166,15 +118,11 @@ mod tests {
     #[test]
     fn applies_on_first_push_ever() {
         let bonus = FirstPush;
-        let push = make_push_obj(vec![make_commit(TODAY_9AM)]);
-        let history = make_history(vec![]);
-        let clock = Clock { now: TODAY_9AM, tz_offset_secs: 0 };
+        let push = Push::new(vec![Commit::default()]);
+        let history = PushHistory::default();
+        let clock = Clock::at(TODAY_9AM);
 
-        let ctx = PushContext {
-            push: &push,
-            history: &history,
-            clock: &clock,
-        };
+        let ctx = PushContext { push: &push, history: &history, clock: &clock };
 
         assert_eq!(bonus.applies(&ctx), 1);
     }

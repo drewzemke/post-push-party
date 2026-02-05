@@ -36,7 +36,7 @@ impl BonusTrack for FridayAfternoon {
     }
 
     fn description(&self) -> &'static str {
-        "Bonus for pushing code on Friday after 3pm. Living dangerously."
+        "Multiplier for daring to push code on Friday after 3pm."
     }
 
     fn tiers(&self) -> &'static [Tier] {
@@ -84,17 +84,29 @@ mod tests {
         // exactly 3pm
         let push = Push::new(vec![Commit::default()]);
         let clock = clock_at_hour(15);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(bonus.applies(&ctx), 1);
 
         // 4pm
         let clock = clock_at_hour(16);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(bonus.applies(&ctx), 1);
 
         // 11pm
         let clock = clock_at_hour(23);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(bonus.applies(&ctx), 1);
     }
 
@@ -106,12 +118,20 @@ mod tests {
 
         // midnight
         let clock = clock_at_hour(0);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(bonus.applies(&ctx), 0);
 
         // 2pm (just before cutoff)
         let clock = clock_at_hour(14);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(bonus.applies(&ctx), 0);
     }
 
@@ -126,7 +146,11 @@ mod tests {
             FRIDAY_MIDNIGHT_PST_AS_UTC + 24 * 3600 + 16 * 3600,
             UTC_MINUS_8,
         );
-        let ctx = PushContext { push: &push, history: &history, clock: &saturday_4pm };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &saturday_4pm,
+        };
         assert_eq!(bonus.applies(&ctx), 0);
 
         // Thursday 4pm (day before)
@@ -134,7 +158,11 @@ mod tests {
             FRIDAY_MIDNIGHT_PST_AS_UTC - 24 * 3600 + 16 * 3600,
             UTC_MINUS_8,
         );
-        let ctx = PushContext { push: &push, history: &history, clock: &thursday_4pm };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &thursday_4pm,
+        };
         assert_eq!(bonus.applies(&ctx), 0);
     }
 
@@ -144,7 +172,11 @@ mod tests {
         let push = Push::new(vec![]);
         let history = PushHistory::default();
         let clock = clock_at_hour(16);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(bonus.applies(&ctx), 0);
     }
 }

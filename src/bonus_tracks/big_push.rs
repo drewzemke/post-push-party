@@ -40,7 +40,7 @@ impl BonusTrack for BigPush {
 
     fn description(&self) -> &'static str {
         // NOTE: gotta keep this in sync with BIG_PUSH_COMMIT_COUNT above
-        "More points if you push 10+ commits at once."
+        "Multiplier for pushing 10+ commits at once."
     }
 
     fn tiers(&self) -> &'static [Tier] {
@@ -70,11 +70,19 @@ mod tests {
         let clock = Clock::default();
 
         let push = Push::new(vec![Commit::default(); BIG_PUSH_COMMIT_COUNT]);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(bonus.applies(&ctx), 1);
 
         let push = Push::new(vec![Commit::default(); 1_000]);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(bonus.applies(&ctx), 1);
     }
 
@@ -85,11 +93,19 @@ mod tests {
         let clock = Clock::default();
 
         let push = Push::new(vec![Commit::default(); BIG_PUSH_COMMIT_COUNT - 1]);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(bonus.applies(&ctx), 0);
 
         let push = Push::new(vec![Commit::default(); 1]);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(bonus.applies(&ctx), 0);
     }
 }

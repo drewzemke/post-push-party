@@ -36,7 +36,7 @@ impl BonusTrack for FirstPush {
     }
 
     fn description(&self) -> &'static str {
-        "Earn bonus points on your first push each day."
+        "Multiplier for your first push each day."
     }
 
     fn tiers(&self) -> &'static [Tier] {
@@ -85,7 +85,11 @@ mod tests {
         let history = PushHistory::from_entries([PushEntry::at(JAN28_9AM_LOCAL)]);
         let clock = Clock::with_offset(JAN28_11PM_LOCAL, UTC_MINUS_5);
 
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
 
         // should NOT apply - already pushed today in local time
         assert_eq!(bonus.applies(&ctx), 0);
@@ -98,7 +102,11 @@ mod tests {
         let history = PushHistory::from_entries([PushEntry::at(YESTERDAY_9AM)]);
         let clock = Clock::at(TODAY_9AM);
 
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
 
         assert_eq!(bonus.applies(&ctx), 1);
     }
@@ -110,7 +118,11 @@ mod tests {
         let history = PushHistory::from_entries([PushEntry::at(TODAY_9AM)]);
         let clock = Clock::at(TODAY_3PM);
 
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
 
         assert_eq!(bonus.applies(&ctx), 0);
     }
@@ -122,7 +134,11 @@ mod tests {
         let history = PushHistory::default();
         let clock = Clock::at(TODAY_9AM);
 
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
 
         assert_eq!(bonus.applies(&ctx), 1);
     }

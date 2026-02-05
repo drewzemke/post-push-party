@@ -36,7 +36,7 @@ impl BonusTrack for WeekendPush {
     }
 
     fn description(&self) -> &'static str {
-        "More points for pushing code on Saturday and Sunday."
+        "Multiplier for pushing code on Saturday and Sunday."
     }
 
     fn tiers(&self) -> &'static [Tier] {
@@ -74,12 +74,20 @@ mod tests {
 
         // saturday
         let clock = Clock::with_offset(SAT_2AM_LOCAL, UTC_MINUS_8);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(bonus.applies(&ctx), 1);
 
         // sunday
         let clock = Clock::with_offset(SUN_11PM_LOCAL, UTC_MINUS_8);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(bonus.applies(&ctx), 1);
     }
 
@@ -91,12 +99,20 @@ mod tests {
 
         // friday
         let clock = Clock::with_offset(FRI_2AM_LOCAL, UTC_MINUS_8);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(bonus.applies(&ctx), 0);
 
         // monday
         let clock = Clock::with_offset(MON_2AM_LOCAL, UTC_MINUS_8);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(bonus.applies(&ctx), 0);
     }
 
@@ -107,7 +123,11 @@ mod tests {
         let history = PushHistory::default();
         let clock = Clock::with_offset(SUN_11PM_LOCAL, UTC_MINUS_8);
 
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(bonus.applies(&ctx), 0);
     }
 }

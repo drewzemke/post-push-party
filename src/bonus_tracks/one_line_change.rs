@@ -32,7 +32,7 @@ impl BonusTrack for OneLineChange {
     }
 
     fn description(&self) -> &'static str {
-        "Bonus points for surgical single-line commits."
+        "More points for surgical single-line commits."
     }
 
     fn tiers(&self) -> &'static [Tier] {
@@ -40,7 +40,11 @@ impl BonusTrack for OneLineChange {
     }
 
     fn applies(&self, ctx: &PushContext) -> u32 {
-        ctx.push.commits().iter().filter(|c| c.lines_changed() == 1).count() as u32
+        ctx.push
+            .commits()
+            .iter()
+            .filter(|c| c.lines_changed() == 1)
+            .count() as u32
     }
 }
 
@@ -61,7 +65,11 @@ mod tests {
             Commit::with_lines(1),
             Commit::with_lines(5),
         ]);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
 
         assert_eq!(OneLineChange.applies(&ctx), 2);
     }
@@ -71,7 +79,11 @@ mod tests {
         let history = PushHistory::default();
         let clock = Clock::default();
         let push = Push::new(vec![Commit::with_lines(0)]);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(OneLineChange.applies(&ctx), 0);
     }
 
@@ -80,7 +92,11 @@ mod tests {
         let history = PushHistory::default();
         let clock = Clock::default();
         let push = Push::new(vec![Commit::with_lines(2), Commit::with_lines(100)]);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(OneLineChange.applies(&ctx), 0);
     }
 }

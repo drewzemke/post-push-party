@@ -25,8 +25,20 @@ enum ItemStatus {
 }
 
 impl PartyItem {
-    fn new(name: &'static str, description: &'static str, status: ItemStatus, selected: bool, tick: u32) -> Self {
-        Self { name, description, status, selected, tick }
+    fn new(
+        name: &'static str,
+        description: &'static str,
+        status: ItemStatus,
+        selected: bool,
+        tick: u32,
+    ) -> Self {
+        Self {
+            name,
+            description,
+            status,
+            selected,
+            tick,
+        }
     }
 }
 
@@ -95,7 +107,9 @@ impl PartyView {
         if self.selection == 0 {
             None
         } else {
-            Self::unlocked_features(state).get(self.selection - 1).copied()
+            Self::unlocked_features(state)
+                .get(self.selection - 1)
+                .copied()
         }
     }
 
@@ -145,7 +159,13 @@ impl View for PartyView {
                 ItemStatus::Disabled
             };
 
-            let item = PartyItem::new(feature.name(), feature.description(), status, self.selection == i + 1, tick);
+            let item = PartyItem::new(
+                feature.name(),
+                feature.description(),
+                status,
+                self.selection == i + 1,
+                tick,
+            );
             let item_rect = Rect::new(0, (i + 1) as u16 * ITEM_HEIGHT, content_width, ITEM_HEIGHT);
             scroll_view.render_widget(item, item_rect);
         }

@@ -6,12 +6,19 @@ pub struct Clock {
 }
 
 impl Clock {
+    #[cfg(test)]
     pub fn at(now: u64) -> Self {
-        Self { now, tz_offset_secs: 0 }
+        Self {
+            now,
+            tz_offset_secs: 0,
+        }
     }
 
     pub fn with_offset(now: u64, tz_offset_secs: i32) -> Self {
-        Self { now, tz_offset_secs }
+        Self {
+            now,
+            tz_offset_secs,
+        }
     }
 
     pub fn now(&self) -> u64 {

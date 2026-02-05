@@ -83,8 +83,16 @@ pub fn display(breakdown: &PointsBreakdown) {
         println!();
 
         // breakdown: commits × points per commit
-        let commit_word = if breakdown.commits == 1 { "commit" } else { "commits" };
-        let point_word = if breakdown.points_per_commit == 1 { "point" } else { "points" };
+        let commit_word = if breakdown.commits == 1 {
+            "commit"
+        } else {
+            "commits"
+        };
+        let point_word = if breakdown.points_per_commit == 1 {
+            "point"
+        } else {
+            "points"
+        };
         println!(
             "   {} {} × {} {} per commit",
             breakdown.commits, commit_word, breakdown.points_per_commit, point_word
@@ -92,7 +100,12 @@ pub fn display(breakdown: &PointsBreakdown) {
 
         // flat bonuses first (they add to base)
         for bonus in &breakdown.applied {
-            if let AppliedBonus::FlatBonus { name, points, count } = bonus {
+            if let AppliedBonus::FlatBonus {
+                name,
+                points,
+                count,
+            } = bonus
+            {
                 println!("   + {} {} ({} ×)", points, name, count);
             }
         }

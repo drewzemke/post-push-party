@@ -22,16 +22,35 @@ impl Default for PushEntry {
 }
 
 impl PushEntry {
-    pub fn new(timestamp: u64, remote_url: impl Into<String>, branch: impl Into<String>, commits: u64) -> Self {
-        Self { timestamp, remote_url: remote_url.into(), branch: branch.into(), commits }
+    pub fn new(
+        timestamp: u64,
+        remote_url: impl Into<String>,
+        branch: impl Into<String>,
+        commits: u64,
+    ) -> Self {
+        Self {
+            timestamp,
+            remote_url: remote_url.into(),
+            branch: branch.into(),
+            commits,
+        }
     }
 
+    #[cfg(test)]
     pub fn at(timestamp: u64) -> Self {
-        Self { timestamp, ..Default::default() }
+        Self {
+            timestamp,
+            ..Default::default()
+        }
     }
 
+    #[cfg(test)]
     pub fn with_repo(timestamp: u64, remote_url: impl Into<String>) -> Self {
-        Self { timestamp, remote_url: remote_url.into(), ..Default::default() }
+        Self {
+            timestamp,
+            remote_url: remote_url.into(),
+            ..Default::default()
+        }
     }
 
     pub fn timestamp(&self) -> u64 {
@@ -42,10 +61,12 @@ impl PushEntry {
         &self.remote_url
     }
 
+    #[cfg(test)]
     pub fn branch(&self) -> &str {
         &self.branch
     }
 
+    #[cfg(test)]
     pub fn commits(&self) -> u64 {
         self.commits
     }
@@ -57,8 +78,11 @@ pub struct PushHistory {
 }
 
 impl PushHistory {
+    #[cfg(test)]
     pub fn from_entries(entries: impl IntoIterator<Item = PushEntry>) -> Self {
-        Self { entries: entries.into_iter().collect() }
+        Self {
+            entries: entries.into_iter().collect(),
+        }
     }
 
     pub fn entries(&self) -> &[PushEntry] {
@@ -113,7 +137,12 @@ mod tests {
     #[test]
     fn push_history_roundtrips() {
         let mut history = PushHistory::default();
-        history.add(PushEntry::new(1234567890, "git@github.com:user/repo.git", "main", 5));
+        history.add(PushEntry::new(
+            1234567890,
+            "git@github.com:user/repo.git",
+            "main",
+            5,
+        ));
 
         let json = serde_json::to_string(&history).unwrap();
         let decoded: PushHistory = serde_json::from_str(&json).unwrap();

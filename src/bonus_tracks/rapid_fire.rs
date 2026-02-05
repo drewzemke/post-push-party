@@ -39,7 +39,7 @@ impl BonusTrack for RapidFire {
     }
 
     fn description(&self) -> &'static str {
-        "Bonus for pushing twice within 15 minutes."
+        "Multiplier for pushing twice within 15 minutes."
     }
 
     fn tiers(&self) -> &'static [Tier] {
@@ -52,7 +52,11 @@ impl BonusTrack for RapidFire {
         }
 
         let cutoff = ctx.clock.now().saturating_sub(RAPID_FIRE_WINDOW_SECS);
-        let has_recent_push = ctx.history.entries().iter().any(|e| e.timestamp() >= cutoff);
+        let has_recent_push = ctx
+            .history
+            .entries()
+            .iter()
+            .any(|e| e.timestamp() >= cutoff);
 
         if has_recent_push {
             1
@@ -76,7 +80,11 @@ mod tests {
         let history = PushHistory::from_entries([PushEntry::at(1000)]);
         let clock = Clock::at(1000 + 5 * 60);
 
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
 
         assert_eq!(bonus.applies(&ctx), 1);
     }
@@ -88,7 +96,11 @@ mod tests {
         let history = PushHistory::from_entries([PushEntry::at(1000)]);
         let clock = Clock::at(1000 + RAPID_FIRE_WINDOW_SECS);
 
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
 
         assert_eq!(bonus.applies(&ctx), 1);
     }
@@ -100,7 +112,11 @@ mod tests {
         let history = PushHistory::from_entries([PushEntry::at(1000)]);
         let clock = Clock::at(1000 + RAPID_FIRE_WINDOW_SECS + 60);
 
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
 
         assert_eq!(bonus.applies(&ctx), 0);
     }
@@ -112,7 +128,11 @@ mod tests {
         let history = PushHistory::default();
         let clock = Clock::at(1000);
 
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
 
         assert_eq!(bonus.applies(&ctx), 0);
     }
@@ -124,7 +144,11 @@ mod tests {
         let history = PushHistory::from_entries([PushEntry::at(1000)]);
         let clock = Clock::at(1000 + 5 * 60);
 
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
 
         assert_eq!(bonus.applies(&ctx), 0);
     }

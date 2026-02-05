@@ -38,7 +38,7 @@ impl BonusTrack for MultipleRepos {
     }
 
     fn description(&self) -> &'static str {
-        "Bonus each time you push to a different repo today (after the first)."
+        "Multiplier for each time you push to a different repo today (after the first)."
     }
 
     fn tiers(&self) -> &'static [Tier] {
@@ -96,13 +96,18 @@ mod tests {
         let clock = clock_at_day(100);
 
         // already pushed to repo1 today
-        let history = PushHistory::from_entries([
-            PushEntry::with_repo(timestamp_on_day(100), "git@github.com:user/repo1.git"),
-        ]);
+        let history = PushHistory::from_entries([PushEntry::with_repo(
+            timestamp_on_day(100),
+            "git@github.com:user/repo1.git",
+        )]);
 
         // now pushing to repo2
         let push = Push::with_repo(vec![Commit::default()], "git@github.com:user/repo2.git");
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
 
         assert_eq!(bonus.applies(&ctx), 1);
     }
@@ -119,7 +124,11 @@ mod tests {
 
         // now pushing to repo3
         let push = Push::with_repo(vec![Commit::default()], "git@github.com:user/repo3.git");
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
 
         assert_eq!(bonus.applies(&ctx), 1);
     }
@@ -133,7 +142,11 @@ mod tests {
         let history = PushHistory::default();
 
         let push = Push::with_repo(vec![Commit::default()], "git@github.com:user/repo1.git");
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
 
         assert_eq!(bonus.applies(&ctx), 0);
     }
@@ -144,13 +157,18 @@ mod tests {
         let clock = clock_at_day(100);
 
         // already pushed to repo1 today
-        let history = PushHistory::from_entries([
-            PushEntry::with_repo(timestamp_on_day(100), "git@github.com:user/repo1.git"),
-        ]);
+        let history = PushHistory::from_entries([PushEntry::with_repo(
+            timestamp_on_day(100),
+            "git@github.com:user/repo1.git",
+        )]);
 
         // pushing to repo1 again
         let push = Push::with_repo(vec![Commit::default()], "git@github.com:user/repo1.git");
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
 
         assert_eq!(bonus.applies(&ctx), 0);
     }
@@ -168,7 +186,11 @@ mod tests {
 
         // first push today
         let push = Push::with_repo(vec![Commit::default()], "git@github.com:user/repo3.git");
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
 
         assert_eq!(bonus.applies(&ctx), 0);
     }
@@ -178,12 +200,17 @@ mod tests {
         let bonus = MultipleRepos;
         let clock = clock_at_day(100);
 
-        let history = PushHistory::from_entries([
-            PushEntry::with_repo(timestamp_on_day(100), "git@github.com:user/repo1.git"),
-        ]);
+        let history = PushHistory::from_entries([PushEntry::with_repo(
+            timestamp_on_day(100),
+            "git@github.com:user/repo1.git",
+        )]);
 
         let push = Push::with_repo(vec![], "git@github.com:user/repo2.git");
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
 
         assert_eq!(bonus.applies(&ctx), 0);
     }

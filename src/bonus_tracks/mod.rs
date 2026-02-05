@@ -83,14 +83,14 @@ static WEEKEND_PUSH: WeekendPush = WeekendPush;
 
 /// all bonus tracks in display order
 pub static ALL_TRACKS: &[&'static dyn BonusTrack] = &[
-    &BIG_PUSH,
     &COMMIT_VALUE,
     &FIRST_PUSH,
-    &FRIDAY_AFTERNOON,
-    &MANY_LINES_CHANGED,
+    &RAPID_FIRE,
+    &BIG_PUSH,
     &MULTIPLE_REPOS,
     &ONE_LINE_CHANGE,
-    &RAPID_FIRE,
+    &MANY_LINES_CHANGED,
     &STREAK,
     &WEEKEND_PUSH,
+    &FRIDAY_AFTERNOON,
 ];

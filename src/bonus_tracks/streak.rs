@@ -62,7 +62,7 @@ impl BonusTrack for Streak {
     }
 
     fn description(&self) -> &'static str {
-        "Bonus for pushing 3+ days in a row."
+        "Multiplier for pushing 3+ days in a row."
     }
 
     fn tiers(&self) -> &'static [Tier] {
@@ -102,14 +102,15 @@ mod tests {
     fn applies_with_3_day_streak() {
         let bonus = Streak;
         let push = Push::new(vec![Commit::default()]);
-        let history = PushHistory::from_entries([
-            entry_on_day(100),
-            entry_on_day(101),
-            entry_on_day(102),
-        ]);
+        let history =
+            PushHistory::from_entries([entry_on_day(100), entry_on_day(101), entry_on_day(102)]);
 
         let clock = clock_at_day(102);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(bonus.applies(&ctx), 1);
     }
 
@@ -120,7 +121,11 @@ mod tests {
         let history = PushHistory::from_entries((95..=102).map(entry_on_day));
 
         let clock = clock_at_day(102);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(bonus.applies(&ctx), 1);
     }
 
@@ -131,7 +136,11 @@ mod tests {
         let history = PushHistory::from_entries([entry_on_day(101), entry_on_day(102)]);
 
         let clock = clock_at_day(102);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(bonus.applies(&ctx), 0);
     }
 
@@ -147,7 +156,11 @@ mod tests {
         ]);
 
         let clock = clock_at_day(102);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(bonus.applies(&ctx), 0);
     }
 
@@ -155,15 +168,16 @@ mod tests {
     fn does_not_apply_if_no_push_today() {
         let bonus = Streak;
         let push = Push::new(vec![Commit::default()]);
-        let history = PushHistory::from_entries([
-            entry_on_day(99),
-            entry_on_day(100),
-            entry_on_day(101),
-        ]);
+        let history =
+            PushHistory::from_entries([entry_on_day(99), entry_on_day(100), entry_on_day(101)]);
 
         // clock is on day 102, but no push today
         let clock = clock_at_day(102);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(bonus.applies(&ctx), 0);
     }
 
@@ -171,14 +185,15 @@ mod tests {
     fn does_not_apply_to_empty_pushes() {
         let bonus = Streak;
         let push = Push::new(vec![]);
-        let history = PushHistory::from_entries([
-            entry_on_day(100),
-            entry_on_day(101),
-            entry_on_day(102),
-        ]);
+        let history =
+            PushHistory::from_entries([entry_on_day(100), entry_on_day(101), entry_on_day(102)]);
 
         let clock = clock_at_day(102);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(bonus.applies(&ctx), 0);
     }
 }

@@ -229,12 +229,19 @@ fn rebase_force_push_still_shows_party() {
     // allow rewriting pushed commits for this test
     let config_path = env.vcs.repo_dir.join(".jj/repo/config.toml");
     let config = std::fs::read_to_string(&config_path).unwrap_or_default();
-    let new_config = format!("{}\n[revset-aliases]\n\"immutable_heads()\" = \"none()\"\n", config);
+    let new_config = format!(
+        "{}\n[revset-aliases]\n\"immutable_heads()\" = \"none()\"\n",
+        config
+    );
     std::fs::write(&config_path, new_config).expect("failed to write config");
 
     // create initial commit on main
     env.vcs.commit_file("README.md", "# Test", "initial commit");
-    let initial = env.vcs.cmd(&["log", "-r", "main", "-T", "commit_id", "--no-graph"]).trim().to_string();
+    let initial = env
+        .vcs
+        .cmd(&["log", "-r", "main", "-T", "commit_id", "--no-graph"])
+        .trim()
+        .to_string();
     env.vcs.push();
 
     // create feature as sibling of main (both children of initial)
@@ -322,8 +329,14 @@ fn duplicate_feature_onto_fetched_trunk_only_awards_for_my_work() {
     env.vcs.cmd(&["new", "main@origin"]);
     env.vcs
         .commit_file("feature.rs", "// feature", "feature work");
-    env.vcs
-        .cmd(&["bookmark", "set", "feature", "-r", "@-", "--allow-backwards"]);
+    env.vcs.cmd(&[
+        "bookmark",
+        "set",
+        "feature",
+        "-r",
+        "@-",
+        "--allow-backwards",
+    ]);
 
     // push the feature branch (which is now based on updated main)
     env.vcs.push_branch("feature");

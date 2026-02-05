@@ -16,7 +16,11 @@ pub fn post_push() {
         // record push to history AFTER scoring so first_push_of_day
         // bonus can correctly detect if this is the first push today
         if !push.branch().is_empty() {
-            history::record(push.remote_url(), push.branch(), push.commits().len() as u64);
+            history::record(
+                push.remote_url(),
+                push.branch(),
+                push.commits().len() as u64,
+            );
         }
 
         party::display(&breakdown);

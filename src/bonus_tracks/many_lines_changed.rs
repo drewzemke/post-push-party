@@ -43,7 +43,8 @@ impl BonusTrack for ManyLinesChanged {
     }
 
     fn applies(&self, ctx: &PushContext) -> u32 {
-        ctx.push.commits()
+        ctx.push
+            .commits()
             .iter()
             .filter(|c| c.lines_changed() >= MANY_LINES_COUNT)
             .count() as u32
@@ -67,7 +68,11 @@ mod tests {
             Commit::with_lines(MANY_LINES_COUNT + 1),
             Commit::with_lines(5),
         ]);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
 
         assert_eq!(ManyLinesChanged.applies(&ctx), 2);
     }
@@ -78,11 +83,19 @@ mod tests {
         let clock = Clock::default();
 
         let push = Push::new(vec![Commit::with_lines(MANY_LINES_COUNT)]);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(ManyLinesChanged.applies(&ctx), 1);
 
         let push = Push::new(vec![Commit::with_lines(MANY_LINES_COUNT + 1)]);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(ManyLinesChanged.applies(&ctx), 1);
     }
 
@@ -92,11 +105,19 @@ mod tests {
         let clock = Clock::default();
 
         let push = Push::new(vec![Commit::with_lines(0)]);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(ManyLinesChanged.applies(&ctx), 0);
 
         let push = Push::new(vec![Commit::with_lines(MANY_LINES_COUNT - 1)]);
-        let ctx = PushContext { push: &push, history: &history, clock: &clock };
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
         assert_eq!(ManyLinesChanged.applies(&ctx), 0);
     }
 }

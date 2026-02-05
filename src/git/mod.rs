@@ -18,11 +18,19 @@ pub struct Commit {
 
 impl Commit {
     pub fn new(sha: impl Into<String>, lines_changed: u64, timestamp: u64) -> Self {
-        Self { sha: sha.into(), lines_changed, timestamp }
+        Self {
+            sha: sha.into(),
+            lines_changed,
+            timestamp,
+        }
     }
 
+    #[cfg(test)]
     pub fn with_lines(lines_changed: u64) -> Self {
-        Self { lines_changed, ..Default::default() }
+        Self {
+            lines_changed,
+            ..Default::default()
+        }
     }
 
     pub fn lines_changed(&self) -> u64 {
@@ -49,12 +57,20 @@ impl Default for Push {
 }
 
 impl Push {
+    #[cfg(test)]
     pub fn new(commits: Vec<Commit>) -> Self {
-        Self { commits, ..Default::default() }
+        Self {
+            commits,
+            ..Default::default()
+        }
     }
 
     pub fn with_repo(commits: Vec<Commit>, remote_url: impl Into<String>) -> Self {
-        Self { commits, remote_url: remote_url.into(), ..Default::default() }
+        Self {
+            commits,
+            remote_url: remote_url.into(),
+            ..Default::default()
+        }
     }
 
     pub fn from_parts(
@@ -62,7 +78,11 @@ impl Push {
         remote_url: impl Into<String>,
         branch: impl Into<String>,
     ) -> Self {
-        Self { commits, remote_url: remote_url.into(), branch: branch.into() }
+        Self {
+            commits,
+            remote_url: remote_url.into(),
+            branch: branch.into(),
+        }
     }
 
     pub fn commits(&self) -> &[Commit] {

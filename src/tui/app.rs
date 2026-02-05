@@ -12,10 +12,10 @@ use super::views::{View, ViewResult};
 use super::widgets::{render_footer, render_header};
 
 pub struct App {
-    pub route: Route,
-    pub message: Option<(MessageType, String)>,
-    pub state: State,
-    pub tick: u32,
+    route: Route,
+    message: Option<(MessageType, String)>,
+    state: State,
+    tick: u32,
 
     store: StoreView,
     party: PartyView,

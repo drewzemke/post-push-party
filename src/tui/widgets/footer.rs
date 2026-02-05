@@ -42,7 +42,7 @@ pub fn render_footer(
                 [
                     key.reset().bold(),
                     ": ".fg(Color::Gray),
-                    desc.dark_gray(),
+                    desc.reset().dim(),
                     "  ".into(),
                 ]
             })

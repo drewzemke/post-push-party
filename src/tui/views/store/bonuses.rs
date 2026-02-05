@@ -1,5 +1,5 @@
 use ratatui::prelude::*;
-use ratatui::widgets::{Block, Borders, Padding, Paragraph};
+use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
 use crate::bonus_tracks::{Reward, Tier, ALL_TRACKS};
@@ -8,9 +8,9 @@ use crate::tui::action::{Action, Route, StoreRoute};
 use crate::tui::views::{MessageType, View, ViewResult};
 use crate::tui::widgets::ShimmerBlock;
 
-const ITEM_HEIGHT: u16 = 8;
+const ITEM_HEIGHT: u16 = 5;
 const SCROLL_PADDING: u16 = ITEM_HEIGHT;
-const TIER_WIDTH: u16 = 11;
+const COST_INFO_WIDTH: u16 = 30;
 
 struct BonusItem<'a> {
     name: &'static str,
@@ -46,107 +46,186 @@ impl<'a> BonusItem<'a> {
 
 impl<'a> Widget for BonusItem<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let owned_level = self.owned_level;
-
         // shimmer border for selected row, plain for unselected
         let inner = if self.selected {
             let block = ShimmerBlock::new(self.tick);
-            let inner = block.inner(area).inner(Margin::new(1, 0));
+            let inner = block.inner(area);
             block.render(area, buf);
             inner
         } else {
             let block = Block::default()
-                .border_style(Style::default().gray())
-                .padding(Padding::horizontal(1))
+                .border_style(Style::default().dim())
                 .borders(Borders::ALL);
             let inner = block.inner(area);
             block.render(area, buf);
             inner
         };
 
-        let chunks = Layout::vertical([
-            Constraint::Length(1), // title
-            Constraint::Length(1), // description
-            Constraint::Length(4), // tiers
+        // three horizontal segments
+        let chunks = Layout::horizontal([
+            Constraint::Fill(1),                 // name + description
+            Constraint::Length(COST_INFO_WIDTH), // cost info
         ])
         .split(inner);
 
-        // title
-        let title = Text::from(self.name).reset().bold();
-        title.render(chunks[0], buf);
+        // name + description
+        let name_chunks = Layout::vertical([
+            Constraint::Length(1), // name
+            Constraint::Fill(1),   // description
+        ])
+        .split(chunks[0].inner(Margin::new(1, 0)));
 
-        // description
-        let description = Text::from(self.description).reset();
-        description.render(chunks[1], buf);
+        let current_reward = if self.owned_level == 0 {
+            None
+        } else {
+            self.tiers.get(self.owned_level - 1).map(|t| t.reward)
+        };
 
-        // tiers: show current tier first, then next (gold), then rest
-        let tiers_area = chunks[2];
-        let max_visible = (tiers_area.width / TIER_WIDTH) as usize;
-
-        // start from current tier (last owned), or 0 if none owned
-        let start_idx = owned_level.saturating_sub(1);
-        let end_idx = (start_idx + max_visible).min(self.tiers.len());
-        let visible_count = end_idx - start_idx;
-
-        let tiers_constraints: Vec<_> = (0..visible_count)
-            .map(|_| Constraint::Length(TIER_WIDTH))
-            .collect();
-        let tiers_chunks = Layout::horizontal(tiers_constraints).split(tiers_area);
-
-        for (render_idx, idx) in (start_idx..end_idx).enumerate() {
-            let tier = &self.tiers[idx];
-            let tier_label = format_reward(tier.reward);
-            let tier_cost = tier.cost;
-            let is_current = idx == owned_level.saturating_sub(1) && owned_level > 0;
-            let is_next = idx == owned_level && self.selected;
-            let affordable = self.state.party_points >= tier_cost;
-
-            // text style: white for current, green/red for next based on affordability
-            let style = if is_current {
-                Style::default().fg(Color::White).bold()
-            } else if is_next {
-                let color = if affordable { Color::Green } else { Color::Red };
-                Style::default().fg(color).bold()
-            } else {
-                Style::default().fg(Color::DarkGray)
-            };
-
-            // border style: white for current, green/red for next, dark gray otherwise
-            let border_style = if is_current {
-                Style::default().fg(Color::White)
-            } else if is_next {
-                let color = if affordable { Color::Green } else { Color::Red };
-                Style::default().fg(color)
-            } else {
-                Style::default().fg(Color::DarkGray)
-            };
-
-            let chunk = tiers_chunks[render_idx];
-
-            let block = Block::default()
-                .border_style(border_style)
-                .borders(Borders::ALL);
-            let inner = block.inner(chunk);
-            block.render(chunk, buf);
-
-            let inner_chunks =
-                Layout::vertical([Constraint::Length(1), Constraint::Length(1)]).split(inner);
-
-            let label_text = Text::from(tier_label)
-                .style(style)
-                .alignment(Alignment::Center);
-            label_text.render(inner_chunks[0], buf);
-
-            let cost_display = if idx < owned_level {
-                "✓".to_string()
-            } else {
-                format_cost(tier_cost)
-            };
-            let cost_text = Text::from(cost_display)
-                .style(style)
-                .alignment(Alignment::Center);
-            cost_text.render(inner_chunks[1], buf);
+        let mut name_spans = vec![self.name.reset().bold()];
+        if let Some(reward) = current_reward {
+            name_spans.extend([
+                " (currently ".dark_gray(),
+                format_reward(reward).magenta(),
+                ")".dark_gray(),
+            ]);
         }
+
+        Line::from(name_spans).render(name_chunks[0], buf);
+
+        let description = Paragraph::new(self.description)
+            .wrap(Wrap::default())
+            .reset()
+            .dim();
+        description.render(name_chunks[1], buf);
+
+        // cost info
+
+        // vertical divider
+        let block = Block::default()
+            .borders(Borders::LEFT)
+            .border_style(Style::default().dark_gray());
+        let inner = block.inner(chunks[1]);
+        block.render(chunks[1], buf);
+
+        let chunks = Layout::vertical([
+            Constraint::Length(1),
+            Constraint::Length(1),
+            Constraint::Length(1),
+        ])
+        .split(inner);
+        let middle = chunks[1];
+
+        let next_tier = self.tiers.get(self.owned_level);
+        let cost = next_tier.map(|t| t.cost).unwrap_or(0);
+        let next_reward = next_tier
+            .map(|t| t.reward)
+            .unwrap_or_else(|| Reward::FlatPoints(0)); // fallback won't be used
+
+        // text style: green/red for next based on affordability
+        let affordable = self.state.party_points >= cost;
+        let cost_style = if affordable { Color::Green } else { Color::Red };
+
+        // if the bonus is not bought yet (current tier is zero),
+        // show price to "buy"
+        if self.owned_level == 0 {
+            Line::from(vec![
+                "Buy ".reset(),
+                format_reward(next_reward).magenta(),
+                " for ".reset().dim(),
+                Span::from(format_cost(cost)).style(cost_style),
+            ])
+            .alignment(Alignment::Center)
+            .render(middle, buf);
+        }
+        // if the bonus is already owned and is upgradeable,
+        // show price to upgrade
+        else if self.owned_level < self.tiers.len() {
+            Line::from(vec![
+                "Upgrade to ".reset(),
+                format_reward(next_reward).magenta(),
+                " for ".reset().dim(),
+                Span::from(format_cost(cost)).style(cost_style),
+            ])
+            .alignment(Alignment::Center)
+            .render(middle, buf);
+        }
+        // if the bonus is at max level, say so
+        else {
+            Line::from("Already at max level!")
+                .cyan()
+                .dim()
+                .alignment(Alignment::Center)
+                .render(middle, buf);
+        }
+
+        // // tiers: show current tier first, then next (gold), then rest
+        // let tiers_area = chunks[2];
+        // let max_visible = (tiers_area.width / TIER_WIDTH) as usize;
+
+        // // start from current tier (last owned), or 0 if none owned
+        // let start_idx = owned_level.saturating_sub(1);
+        // let end_idx = (start_idx + max_visible).min(self.tiers.len());
+        // let visible_count = end_idx - start_idx;
+
+        // let tiers_constraints: Vec<_> = (0..visible_count)
+        //     .map(|_| Constraint::Length(TIER_WIDTH))
+        //     .collect();
+        // let tiers_chunks = Layout::horizontal(tiers_constraints).split(tiers_area);
+
+        // for (render_idx, idx) in (start_idx..end_idx).enumerate() {
+        //     let tier = &self.tiers[idx];
+        //     let tier_label = format_reward(tier.reward);
+        //     let tier_cost = tier.cost;
+        //     let is_current = idx == owned_level.saturating_sub(1) && owned_level > 0;
+        //     let is_next = idx == owned_level && self.selected;
+        //     let affordable = self.state.party_points >= tier_cost;
+
+        //     // text style: white for current, green/red for next based on affordability
+        //     let style = if is_current {
+        //         Style::default().fg(Color::White).bold()
+        //     } else if is_next {
+        //         let color = if affordable { Color::Green } else { Color::Red };
+        //         Style::default().fg(color).bold()
+        //     } else {
+        //         Style::default().fg(Color::DarkGray)
+        //     };
+
+        //     // border style: white for current, green/red for next, dark gray otherwise
+        //     let border_style = if is_current {
+        //         Style::default().fg(Color::White)
+        //     } else if is_next {
+        //         let color = if affordable { Color::Green } else { Color::Red };
+        //         Style::default().fg(color)
+        //     } else {
+        //         Style::default().fg(Color::DarkGray)
+        //     };
+
+        //     let chunk = tiers_chunks[render_idx];
+
+        //     let block = Block::default()
+        //         .border_style(border_style)
+        //         .borders(Borders::ALL);
+        //     let inner = block.inner(chunk);
+        //     block.render(chunk, buf);
+
+        //     let inner_chunks =
+        //         Layout::vertical([Constraint::Length(1), Constraint::Length(1)]).split(inner);
+
+        //     let label_text = Text::from(tier_label)
+        //         .style(style)
+        //         .alignment(Alignment::Center);
+        //     label_text.render(inner_chunks[0], buf);
+
+        //     let cost_display = if idx < owned_level {
+        //         "✓".to_string()
+        //     } else {
+        //         format_cost(tier_cost)
+        //     };
+        //     let cost_text = Text::from(cost_display)
+        //         .style(style)
+        //         .alignment(Alignment::Center);
+        //     cost_text.render(inner_chunks[1], buf);
+        // }
     }
 }
 
@@ -283,6 +362,6 @@ fn format_cost(cost: u64) -> String {
 fn format_reward(reward: Reward) -> String {
     match reward {
         Reward::Multiplier(n) => format!("{}x", n),
-        Reward::FlatPoints(n) => n.to_string(),
+        Reward::FlatPoints(n) => format!("+{}", n),
     }
 }

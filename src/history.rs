@@ -8,6 +8,10 @@ pub struct PushEntry {
     remote_url: String,
     branch: String,
     commits: u64,
+    #[serde(default)]
+    lines_changed: u64,
+    #[serde(default)]
+    points_earned: u64,
 }
 
 impl Default for PushEntry {
@@ -17,6 +21,8 @@ impl Default for PushEntry {
             remote_url: "git@github.com:user/repo.git".to_string(),
             branch: "main".to_string(),
             commits: 1,
+            lines_changed: 0,
+            points_earned: 0,
         }
     }
 }
@@ -27,12 +33,16 @@ impl PushEntry {
         remote_url: impl Into<String>,
         branch: impl Into<String>,
         commits: u64,
+        lines_changed: u64,
+        points_earned: u64,
     ) -> Self {
         Self {
             timestamp,
             remote_url: remote_url.into(),
             branch: branch.into(),
             commits,
+            lines_changed,
+            points_earned,
         }
     }
 
@@ -69,6 +79,14 @@ impl PushEntry {
     #[cfg(test)]
     pub fn commits(&self) -> u64 {
         self.commits
+    }
+
+    pub fn lines_changed(&self) -> u64 {
+        self.lines_changed
+    }
+
+    pub fn points_earned(&self) -> u64 {
+        self.points_earned
     }
 }
 
@@ -119,14 +137,21 @@ pub fn save(history: &PushHistory) -> std::io::Result<()> {
     std::fs::write(path, json)
 }
 
-pub fn record(remote_url: &str, branch: &str, commits: u64) {
+pub fn record(remote_url: &str, branch: &str, commits: u64, lines_changed: u64, points_earned: u64) {
     let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs())
         .unwrap_or(0);
 
     let mut history = load();
-    history.add(PushEntry::new(timestamp, remote_url, branch, commits));
+    history.add(PushEntry::new(
+        timestamp,
+        remote_url,
+        branch,
+        commits,
+        lines_changed,
+        points_earned,
+    ));
     let _ = save(&history);
 }
 
@@ -142,6 +167,8 @@ mod tests {
             "git@github.com:user/repo.git",
             "main",
             5,
+            120,
+            42,
         ));
 
         let json = serde_json::to_string(&history).unwrap();
@@ -150,6 +177,8 @@ mod tests {
         assert_eq!(decoded.entries().len(), 1);
         assert_eq!(decoded.entries()[0].commits(), 5);
         assert_eq!(decoded.entries()[0].branch(), "main");
+        assert_eq!(decoded.entries()[0].lines_changed(), 120);
+        assert_eq!(decoded.entries()[0].points_earned(), 42);
     }
 
     #[test]

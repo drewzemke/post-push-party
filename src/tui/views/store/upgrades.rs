@@ -139,7 +139,7 @@ impl View for UpgradesView {
         let block = Block::default()
             .borders(Borders::TOP)
             .border_style(Style::default().dark_gray());
-        let header = Paragraph::new("Upgrades")
+        let header = Paragraph::new("Party Upgrades")
             .alignment(Alignment::Center)
             .style(Style::default().fg(Color::Reset))
             .block(block);

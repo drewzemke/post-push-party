@@ -43,7 +43,8 @@ pub fn push(num_commits: u64, lines: Option<Vec<u64>>) {
     }
 
     // record this push in history (like the real hook does)
-    history::record("dev://fake", "main", num_commits);
+    let lines_changed: u64 = push.commits().iter().map(|c| c.lines_changed()).sum();
+    history::record("dev://fake", "main", num_commits, lines_changed, breakdown.total);
 
     party::display(&breakdown);
 }

@@ -18,10 +18,13 @@ pub fn post_push() {
         // only record if there are new commits - empty pushes (rebases) shouldn't
         // affect bonus track calculations like first_push_of_day
         if !push.branch().is_empty() && !push.commits().is_empty() {
+            let lines_changed: u64 = push.commits().iter().map(|c| c.lines_changed()).sum();
             history::record(
                 push.remote_url(),
                 push.branch(),
                 push.commits().len() as u64,
+                lines_changed,
+                breakdown.total,
             );
         }
 

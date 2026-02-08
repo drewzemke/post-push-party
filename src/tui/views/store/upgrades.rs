@@ -2,7 +2,7 @@ use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Padding, Paragraph};
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
-use crate::state::{feature_cost, PartyFeature, State, PARTY_FEATURES};
+use crate::state::State;
 use crate::tui::action::{Action, Route, StoreRoute};
 use crate::tui::views::{MessageType, View, ViewResult};
 use crate::tui::widgets::ShimmerBlock;
@@ -11,7 +11,8 @@ const ITEM_HEIGHT: u16 = 4;
 const SCROLL_PADDING: u16 = ITEM_HEIGHT; // keep one item of padding when scrolling
 
 struct UpgradeItem {
-    feature: PartyFeature,
+    name: &'static str,
+    description: &'static str,
     unlocked: bool,
     affordable: bool,
     cost: u64,
@@ -21,7 +22,8 @@ struct UpgradeItem {
 
 impl UpgradeItem {
     fn new(
-        feature: PartyFeature,
+        name: &'static str,
+        description: &'static str,
         unlocked: bool,
         affordable: bool,
         cost: u64,
@@ -29,17 +31,14 @@ impl UpgradeItem {
         tick: u32,
     ) -> Self {
         Self {
-            feature,
+            name,
+            description,
             unlocked,
             affordable,
             cost,
             selected,
             tick,
         }
-    }
-
-    fn description(&self) -> &'static str {
-        self.feature.description()
     }
 }
 
@@ -68,7 +67,7 @@ impl Widget for UpgradeItem {
         let top_chunks =
             Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).split(chunks[0]);
 
-        let title_text = Text::from(self.feature.name()).reset().bold();
+        let title_text = Text::from(self.name).reset().bold();
         title_text.render(top_chunks[0], buf);
 
         let price_style = if self.unlocked {
@@ -91,7 +90,7 @@ impl Widget for UpgradeItem {
         price_text.render(top_chunks[1], buf);
 
         // bottom line -- just the description
-        let desc_text = Text::from(self.description()).reset();
+        let desc_text = Text::from(self.description).reset();
         desc_text.render(chunks[1], buf);
     }
 }
@@ -103,12 +102,14 @@ pub struct UpgradesView {
 }
 
 impl UpgradesView {
-    fn selected_feature(&self) -> Option<PartyFeature> {
-        PARTY_FEATURES.get(self.selection).copied()
+    fn selected_party_id(&self) -> Option<&'static str> {
+        // TODO: implement
+        None
     }
 
     fn item_count(&self) -> usize {
-        PARTY_FEATURES.len()
+        // TODO: implement
+        0
     }
 
     fn update_scroll(&mut self, viewport_height: u16) {
@@ -154,12 +155,15 @@ impl View for UpgradesView {
             .horizontal_scrollbar_visibility(ScrollbarVisibility::Never);
 
         // render items into scroll view
-        for (i, &feature) in PARTY_FEATURES.iter().enumerate() {
+        // TODO: implement
+        for (i, &party_id) in ["test", "test"].iter().enumerate() {
             let item = UpgradeItem::new(
-                feature,
-                state.is_unlocked(feature),
-                state.party_points >= feature_cost(feature),
-                feature_cost(feature),
+                "name",
+                "description",
+                state.is_party_unlocked(party_id),
+                // FIXME: implement
+                state.party_points >= 100,
+                100,
                 self.selection == i,
                 tick,
             );
@@ -185,20 +189,23 @@ impl View for UpgradesView {
                 ViewResult::Redraw
             }
             Action::Select => {
-                if let Some(feature) = self.selected_feature() {
-                    if state.is_unlocked(feature) {
+                if let Some(party_id) = self.selected_party_id() {
+                    if state.is_party_unlocked(party_id) {
                         ViewResult::Message(
                             MessageType::Normal,
-                            format!("You already own {}.", feature.name()),
+                            // TODO
+                            format!("You already own {}.", "PARTY NAME"),
                         )
                     } else {
-                        let cost = feature_cost(feature);
+                        // TODO
+                        let cost = 0;
                         if state.party_points >= cost {
                             state.party_points -= cost;
-                            state.unlock_feature(feature);
+                            state.unlock_party(party_id);
                             ViewResult::Message(
                                 MessageType::Success,
-                                format!("Unlocked {}!", feature.name()),
+                                // TODO
+                                format!("Unlocked {}!", "PARTY_NAME"),
                             )
                         } else {
                             ViewResult::Message(

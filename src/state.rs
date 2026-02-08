@@ -11,27 +11,30 @@ pub struct State {
     #[serde(default)]
     pub lifetime_points_earned: u64,
 
+    /// refers to bonus tracks by their identifier string
     #[serde(default)]
     pub bonus_levels: HashMap<String, u32>,
 
+    /// which parties the user has unlocked via the store.
+    /// refers to parties by their identifier string
     #[serde(default)]
-    pub unlocked_features: HashSet<PartyFeature>,
+    pub unlocked_parties: HashSet<String>,
+
+    /// which parties have been enabled by the user.
+    /// refers to parties by their identifier string
     #[serde(default)]
-    pub enabled_features: HashSet<PartyFeature>,
+    pub enabled_parties: HashSet<String>,
 
     // pack_items: HashMap<PackItem, u32>,  // TODO: add when implementing packs
+    /// which colors the user has unlocked for each party.
+    /// refers to parties by their identifier string
     #[serde(default)]
-    pub unlocked_colors: HashMap<PartyFeature, HashSet<Color>>,
-    #[serde(default)]
-    pub active_color: HashMap<PartyFeature, ColorSelection>,
-}
+    pub unlocked_colors: HashMap<String, HashSet<Color>>,
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum PartyFeature {
-    Exclamations,
-    Quotes,
-    BigText,
-    // Stats, Fireworks, ...
+    /// which color is currently configured for each color.
+    /// refers to parties by their identifier string
+    #[serde(default)]
+    pub active_color: HashMap<String, ColorSelection>,
 }
 
 // #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -54,51 +57,20 @@ pub enum ColorSelection {
     Random,
 }
 
-// costs for unlocking each party feature
-pub fn feature_cost(feature: PartyFeature) -> u64 {
-    match feature {
-        PartyFeature::Exclamations => 15,
-        PartyFeature::Quotes => 50,
-        PartyFeature::BigText => 150,
-    }
-}
-
-// ordered list of features for display in store/config
-pub const PARTY_FEATURES: &[PartyFeature] = &[
-    PartyFeature::Exclamations,
-    PartyFeature::Quotes,
-    PartyFeature::BigText,
-];
-
-impl PartyFeature {
-    pub fn name(self) -> &'static str {
-        match self {
-            PartyFeature::Exclamations => "Exclamations",
-            PartyFeature::Quotes => "Quotes",
-            PartyFeature::BigText => "Big Text",
-        }
-    }
-
-    pub fn description(self) -> &'static str {
-        match self {
-            PartyFeature::Exclamations => "Adds an excited shout to your party.",
-            PartyFeature::Quotes => "An inspirational quote after each push.",
-            PartyFeature::BigText => "Finish your party with a full screen word. NICE!",
-        }
-    }
-}
-
 impl Default for State {
     fn default() -> Self {
         let mut bonus_levels = HashMap::new();
-        bonus_levels.insert("commit_value".to_string(), 1); // users start at tier 1
+        bonus_levels.insert("commit_value".to_string(), 1);
+
+        let mut unlocked_parties = HashSet::new();
+        unlocked_parties.insert("base".to_string());
 
         Self {
             party_points: 0,
             lifetime_points_earned: 0,
             bonus_levels,
-            unlocked_features: HashSet::new(),
-            enabled_features: HashSet::new(),
+            enabled_parties: unlocked_parties.clone(),
+            unlocked_parties,
             unlocked_colors: HashMap::new(),
             active_color: HashMap::new(),
         }
@@ -135,25 +107,27 @@ impl State {
         1
     }
 
-    pub fn is_unlocked(&self, feature: PartyFeature) -> bool {
-        self.unlocked_features.contains(&feature)
+    pub fn is_party_unlocked(&self, id: &str) -> bool {
+        self.unlocked_parties.contains(id)
     }
 
-    pub fn is_enabled(&self, feature: PartyFeature) -> bool {
-        self.unlocked_features.contains(&feature) && self.enabled_features.contains(&feature)
+    pub fn is_party_enabled(&self, id: &str) -> bool {
+        self.unlocked_parties.contains(id) && self.enabled_parties.contains(id)
     }
 
-    pub fn unlock_feature(&mut self, feature: PartyFeature) {
-        self.unlocked_features.insert(feature);
-        self.enabled_features.insert(feature); // enable by default when unlocked
+    pub fn unlock_party(&mut self, id: &str) {
+        self.unlocked_parties.insert(id.to_string());
+
+        // enable by default when unlocked
+        self.enabled_parties.insert(id.to_string());
     }
 
-    pub fn toggle_feature(&mut self, feature: PartyFeature) {
-        if self.unlocked_features.contains(&feature) {
-            if self.enabled_features.contains(&feature) {
-                self.enabled_features.remove(&feature);
+    pub fn toggle_party(&mut self, id: &str) {
+        if self.unlocked_parties.contains(id) {
+            if self.enabled_parties.contains(id) {
+                self.enabled_parties.remove(id);
             } else {
-                self.enabled_features.insert(feature);
+                self.enabled_parties.insert(id.to_string());
             }
         }
     }
@@ -195,8 +169,8 @@ pub fn dump() {
     println!("lifetime_points_earned: {}", state.lifetime_points_earned);
     println!("points_per_commit: {}", state.points_per_commit());
     println!("bonus_levels: {:?}", state.bonus_levels);
-    println!("unlocked_features: {:?}", state.unlocked_features);
-    println!("enabled_features: {:?}", state.enabled_features);
+    println!("unlocked_parties: {:?}", state.unlocked_parties);
+    println!("enabled_parties: {:?}", state.enabled_parties);
 }
 
 pub fn load_from_path(path: &std::path::Path) -> State {
@@ -247,10 +221,10 @@ mod tests {
     }
 
     #[test]
-    fn default_state_has_no_unlocks() {
+    fn default_state_has_one_unlock() {
         let state = State::default();
-        assert!(state.unlocked_features.is_empty());
-        assert!(state.enabled_features.is_empty());
+        assert_eq!(state.unlocked_parties.len(), 1);
+        assert_eq!(state.enabled_parties.len(), 1);
     }
 
     #[test]
@@ -281,29 +255,34 @@ mod tests {
     #[test]
     fn unlock_feature_adds_to_both_sets() {
         let mut state = State::default();
-        state.unlock_feature(PartyFeature::Exclamations);
+        let id = "exclamations";
+        state.unlock_party(id);
 
-        assert!(state.is_unlocked(PartyFeature::Exclamations));
-        assert!(state.is_enabled(PartyFeature::Exclamations));
+        assert!(state.is_party_unlocked(id));
+        assert!(state.is_party_enabled(id));
     }
 
     #[test]
     fn toggle_feature_works() {
         let mut state = State::default();
-        state.unlock_feature(PartyFeature::Quotes);
+        let id = "exclamations";
 
-        assert!(state.is_enabled(PartyFeature::Quotes));
-        state.toggle_feature(PartyFeature::Quotes);
-        assert!(!state.is_enabled(PartyFeature::Quotes));
-        state.toggle_feature(PartyFeature::Quotes);
-        assert!(state.is_enabled(PartyFeature::Quotes));
+        state.unlock_party(id);
+
+        assert!(state.is_party_enabled(id));
+        state.toggle_party(id);
+        assert!(!state.is_party_enabled(id));
+        state.toggle_party(id);
+        assert!(state.is_party_enabled(id));
     }
 
     #[test]
-    fn toggle_locked_feature_does_nothing() {
+    fn toggle_locked_party_does_nothing() {
         let mut state = State::default();
-        state.toggle_feature(PartyFeature::BigText);
-        assert!(!state.is_enabled(PartyFeature::BigText));
+        let id = "big_text";
+
+        state.toggle_party(id);
+        assert!(!state.is_party_enabled(id));
     }
 
     #[test]
@@ -317,7 +296,7 @@ mod tests {
         };
         state.set_bonus_level("commit_value", 3);
         state.set_bonus_level("first_push", 2);
-        state.unlock_feature(PartyFeature::Exclamations);
+        state.unlock_party("exclamations");
 
         save_to_path(&state, &path).unwrap();
         let loaded = load_from_path(&path);

@@ -9,6 +9,9 @@ pub struct State {
     pub party_points: u64,
 
     #[serde(default)]
+    pub lifetime_points_earned: u64,
+
+    #[serde(default)]
     pub bonus_levels: HashMap<String, u32>,
 
     #[serde(default)]
@@ -92,6 +95,7 @@ impl Default for State {
 
         Self {
             party_points: 0,
+            lifetime_points_earned: 0,
             bonus_levels,
             unlocked_features: HashSet::new(),
             enabled_features: HashSet::new(),
@@ -102,6 +106,11 @@ impl Default for State {
 }
 
 impl State {
+    pub fn earn_points(&mut self, amount: u64) {
+        self.party_points += amount;
+        self.lifetime_points_earned += amount;
+    }
+
     pub fn bonus_level(&self, id: &str) -> u32 {
         self.bonus_levels.get(id).copied().unwrap_or(0)
     }
@@ -183,6 +192,7 @@ pub fn status() {
 pub fn dump() {
     let state = load();
     println!("party_points: {}", state.party_points);
+    println!("lifetime_points_earned: {}", state.lifetime_points_earned);
     println!("points_per_commit: {}", state.points_per_commit());
     println!("bonus_levels: {:?}", state.bonus_levels);
     println!("unlocked_features: {:?}", state.unlocked_features);
@@ -213,6 +223,21 @@ mod tests {
     fn default_state_has_zero_points() {
         let state = State::default();
         assert_eq!(state.party_points, 0);
+        assert_eq!(state.lifetime_points_earned, 0);
+    }
+
+    #[test]
+    fn earn_points_updates_both_balances() {
+        let mut state = State::default();
+        state.earn_points(100);
+        assert_eq!(state.party_points, 100);
+        assert_eq!(state.lifetime_points_earned, 100);
+
+        // spend some points
+        state.party_points -= 30;
+        state.earn_points(50);
+        assert_eq!(state.party_points, 120);
+        assert_eq!(state.lifetime_points_earned, 150);
     }
 
     #[test]

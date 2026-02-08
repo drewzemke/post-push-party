@@ -7,7 +7,7 @@ pub fn post_push() {
         let clock = scoring::now();
 
         let breakdown = scoring::calculate_points(&push, &s, &history, &clock);
-        s.party_points += breakdown.total;
+        s.earn_points(breakdown.total);
 
         if let Err(e) = state::save(&s) {
             eprintln!("warning: could not save state: {e}");

@@ -36,7 +36,7 @@ pub fn push(num_commits: u64, lines: Option<Vec<u64>>) {
     let push = Push::with_repo(commits, "dev://fake");
 
     let breakdown = scoring::calculate_points(&push, &s, &hist, &clock);
-    s.party_points += breakdown.total;
+    s.earn_points(breakdown.total);
 
     if let Err(e) = state::save(&s) {
         eprintln!("warning: could not save state: {e}");

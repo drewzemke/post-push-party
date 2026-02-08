@@ -1,6 +1,36 @@
 use crate::scoring::{AppliedBonus, PointsBreakdown};
 use crate::state::{self, PartyFeature};
 
+mod color;
+mod context;
+
+pub use color::Color as PartyColor;
+pub use context::RenderContext;
+
+pub trait Party: Sync {
+    /// unique identifier for state storage
+    fn id(&self) -> &'static str;
+
+    /// display name for the UI
+    fn name(&self) -> &'static str;
+
+    /// description for the UI
+    fn description(&self) -> &'static str;
+
+    /// unlock cost
+    fn cost(&self) -> u64;
+
+    /// whether or not the color of the output of this party is configurable
+    fn supports_color(&self) -> bool;
+
+    /// prints the output of this party to stdout
+    fn render(&self, ctx: &RenderContext, color: PartyColor);
+}
+
+//
+// OLD STUFF, to be removed
+//
+
 const EXCLAMATIONS: &[&str] = &[
     "NICE!",
     "AWESOME!",

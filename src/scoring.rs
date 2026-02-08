@@ -1,6 +1,6 @@
 //! Point calculation for pushes, applying all bonus tracks.
 
-use crate::bonus_tracks::{Clock, PushContext, Reward, ALL_TRACKS};
+use crate::bonus_track::{Clock, PushContext, Reward, ALL_TRACKS};
 use crate::git::Push;
 use crate::history::PushHistory;
 use crate::state::State;

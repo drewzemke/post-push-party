@@ -51,7 +51,7 @@ impl BonusTrack for CommitValue {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bonus_tracks::Clock;
+    use crate::bonus_track::Clock;
     use crate::git::Push;
     use crate::history::PushHistory;
 

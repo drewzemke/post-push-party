@@ -44,7 +44,13 @@ pub fn push(num_commits: u64, lines: Option<Vec<u64>>) {
 
     // record this push in history (like the real hook does)
     let lines_changed: u64 = push.commits().iter().map(|c| c.lines_changed()).sum();
-    history::record("dev://fake", "main", num_commits, lines_changed, breakdown.total);
+    history::record(
+        "dev://fake",
+        "main",
+        num_commits,
+        lines_changed,
+        breakdown.total,
+    );
 
     party::display(&breakdown);
 }
@@ -66,7 +72,7 @@ pub fn reset() {
 }
 
 pub fn unlock(track_id: &str, level: u32) {
-    use crate::bonus_tracks::ALL_TRACKS;
+    use crate::bonus_track::ALL_TRACKS;
 
     // verify track exists
     let track = ALL_TRACKS.iter().find(|t| t.id() == track_id);

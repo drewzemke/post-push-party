@@ -1,10 +1,7 @@
 use super::{BonusTrack, PushContext, Reward, Tier};
 
-/// bonus for pushing a lot of commits at once
-pub struct BigPush;
-
-/// how many commits is considered "big"
-const BIG_PUSH_COMMIT_COUNT: usize = 10;
+/// bonus points for pushing on saturday or sunday
+pub struct WeekendPush;
 
 static TIERS: &[Tier] = &[
     Tier {
@@ -29,18 +26,17 @@ static TIERS: &[Tier] = &[
     },
 ];
 
-impl BonusTrack for BigPush {
+impl BonusTrack for WeekendPush {
     fn id(&self) -> &'static str {
-        "big_push"
+        "weekend_push"
     }
 
     fn name(&self) -> &'static str {
-        "Big Push"
+        "Weekend Warrior"
     }
 
     fn description(&self) -> &'static str {
-        // NOTE: gotta keep this in sync with BIG_PUSH_COMMIT_COUNT above
-        "Multiplier for pushing 10+ commits at once."
+        "Multiplier for pushing code on Saturday and Sunday."
     }
 
     fn tiers(&self) -> &'static [Tier] {
@@ -48,7 +44,8 @@ impl BonusTrack for BigPush {
     }
 
     fn applies(&self, ctx: &PushContext) -> u32 {
-        if ctx.push.commits().len() >= BIG_PUSH_COMMIT_COUNT {
+        let day_of_week = ctx.clock.day_of_week();
+        if (day_of_week == 2 || day_of_week == 3) && !ctx.push.commits().is_empty() {
             1
         } else {
             0
@@ -59,17 +56,24 @@ impl BonusTrack for BigPush {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bonus_tracks::Clock;
+    use crate::bonus_track::Clock;
     use crate::git::{Commit, Push};
     use crate::history::PushHistory;
 
-    #[test]
-    fn applies_to_big_pushes() {
-        let bonus = BigPush;
-        let history = PushHistory::default();
-        let clock = Clock::default();
+    const FRI_2AM_LOCAL: u64 = 1769842800;
+    const SAT_2AM_LOCAL: u64 = 1769853600;
+    const SUN_11PM_LOCAL: u64 = 1770015600;
+    const MON_2AM_LOCAL: u64 = 1770026400;
+    const UTC_MINUS_8: i32 = -8 * 3600; // PST
 
-        let push = Push::new(vec![Commit::default(); BIG_PUSH_COMMIT_COUNT]);
+    #[test]
+    fn applies_on_saturday_and_sunday() {
+        let bonus = WeekendPush;
+        let push = Push::new(vec![Commit::default()]);
+        let history = PushHistory::default();
+
+        // saturday
+        let clock = Clock::with_offset(SAT_2AM_LOCAL, UTC_MINUS_8);
         let ctx = PushContext {
             push: &push,
             history: &history,
@@ -77,7 +81,8 @@ mod tests {
         };
         assert_eq!(bonus.applies(&ctx), 1);
 
-        let push = Push::new(vec![Commit::default(); 1_000]);
+        // sunday
+        let clock = Clock::with_offset(SUN_11PM_LOCAL, UTC_MINUS_8);
         let ctx = PushContext {
             push: &push,
             history: &history,
@@ -87,12 +92,13 @@ mod tests {
     }
 
     #[test]
-    fn does_not_apply_to_small_pushes() {
-        let bonus = BigPush;
+    fn does_not_apply_on_friday_or_monday() {
+        let bonus = WeekendPush;
+        let push = Push::new(vec![Commit::default()]);
         let history = PushHistory::default();
-        let clock = Clock::default();
 
-        let push = Push::new(vec![Commit::default(); BIG_PUSH_COMMIT_COUNT - 1]);
+        // friday
+        let clock = Clock::with_offset(FRI_2AM_LOCAL, UTC_MINUS_8);
         let ctx = PushContext {
             push: &push,
             history: &history,
@@ -100,7 +106,23 @@ mod tests {
         };
         assert_eq!(bonus.applies(&ctx), 0);
 
-        let push = Push::new(vec![Commit::default(); 1]);
+        // monday
+        let clock = Clock::with_offset(MON_2AM_LOCAL, UTC_MINUS_8);
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
+        assert_eq!(bonus.applies(&ctx), 0);
+    }
+
+    #[test]
+    fn does_not_apply_to_empty_pushes() {
+        let bonus = WeekendPush;
+        let push = Push::new(vec![]);
+        let history = PushHistory::default();
+        let clock = Clock::with_offset(SUN_11PM_LOCAL, UTC_MINUS_8);
+
         let ctx = PushContext {
             push: &push,
             history: &history,

@@ -65,6 +65,7 @@ impl Push {
         }
     }
 
+    #[cfg(any(test, feature = "dev"))]
     pub fn with_repo(commits: Vec<Commit>, remote_url: impl Into<String>) -> Self {
         Self {
             commits,

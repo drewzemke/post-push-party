@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
-use crate::bonus_tracks::{Reward, ALL_TRACKS};
+use crate::bonus_track::{Reward, ALL_TRACKS};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct State {

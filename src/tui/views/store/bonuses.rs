@@ -2,7 +2,7 @@ use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
-use crate::bonus_tracks::{Reward, Tier, ALL_TRACKS};
+use crate::bonus_track::{Reward, Tier, ALL_TRACKS};
 use crate::state::State;
 use crate::tui::action::{Action, Route, StoreRoute};
 use crate::tui::views::{MessageType, View, ViewResult};

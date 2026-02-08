@@ -1,7 +1,10 @@
 use super::{BonusTrack, PushContext, Reward, Tier};
 
-/// bonus for surgical single-line commits
-pub struct OneLineChange;
+/// how many lines is considered "many"
+const MANY_LINES_COUNT: u64 = 1_000;
+
+/// bonus for commits with lots of lines changed
+pub struct ManyLinesChanged;
 
 static TIERS: &[Tier] = &[
     Tier {
@@ -22,17 +25,17 @@ static TIERS: &[Tier] = &[
     },
 ];
 
-impl BonusTrack for OneLineChange {
+impl BonusTrack for ManyLinesChanged {
     fn id(&self) -> &'static str {
-        "one_line_change"
+        "many_lines_changed"
     }
 
     fn name(&self) -> &'static str {
-        "Sniper"
+        "Moby Diff"
     }
 
     fn description(&self) -> &'static str {
-        "More points for surgical single-line commits."
+        "More points for big commits with at least 1,000 lines changed."
     }
 
     fn tiers(&self) -> &'static [Tier] {
@@ -43,7 +46,7 @@ impl BonusTrack for OneLineChange {
         ctx.push
             .commits()
             .iter()
-            .filter(|c| c.lines_changed() == 1)
+            .filter(|c| c.lines_changed() >= MANY_LINES_COUNT)
             .count() as u32
     }
 }
@@ -51,18 +54,18 @@ impl BonusTrack for OneLineChange {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bonus_tracks::Clock;
+    use crate::bonus_track::Clock;
     use crate::git::{Commit, Push};
     use crate::history::PushHistory;
 
     #[test]
-    fn applies_to_single_line_commits() {
+    fn applies_to_multiple_commits() {
         let history = PushHistory::default();
         let clock = Clock::default();
         let push = Push::new(vec![
-            Commit::with_lines(1),
+            Commit::with_lines(MANY_LINES_COUNT + 1),
             Commit::with_lines(10),
-            Commit::with_lines(1),
+            Commit::with_lines(MANY_LINES_COUNT + 1),
             Commit::with_lines(5),
         ]);
         let ctx = PushContext {
@@ -71,32 +74,50 @@ mod tests {
             clock: &clock,
         };
 
-        assert_eq!(OneLineChange.applies(&ctx), 2);
+        assert_eq!(ManyLinesChanged.applies(&ctx), 2);
     }
 
     #[test]
-    fn does_not_apply_to_zero_line_commits() {
+    fn applies_to_big_commits() {
         let history = PushHistory::default();
         let clock = Clock::default();
+
+        let push = Push::new(vec![Commit::with_lines(MANY_LINES_COUNT)]);
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
+        assert_eq!(ManyLinesChanged.applies(&ctx), 1);
+
+        let push = Push::new(vec![Commit::with_lines(MANY_LINES_COUNT + 1)]);
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
+        assert_eq!(ManyLinesChanged.applies(&ctx), 1);
+    }
+
+    #[test]
+    fn does_not_apply_to_small_commits() {
+        let history = PushHistory::default();
+        let clock = Clock::default();
+
         let push = Push::new(vec![Commit::with_lines(0)]);
         let ctx = PushContext {
             push: &push,
             history: &history,
             clock: &clock,
         };
-        assert_eq!(OneLineChange.applies(&ctx), 0);
-    }
+        assert_eq!(ManyLinesChanged.applies(&ctx), 0);
 
-    #[test]
-    fn does_not_apply_to_multi_line_commits() {
-        let history = PushHistory::default();
-        let clock = Clock::default();
-        let push = Push::new(vec![Commit::with_lines(2), Commit::with_lines(100)]);
+        let push = Push::new(vec![Commit::with_lines(MANY_LINES_COUNT - 1)]);
         let ctx = PushContext {
             push: &push,
             history: &history,
             clock: &clock,
         };
-        assert_eq!(OneLineChange.applies(&ctx), 0);
+        assert_eq!(ManyLinesChanged.applies(&ctx), 0);
     }
 }

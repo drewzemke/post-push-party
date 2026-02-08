@@ -61,7 +61,7 @@ impl BonusTrack for FridayAfternoon {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bonus_tracks::Clock;
+    use crate::bonus_track::Clock;
     use crate::git::{Commit, Push};
     use crate::history::PushHistory;
 

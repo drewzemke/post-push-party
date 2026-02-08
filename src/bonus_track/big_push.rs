@@ -1,7 +1,10 @@
 use super::{BonusTrack, PushContext, Reward, Tier};
 
-/// bonus points for pushing on saturday or sunday
-pub struct WeekendPush;
+/// bonus for pushing a lot of commits at once
+pub struct BigPush;
+
+/// how many commits is considered "big"
+const BIG_PUSH_COMMIT_COUNT: usize = 10;
 
 static TIERS: &[Tier] = &[
     Tier {
@@ -26,17 +29,18 @@ static TIERS: &[Tier] = &[
     },
 ];
 
-impl BonusTrack for WeekendPush {
+impl BonusTrack for BigPush {
     fn id(&self) -> &'static str {
-        "weekend_push"
+        "big_push"
     }
 
     fn name(&self) -> &'static str {
-        "Weekend Warrior"
+        "Big Push"
     }
 
     fn description(&self) -> &'static str {
-        "Multiplier for pushing code on Saturday and Sunday."
+        // NOTE: gotta keep this in sync with BIG_PUSH_COMMIT_COUNT above
+        "Multiplier for pushing 10+ commits at once."
     }
 
     fn tiers(&self) -> &'static [Tier] {
@@ -44,8 +48,7 @@ impl BonusTrack for WeekendPush {
     }
 
     fn applies(&self, ctx: &PushContext) -> u32 {
-        let day_of_week = ctx.clock.day_of_week();
-        if (day_of_week == 2 || day_of_week == 3) && !ctx.push.commits().is_empty() {
+        if ctx.push.commits().len() >= BIG_PUSH_COMMIT_COUNT {
             1
         } else {
             0
@@ -56,24 +59,17 @@ impl BonusTrack for WeekendPush {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bonus_tracks::Clock;
+    use crate::bonus_track::Clock;
     use crate::git::{Commit, Push};
     use crate::history::PushHistory;
 
-    const FRI_2AM_LOCAL: u64 = 1769842800;
-    const SAT_2AM_LOCAL: u64 = 1769853600;
-    const SUN_11PM_LOCAL: u64 = 1770015600;
-    const MON_2AM_LOCAL: u64 = 1770026400;
-    const UTC_MINUS_8: i32 = -8 * 3600; // PST
-
     #[test]
-    fn applies_on_saturday_and_sunday() {
-        let bonus = WeekendPush;
-        let push = Push::new(vec![Commit::default()]);
+    fn applies_to_big_pushes() {
+        let bonus = BigPush;
         let history = PushHistory::default();
+        let clock = Clock::default();
 
-        // saturday
-        let clock = Clock::with_offset(SAT_2AM_LOCAL, UTC_MINUS_8);
+        let push = Push::new(vec![Commit::default(); BIG_PUSH_COMMIT_COUNT]);
         let ctx = PushContext {
             push: &push,
             history: &history,
@@ -81,8 +77,7 @@ mod tests {
         };
         assert_eq!(bonus.applies(&ctx), 1);
 
-        // sunday
-        let clock = Clock::with_offset(SUN_11PM_LOCAL, UTC_MINUS_8);
+        let push = Push::new(vec![Commit::default(); 1_000]);
         let ctx = PushContext {
             push: &push,
             history: &history,
@@ -92,13 +87,12 @@ mod tests {
     }
 
     #[test]
-    fn does_not_apply_on_friday_or_monday() {
-        let bonus = WeekendPush;
-        let push = Push::new(vec![Commit::default()]);
+    fn does_not_apply_to_small_pushes() {
+        let bonus = BigPush;
         let history = PushHistory::default();
+        let clock = Clock::default();
 
-        // friday
-        let clock = Clock::with_offset(FRI_2AM_LOCAL, UTC_MINUS_8);
+        let push = Push::new(vec![Commit::default(); BIG_PUSH_COMMIT_COUNT - 1]);
         let ctx = PushContext {
             push: &push,
             history: &history,
@@ -106,23 +100,7 @@ mod tests {
         };
         assert_eq!(bonus.applies(&ctx), 0);
 
-        // monday
-        let clock = Clock::with_offset(MON_2AM_LOCAL, UTC_MINUS_8);
-        let ctx = PushContext {
-            push: &push,
-            history: &history,
-            clock: &clock,
-        };
-        assert_eq!(bonus.applies(&ctx), 0);
-    }
-
-    #[test]
-    fn does_not_apply_to_empty_pushes() {
-        let bonus = WeekendPush;
-        let push = Push::new(vec![]);
-        let history = PushHistory::default();
-        let clock = Clock::with_offset(SUN_11PM_LOCAL, UTC_MINUS_8);
-
+        let push = Push::new(vec![Commit::default(); 1]);
         let ctx = PushContext {
             push: &push,
             history: &history,

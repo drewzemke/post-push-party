@@ -2,7 +2,7 @@ use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Padding};
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
-use crate::state::{PartyFeature, State, PARTY_FEATURES};
+use crate::state::State;
 use crate::tui::views::MessageType;
 use crate::tui::widgets::ShimmerBlock;
 
@@ -91,23 +91,24 @@ pub struct PartyView {
 }
 
 impl PartyView {
-    fn unlocked_features(state: &State) -> Vec<PartyFeature> {
-        PARTY_FEATURES
-            .iter()
-            .copied()
-            .filter(|&f| state.is_unlocked(f))
-            .collect()
+    fn unlocked_parties(state: &State) -> Vec<&'static str> {
+        // PARTY_FEATURES
+        //     .iter()
+        //     .copied()
+        //     .filter(|&f| state.is_party_unlocked(f))
+        //     .collect()
+        todo!()
     }
 
     fn item_count(state: &State) -> usize {
-        1 + Self::unlocked_features(state).len() // basic party + unlocked features
+        Self::unlocked_parties(state).len()
     }
 
-    fn selected_feature(&self, state: &State) -> Option<PartyFeature> {
+    fn selected_party(&self, state: &State) -> Option<&'static str> {
         if self.selection == 0 {
             None
         } else {
-            Self::unlocked_features(state)
+            Self::unlocked_parties(state)
                 .get(self.selection - 1)
                 .copied()
         }
@@ -132,7 +133,7 @@ impl PartyView {
 
 impl View for PartyView {
     fn render(&self, frame: &mut Frame, area: Rect, state: &State, tick: u32) {
-        let unlocked = Self::unlocked_features(state);
+        let unlocked = Self::unlocked_parties(state);
 
         let content_area = area.inner(Margin::new(1, 0));
         let content_width = content_area.width.saturating_sub(1); // leave room for scrollbar
@@ -151,17 +152,16 @@ impl View for PartyView {
         );
         scroll_view.render_widget(basic_item, Rect::new(0, 0, content_width, ITEM_HEIGHT));
 
-        // unlocked features only
-        for (i, feature) in unlocked.iter().enumerate() {
-            let status = if state.is_enabled(*feature) {
+        for (i, party_id) in unlocked.iter().enumerate() {
+            let status = if state.is_party_enabled(*party_id) {
                 ItemStatus::Enabled
             } else {
                 ItemStatus::Disabled
             };
 
             let item = PartyItem::new(
-                feature.name(),
-                feature.description(),
+                "name todo",
+                "desc todo",
                 status,
                 self.selection == i + 1,
                 tick,
@@ -187,8 +187,8 @@ impl View for PartyView {
                 ViewResult::Redraw
             }
             Action::Select => {
-                if let Some(feature) = self.selected_feature(state) {
-                    state.toggle_feature(feature);
+                if let Some(id) = self.selected_party(state) {
+                    state.toggle_party(id);
                     ViewResult::Redraw
                 } else {
                     ViewResult::Message(

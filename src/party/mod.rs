@@ -1,5 +1,5 @@
 use crate::scoring::{AppliedBonus, PointsBreakdown};
-use crate::state::{self, PartyFeature};
+use crate::state::{self};
 
 mod color;
 mod context;
@@ -74,11 +74,13 @@ fn random_pick<T>(items: &[T]) -> &T {
     items.choose(&mut rand::rng()).unwrap()
 }
 
+// TODO: pass in info needed to create RenderContext
 pub fn display(breakdown: &PointsBreakdown) {
-    let state = state::load();
-    let use_exclamations = state.is_enabled(PartyFeature::Exclamations);
-    let use_quotes = state.is_enabled(PartyFeature::Quotes);
-    let use_big_text = state.is_enabled(PartyFeature::BigText);
+    // let state = state::load();
+
+    let use_exclamations = true;
+    let use_quotes = true;
+    let use_big_text = true;
 
     let use_color = use_exclamations || use_big_text;
     let color = if use_color { random_pick(COLORS) } else { "" };

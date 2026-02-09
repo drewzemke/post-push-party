@@ -30,7 +30,6 @@ impl Party for Base {
         let total = ctx.breakdown.total;
         if total > 0 {
             println!("🎉 You earned {} party points!", total);
-            println!();
         } else {
             println!("🎉 Pushed! (already counted)");
         }

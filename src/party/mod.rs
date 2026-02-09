@@ -1,11 +1,13 @@
 use crate::scoring::{AppliedBonus, PointsBreakdown};
-use crate::state::{self};
 
+mod base;
 mod color;
 mod context;
 
 pub use color::Color as PartyColor;
 pub use context::RenderContext;
+
+use base::Base;
 
 pub trait Party: Sync {
     /// unique identifier for state storage
@@ -26,6 +28,12 @@ pub trait Party: Sync {
     /// prints the output of this party to stdout
     fn render(&self, ctx: &RenderContext, color: PartyColor);
 }
+
+// static instances
+static BASE: Base = Base;
+
+// all parties in order
+pub static ALL_PARTIES: &[&'static dyn Party] = &[&BASE];
 
 //
 // OLD STUFF, to be removed

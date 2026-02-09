@@ -2,8 +2,8 @@ use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Padding};
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
+use crate::party::{Party, ALL_PARTIES};
 use crate::state::State;
-use crate::tui::views::MessageType;
 use crate::tui::widgets::ShimmerBlock;
 
 use super::{Action, Route, View, ViewResult};
@@ -12,30 +12,17 @@ const ITEM_HEIGHT: u16 = 5;
 const SCROLL_PADDING: u16 = ITEM_HEIGHT;
 
 struct PartyItem {
-    name: &'static str,
-    description: &'static str,
-    status: ItemStatus,
+    party: &'static dyn Party,
+    enabled: bool,
     selected: bool,
     tick: u32,
 }
 
-enum ItemStatus {
-    Enabled,
-    Disabled,
-}
-
 impl PartyItem {
-    fn new(
-        name: &'static str,
-        description: &'static str,
-        status: ItemStatus,
-        selected: bool,
-        tick: u32,
-    ) -> Self {
+    fn new(party: &'static dyn Party, enabled: bool, selected: bool, tick: u32) -> Self {
         Self {
-            name,
-            description,
-            status,
+            party,
+            enabled,
             selected,
             tick,
         }
@@ -67,18 +54,20 @@ impl Widget for PartyItem {
         .split(inner);
 
         // name
-        let title = Text::from(self.name).reset().bold();
+        let title = Text::from(self.party.name()).reset().bold();
         title.render(chunks[0], buf);
 
         // description
-        let desc = Text::from(self.description).dark_gray();
+        let desc = Text::from(self.party.description()).dark_gray();
         desc.render(chunks[1], buf);
 
-        // status
-        let (status_text, status_style) = match self.status {
-            ItemStatus::Enabled => ("✓ Enabled", Style::default().fg(Color::Green)),
-            ItemStatus::Disabled => ("✗ Disabled", Style::default().fg(Color::Red)),
+        // enabled status
+        let (status_text, status_style) = if self.enabled {
+            ("✓ Enabled", Style::default().fg(Color::Green))
+        } else {
+            ("✗ Disabled", Style::default().fg(Color::Red))
         };
+
         let status = Text::from(status_text).style(status_style);
         status.render(chunks[2], buf);
     }
@@ -91,27 +80,19 @@ pub struct PartyView {
 }
 
 impl PartyView {
-    fn unlocked_parties(state: &State) -> Vec<&'static str> {
-        // PARTY_FEATURES
-        //     .iter()
-        //     .copied()
-        //     .filter(|&f| state.is_party_unlocked(f))
-        //     .collect()
-        todo!()
+    fn unlocked_parties(state: &State) -> impl Iterator<Item = &'static dyn Party> + use<'_> {
+        ALL_PARTIES
+            .iter()
+            .map(|p| *p)
+            .filter(|&party| state.is_party_unlocked(party.id()))
     }
 
     fn item_count(state: &State) -> usize {
-        Self::unlocked_parties(state).len()
+        Self::unlocked_parties(state).count()
     }
 
-    fn selected_party(&self, state: &State) -> Option<&'static str> {
-        if self.selection == 0 {
-            None
-        } else {
-            Self::unlocked_parties(state)
-                .get(self.selection - 1)
-                .copied()
-        }
+    fn selected_party(&self, state: &State) -> Option<&'static dyn Party> {
+        Self::unlocked_parties(state).nth(self.selection)
     }
 
     fn update_scroll(&mut self, viewport_height: u16) {
@@ -133,8 +114,6 @@ impl PartyView {
 
 impl View for PartyView {
     fn render(&self, frame: &mut Frame, area: Rect, state: &State, tick: u32) {
-        let unlocked = Self::unlocked_parties(state);
-
         let content_area = area.inner(Margin::new(1, 0));
         let content_width = content_area.width.saturating_sub(1); // leave room for scrollbar
         let content_height = Self::item_count(state) as u16 * ITEM_HEIGHT;
@@ -142,31 +121,12 @@ impl View for PartyView {
         let mut scroll_view = ScrollView::new(Size::new(content_width, content_height))
             .horizontal_scrollbar_visibility(ScrollbarVisibility::Never);
 
-        // basic party (always enabled)
-        let basic_item = PartyItem::new(
-            "Basic Party",
-            "A simple summary of how many points you earned.",
-            ItemStatus::Enabled,
-            self.selection == 0,
-            tick,
-        );
-        scroll_view.render_widget(basic_item, Rect::new(0, 0, content_width, ITEM_HEIGHT));
+        for (i, party) in Self::unlocked_parties(state).enumerate() {
+            let enabled = state.is_party_enabled(party.id());
+            let selected = self.selection == i;
 
-        for (i, party_id) in unlocked.iter().enumerate() {
-            let status = if state.is_party_enabled(*party_id) {
-                ItemStatus::Enabled
-            } else {
-                ItemStatus::Disabled
-            };
-
-            let item = PartyItem::new(
-                "name todo",
-                "desc todo",
-                status,
-                self.selection == i + 1,
-                tick,
-            );
-            let item_rect = Rect::new(0, (i + 1) as u16 * ITEM_HEIGHT, content_width, ITEM_HEIGHT);
+            let item = PartyItem::new(party, enabled, selected, tick);
+            let item_rect = Rect::new(0, i as u16 * ITEM_HEIGHT, content_width, ITEM_HEIGHT);
             scroll_view.render_widget(item, item_rect);
         }
 
@@ -187,15 +147,10 @@ impl View for PartyView {
                 ViewResult::Redraw
             }
             Action::Select => {
-                if let Some(id) = self.selected_party(state) {
-                    state.toggle_party(id);
-                    ViewResult::Redraw
-                } else {
-                    ViewResult::Message(
-                        MessageType::Normal,
-                        "Basic party is always enabled".to_string(),
-                    )
+                if let Some(party) = self.selected_party(state) {
+                    state.toggle_party(party.id());
                 }
+                ViewResult::Redraw
             }
             Action::Tab(i) => ViewResult::Navigate(match i {
                 0 => Route::Store(Default::default()),

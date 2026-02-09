@@ -38,45 +38,7 @@ static EXCLAMATION: Exclamation = Exclamation;
 // all parties in order
 pub static ALL_PARTIES: &[&'static dyn Party] = &[&BASE, &EXCLAMATION];
 
-//
-// OLD STUFF, to be removed
-//
-
-const EXCLAMATIONS: &[&str] = &[
-    "NICE!",
-    "AWESOME!",
-    "GREAT JOB!",
-    "FANTASTIC!",
-    "WOOHOO!",
-    "AMAZING!",
-    "BRILLIANT!",
-    "SUPERB!",
-    "EXCELLENT!",
-    "WONDERFUL!",
-];
-
-const QUOTES: &[&str] = &[
-    "The only way to do great work is to love what you do.",
-    "First, solve the problem. Then, write the code.",
-    "Code is like humor. When you have to explain it, it's bad.",
-    "Simplicity is the soul of efficiency.",
-    "Make it work, make it right, make it fast.",
-    "Any fool can write code that a computer can understand.",
-    "The best error message is the one that never shows up.",
-    "Delete code bravely.",
-    "Weeks of coding can save you hours of planning.",
-    "It works on my machine!",
-];
-
-const COLORS: &[&str] = &[
-    "\x1b[31m", // red
-    "\x1b[32m", // green
-    "\x1b[33m", // yellow
-    "\x1b[34m", // blue
-    "\x1b[35m", // magenta
-    "\x1b[36m", // cyan
-];
-
+// display utilities
 const RESET: &str = "\x1b[0m";
 const BOLD: &str = "\x1b[1m";
 
@@ -85,96 +47,94 @@ fn random_pick<T>(items: &[T]) -> &T {
     items.choose(&mut rand::rng()).unwrap()
 }
 
-// TODO: pass in info needed to create RenderContext
-pub fn display(breakdown: &PointsBreakdown) {
-    // let state = state::load();
+/// renders every enabled party
+pub fn display(ctx: &RenderContext) {
+    let enabled_parties = ALL_PARTIES
+        .iter()
+        .filter(|party| ctx.state.is_party_enabled(party.id()))
+        .map(|p| *p);
 
-    let use_exclamations = true;
-    let use_quotes = true;
-    let use_big_text = true;
-
-    let use_color = use_exclamations || use_big_text;
-    let color = if use_color { random_pick(COLORS) } else { "" };
-    let reset = if use_color { RESET } else { "" };
-    let bold = if use_color { BOLD } else { "" };
-
-    println!();
-
-    // big text or exclamation
-    if use_big_text {
-        println!("{}{}", color, bold);
-        println!(" ███╗   ██╗██╗ ██████╗███████╗██╗");
-        println!(" ████╗  ██║██║██╔════╝██╔════╝██║");
-        println!(" ██╔██╗ ██║██║██║     █████╗  ██║");
-        println!(" ██║╚██╗██║██║██║     ██╔══╝  ╚═╝");
-        println!(" ██║ ╚████║██║╚██████╗███████╗██╗");
-        println!(" ╚═╝  ╚═══╝╚═╝ ╚═════╝╚══════╝╚═╝");
-        println!("{}", reset);
-        println!();
-    } else if use_exclamations {
-        let exclaim = random_pick(EXCLAMATIONS);
-        println!("{}{}{} {}", bold, color, exclaim, reset);
-        println!();
+    for party in enabled_parties {
+        // TODO: choose color
+        let color = PartyColor::White;
+        party.render(ctx, color);
     }
 
-    // main points line
-    if breakdown.total > 0 {
-        println!(
-            "{}🎉 You earned {} party points!{}",
-            color, breakdown.total, reset
-        );
-        println!();
+    // // big text or exclamation
+    // if use_big_text {
+    //     println!("{}{}", color, bold);
+    //     println!(" ███╗   ██╗██╗ ██████╗███████╗██╗");
+    //     println!(" ████╗  ██║██║██╔════╝██╔════╝██║");
+    //     println!(" ██╔██╗ ██║██║██║     █████╗  ██║");
+    //     println!(" ██║╚██╗██║██║██║     ██╔══╝  ╚═╝");
+    //     println!(" ██║ ╚████║██║╚██████╗███████╗██╗");
+    //     println!(" ╚═╝  ╚═══╝╚═╝ ╚═════╝╚══════╝╚═╝");
+    //     println!("{}", reset);
+    //     println!();
+    // } else if use_exclamations {
+    //     let exclaim = random_pick(EXCLAMATIONS);
+    //     println!("{}{}{} {}", bold, color, exclaim, reset);
+    //     println!();
+    // }
 
-        // breakdown: commits × points per commit
-        let commit_word = if breakdown.commits == 1 {
-            "commit"
-        } else {
-            "commits"
-        };
-        let point_word = if breakdown.points_per_commit == 1 {
-            "point"
-        } else {
-            "points"
-        };
-        println!(
-            "   {} {} × {} {} per commit",
-            breakdown.commits, commit_word, breakdown.points_per_commit, point_word
-        );
+    // // main points line
+    // if breakdown.total > 0 {
+    //     println!(
+    //         "{}🎉 You earned {} party points!{}",
+    //         color, breakdown.total, reset
+    //     );
+    //     println!();
 
-        // flat bonuses first (they add to base)
-        for bonus in &breakdown.applied {
-            if let AppliedBonus::FlatBonus {
-                name,
-                points,
-                count,
-            } = bonus
-            {
-                println!("   + {} {} ({} ×)", points, name, count);
-            }
-        }
+    //     // breakdown: commits × points per commit
+    //     let commit_word = if breakdown.commits == 1 {
+    //         "commit"
+    //     } else {
+    //         "commits"
+    //     };
+    //     let point_word = if breakdown.points_per_commit == 1 {
+    //         "point"
+    //     } else {
+    //         "points"
+    //     };
+    //     println!(
+    //         "   {} {} × {} {} per commit",
+    //         breakdown.commits, commit_word, breakdown.points_per_commit, point_word
+    //     );
 
-        // multiplier bonuses (they multiply the total)
-        for bonus in &breakdown.applied {
-            if let AppliedBonus::Multiplier { name, value } = bonus {
-                println!("   × {} {}", value, name);
-            }
-        }
-        println!();
-    } else {
-        println!("{}🎉 Pushed! (already counted){}", color, reset);
-        println!();
-    }
+    //     // flat bonuses first (they add to base)
+    //     for bonus in &breakdown.applied {
+    //         if let AppliedBonus::FlatBonus {
+    //             name,
+    //             points,
+    //             count,
+    //         } = bonus
+    //         {
+    //             println!("   + {} {} ({} ×)", points, name, count);
+    //         }
+    //     }
 
-    // quote
-    if use_quotes {
-        let quote = random_pick(QUOTES);
-        println!("\x1b[3m\"{}\"\x1b[0m", quote);
-        println!();
-    }
+    //     // multiplier bonuses (they multiply the total)
+    //     for bonus in &breakdown.applied {
+    //         if let AppliedBonus::Multiplier { name, value } = bonus {
+    //             println!("   × {} {}", value, name);
+    //         }
+    //     }
+    //     println!();
+    // } else {
+    //     println!("{}🎉 Pushed! (already counted){}", color, reset);
+    //     println!();
+    // }
 
-    // call to action (only if no fancy output)
-    if !use_exclamations && !use_quotes && !use_big_text {
-        println!("Run `party` to see your total!");
-        println!();
-    }
+    // // quote
+    // if use_quotes {
+    //     let quote = random_pick(QUOTES);
+    //     println!("\x1b[3m\"{}\"\x1b[0m", quote);
+    //     println!();
+    // }
+
+    // // call to action (only if no fancy output)
+    // if !use_exclamations && !use_quotes && !use_big_text {
+    //     println!("Run `party` to see your total!");
+    //     println!();
+    // }
 }

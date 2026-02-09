@@ -54,6 +54,9 @@ pub fn display(ctx: &RenderContext) {
         .filter(|party| ctx.state.is_party_enabled(party.id()))
         .map(|p| *p);
 
+    // print a blank line before starting any party
+    println!();
+
     for party in enabled_parties {
         // TODO: choose color
         let color = PartyColor::White;

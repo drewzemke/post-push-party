@@ -2,6 +2,7 @@ use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Padding, Paragraph};
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
+use crate::party::{Party, ALL_PARTIES};
 use crate::state::State;
 use crate::tui::action::{Action, Route, StoreRoute};
 use crate::tui::views::{MessageType, View, ViewResult};
@@ -10,39 +11,33 @@ use crate::tui::widgets::ShimmerBlock;
 const ITEM_HEIGHT: u16 = 4;
 const SCROLL_PADDING: u16 = ITEM_HEIGHT; // keep one item of padding when scrolling
 
-struct UpgradeItem {
-    name: &'static str,
-    description: &'static str,
+struct PartyListItem {
+    party: &'static dyn Party,
     unlocked: bool,
     affordable: bool,
-    cost: u64,
     selected: bool,
     tick: u32,
 }
 
-impl UpgradeItem {
+impl PartyListItem {
     fn new(
-        name: &'static str,
-        description: &'static str,
+        party: &'static dyn Party,
         unlocked: bool,
         affordable: bool,
-        cost: u64,
         selected: bool,
         tick: u32,
     ) -> Self {
         Self {
-            name,
-            description,
+            party,
             unlocked,
             affordable,
-            cost,
             selected,
             tick,
         }
     }
 }
 
-impl Widget for UpgradeItem {
+impl Widget for PartyListItem {
     fn render(self, area: Rect, buf: &mut Buffer) {
         // use shimmer block for selected, regular block for unselected
         let inner = if self.selected {
@@ -67,7 +62,7 @@ impl Widget for UpgradeItem {
         let top_chunks =
             Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).split(chunks[0]);
 
-        let title_text = Text::from(self.name).reset().bold();
+        let title_text = Text::from(self.party.name()).reset().bold();
         title_text.render(top_chunks[0], buf);
 
         let price_style = if self.unlocked {
@@ -81,7 +76,7 @@ impl Widget for UpgradeItem {
         let price_str = if self.unlocked {
             "✓ Owned".to_string()
         } else {
-            format!("{} P", self.cost)
+            format!("{} P", self.party.cost())
         };
 
         let price_text = Text::from(price_str)
@@ -90,7 +85,7 @@ impl Widget for UpgradeItem {
         price_text.render(top_chunks[1], buf);
 
         // bottom line -- just the description
-        let desc_text = Text::from(self.description).reset();
+        let desc_text = Text::from(self.party.description()).reset();
         desc_text.render(chunks[1], buf);
     }
 }
@@ -102,14 +97,12 @@ pub struct UpgradesView {
 }
 
 impl UpgradesView {
-    fn selected_party_id(&self) -> Option<&'static str> {
-        // TODO: implement
-        None
+    fn selected_party(&self) -> Option<&'static dyn Party> {
+        ALL_PARTIES.get(self.selection).map(|v| *v)
     }
 
-    fn item_count(&self) -> usize {
-        // TODO: implement
-        0
+    const fn item_count(&self) -> usize {
+        ALL_PARTIES.len()
     }
 
     fn update_scroll(&mut self, viewport_height: u16) {
@@ -155,18 +148,12 @@ impl View for UpgradesView {
             .horizontal_scrollbar_visibility(ScrollbarVisibility::Never);
 
         // render items into scroll view
-        // TODO: implement
-        for (i, &party_id) in ["test", "test"].iter().enumerate() {
-            let item = UpgradeItem::new(
-                "name",
-                "description",
-                state.is_party_unlocked(party_id),
-                // FIXME: implement
-                state.party_points >= 100,
-                100,
-                self.selection == i,
-                tick,
-            );
+        for (i, &party) in ALL_PARTIES.iter().enumerate() {
+            let affordable = state.party_points >= party.cost();
+            let selected = self.selection == i;
+            let unlocked = state.is_party_unlocked(party.id());
+
+            let item = PartyListItem::new(party, unlocked, affordable, selected, tick);
             let item_rect = Rect::new(0, i as u16 * ITEM_HEIGHT, content_width, ITEM_HEIGHT);
             scroll_view.render_widget(item, item_rect);
         }
@@ -189,23 +176,20 @@ impl View for UpgradesView {
                 ViewResult::Redraw
             }
             Action::Select => {
-                if let Some(party_id) = self.selected_party_id() {
-                    if state.is_party_unlocked(party_id) {
+                if let Some(party) = self.selected_party() {
+                    if state.is_party_unlocked(party.id()) {
                         ViewResult::Message(
                             MessageType::Normal,
-                            // TODO
-                            format!("You already own {}.", "PARTY NAME"),
+                            format!("You already own {}.", party.name()),
                         )
                     } else {
-                        // TODO
-                        let cost = 0;
+                        let cost = party.cost();
                         if state.party_points >= cost {
                             state.party_points -= cost;
-                            state.unlock_party(party_id);
+                            state.unlock_party(party.id());
                             ViewResult::Message(
                                 MessageType::Success,
-                                // TODO
-                                format!("Unlocked {}!", "PARTY_NAME"),
+                                format!("Unlocked {}!", party.name()),
                             )
                         } else {
                             ViewResult::Message(

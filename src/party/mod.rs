@@ -57,7 +57,11 @@ pub fn display(ctx: &RenderContext) {
     for party in enabled_parties {
         // TODO: choose color
         let color = PartyColor::White;
+
         party.render(ctx, color);
+
+        // print a blank line between parties (and after the last one)
+        println!();
     }
 
     // // big text or exclamation

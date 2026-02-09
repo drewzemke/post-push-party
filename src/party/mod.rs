@@ -3,11 +3,13 @@ use crate::scoring::{AppliedBonus, PointsBreakdown};
 mod base;
 mod color;
 mod context;
+mod exclamation;
 
 pub use color::Color as PartyColor;
 pub use context::RenderContext;
 
 use base::Base;
+use exclamation::Exclamation;
 
 pub trait Party: Sync {
     /// unique identifier for state storage
@@ -31,9 +33,10 @@ pub trait Party: Sync {
 
 // static instances
 static BASE: Base = Base;
+static EXCLAMATION: Exclamation = Exclamation;
 
 // all parties in order
-pub static ALL_PARTIES: &[&'static dyn Party] = &[&BASE];
+pub static ALL_PARTIES: &[&'static dyn Party] = &[&BASE, &EXCLAMATION];
 
 //
 // OLD STUFF, to be removed

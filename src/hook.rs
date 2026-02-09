@@ -1,15 +1,19 @@
-use crate::{git, history, party, scoring, state};
+use crate::{
+    git, history,
+    party::{self, RenderContext},
+    scoring, state,
+};
 
 pub fn post_push() {
     if let Some(push) = git::get_pushed_commits() {
-        let mut s = state::load();
+        let mut state = state::load();
         let history = history::load();
         let clock = scoring::now();
 
-        let breakdown = scoring::calculate_points(&push, &s, &history, &clock);
-        s.earn_points(breakdown.total);
+        let breakdown = scoring::calculate_points(&push, &state, &history, &clock);
+        state.earn_points(breakdown.total);
 
-        if let Err(e) = state::save(&s) {
+        if let Err(e) = state::save(&state) {
             eprintln!("warning: could not save state: {e}");
         }
 
@@ -28,7 +32,8 @@ pub fn post_push() {
             );
         }
 
-        party::display(&breakdown);
+        let ctx = RenderContext::new(&push, &history, &breakdown, &state);
+        party::display(&ctx);
     }
 }
 

@@ -1,6 +1,5 @@
-use crate::scoring::{AppliedBonus, PointsBreakdown};
-
 mod base;
+mod breakdown;
 mod color;
 mod context;
 mod exclamation;
@@ -9,6 +8,7 @@ pub use color::Color as PartyColor;
 pub use context::RenderContext;
 
 use base::Base;
+use breakdown::Breakdown;
 use exclamation::Exclamation;
 
 pub trait Party: Sync {
@@ -33,10 +33,11 @@ pub trait Party: Sync {
 
 // static instances
 static BASE: Base = Base;
+static BREAKDOWN: Breakdown = Breakdown;
 static EXCLAMATION: Exclamation = Exclamation;
 
 // all parties in order
-pub static ALL_PARTIES: &[&'static dyn Party] = &[&BASE, &EXCLAMATION];
+pub static ALL_PARTIES: &[&'static dyn Party] = &[&BASE, &BREAKDOWN, &EXCLAMATION];
 
 // display utilities
 const RESET: &str = "\x1b[0m";
@@ -81,54 +82,6 @@ pub fn display(ctx: &RenderContext) {
     // } else if use_exclamations {
     //     let exclaim = random_pick(EXCLAMATIONS);
     //     println!("{}{}{} {}", bold, color, exclaim, reset);
-    //     println!();
-    // }
-
-    // // main points line
-    // if breakdown.total > 0 {
-    //     println!(
-    //         "{}🎉 You earned {} party points!{}",
-    //         color, breakdown.total, reset
-    //     );
-    //     println!();
-
-    //     // breakdown: commits × points per commit
-    //     let commit_word = if breakdown.commits == 1 {
-    //         "commit"
-    //     } else {
-    //         "commits"
-    //     };
-    //     let point_word = if breakdown.points_per_commit == 1 {
-    //         "point"
-    //     } else {
-    //         "points"
-    //     };
-    //     println!(
-    //         "   {} {} × {} {} per commit",
-    //         breakdown.commits, commit_word, breakdown.points_per_commit, point_word
-    //     );
-
-    //     // flat bonuses first (they add to base)
-    //     for bonus in &breakdown.applied {
-    //         if let AppliedBonus::FlatBonus {
-    //             name,
-    //             points,
-    //             count,
-    //         } = bonus
-    //         {
-    //             println!("   + {} {} ({} ×)", points, name, count);
-    //         }
-    //     }
-
-    //     // multiplier bonuses (they multiply the total)
-    //     for bonus in &breakdown.applied {
-    //         if let AppliedBonus::Multiplier { name, value } = bonus {
-    //             println!("   × {} {}", value, name);
-    //         }
-    //     }
-    //     println!();
-    // } else {
-    //     println!("{}🎉 Pushed! (already counted){}", color, reset);
     //     println!();
     // }
 

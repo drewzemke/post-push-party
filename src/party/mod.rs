@@ -3,6 +3,7 @@ mod breakdown;
 mod color;
 mod context;
 mod exclamation;
+mod quotes;
 
 pub use color::Color as PartyColor;
 pub use context::RenderContext;
@@ -10,6 +11,7 @@ pub use context::RenderContext;
 use base::Base;
 use breakdown::Breakdown;
 use exclamation::Exclamation;
+use quotes::Quotes;
 
 pub trait Party: Sync {
     /// unique identifier for state storage
@@ -35,13 +37,15 @@ pub trait Party: Sync {
 static BASE: Base = Base;
 static BREAKDOWN: Breakdown = Breakdown;
 static EXCLAMATION: Exclamation = Exclamation;
+static QUOTES: Quotes = Quotes;
 
 // all parties in order
-pub static ALL_PARTIES: &[&'static dyn Party] = &[&BASE, &BREAKDOWN, &EXCLAMATION];
+pub static ALL_PARTIES: &[&'static dyn Party] = &[&BASE, &BREAKDOWN, &EXCLAMATION, &QUOTES];
 
 // display utilities
 const RESET: &str = "\x1b[0m";
 const BOLD: &str = "\x1b[1m";
+const ITALICS: &str = "\x1b[3m";
 
 fn random_pick<T>(items: &[T]) -> &T {
     use rand::prelude::IndexedRandom;

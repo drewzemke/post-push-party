@@ -62,4 +62,8 @@ impl Clock {
 
         Self::with_offset(now, tz_offset_secs)
     }
+
+    pub fn is_today(&self, timestamp: u64) -> bool {
+        self.day_of(timestamp) == self.today()
+    }
 }

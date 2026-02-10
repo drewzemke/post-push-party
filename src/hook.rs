@@ -8,7 +8,7 @@ use crate::{
 pub fn post_push() {
     if let Some(push) = git::get_pushed_commits() {
         let mut state = state::load();
-        let history = history::load();
+        let mut history = history::load();
         let clock = Clock::from_now();
 
         let breakdown = scoring::calculate_points(&push, &state, &history, &clock);
@@ -24,7 +24,7 @@ pub fn post_push() {
         // affect bonus track calculations like first_push_of_day
         if !push.branch().is_empty() && !push.commits().is_empty() {
             let lines_changed: u64 = push.commits().iter().map(|c| c.lines_changed()).sum();
-            history::record(
+            history = history::record(
                 push.remote_url(),
                 push.branch(),
                 push.commits().len() as u64,

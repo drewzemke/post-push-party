@@ -4,6 +4,7 @@ mod color;
 mod context;
 mod exclamation;
 mod quotes;
+mod stats;
 
 pub use color::Color as PartyColor;
 pub use context::RenderContext;
@@ -12,6 +13,7 @@ use base::Base;
 use breakdown::Breakdown;
 use exclamation::Exclamation;
 use quotes::Quotes;
+use stats::Stats;
 
 pub trait Party: Sync {
     /// unique identifier for state storage
@@ -38,14 +40,19 @@ static BASE: Base = Base;
 static BREAKDOWN: Breakdown = Breakdown;
 static EXCLAMATION: Exclamation = Exclamation;
 static QUOTES: Quotes = Quotes;
+static STATS: Stats = Stats;
 
 // all parties in order
-pub static ALL_PARTIES: &[&'static dyn Party] = &[&BASE, &BREAKDOWN, &EXCLAMATION, &QUOTES];
+pub static ALL_PARTIES: &[&'static dyn Party] = &[&BASE, &BREAKDOWN, &STATS, &EXCLAMATION, &QUOTES];
 
 // display utilities
 const RESET: &str = "\x1b[0m";
 const BOLD: &str = "\x1b[1m";
 const ITALICS: &str = "\x1b[3m";
+const CYAN: &str = "\x1b[36m";
+const MAGENTA: &str = "\x1b[35m";
+const YELLOW: &str = "\x1b[33m";
+const GRAY: &str = "\x1b[90m";
 
 fn random_pick<T>(items: &[T]) -> &T {
     use rand::prelude::IndexedRandom;
@@ -82,23 +89,4 @@ pub fn display(ctx: &RenderContext) {
     //     println!(" ██║ ╚████║██║╚██████╗███████╗██╗");
     //     println!(" ╚═╝  ╚═══╝╚═╝ ╚═════╝╚══════╝╚═╝");
     //     println!("{}", reset);
-    //     println!();
-    // } else if use_exclamations {
-    //     let exclaim = random_pick(EXCLAMATIONS);
-    //     println!("{}{}{} {}", bold, color, exclaim, reset);
-    //     println!();
-    // }
-
-    // // quote
-    // if use_quotes {
-    //     let quote = random_pick(QUOTES);
-    //     println!("\x1b[3m\"{}\"\x1b[0m", quote);
-    //     println!();
-    // }
-
-    // // call to action (only if no fancy output)
-    // if !use_exclamations && !use_quotes && !use_big_text {
-    //     println!("Run `party` to see your total!");
-    //     println!();
-    // }
 }

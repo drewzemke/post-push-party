@@ -29,7 +29,7 @@ impl Party for Base {
     fn render(&self, ctx: &RenderContext, _color: PartyColor) {
         let total = ctx.breakdown.total;
         if total > 0 {
-            println!("🎉 You earned {} party points!", total);
+            println!("🎉 You earned {total} party points!");
         } else {
             println!("🎉 Pushed! (already counted)");
         }

@@ -1,4 +1,6 @@
-use crate::{git::Push, history::PushHistory, scoring::PointsBreakdown, state::State};
+use crate::{
+    clock::Clock, git::Push, history::PushHistory, scoring::PointsBreakdown, state::State,
+};
 
 /// Constructed per-push and passed to each party that is
 /// to be rendered
@@ -7,6 +9,7 @@ pub struct RenderContext<'a> {
     pub history: &'a PushHistory,
     pub breakdown: &'a PointsBreakdown,
     pub state: &'a State,
+    pub clock: &'a Clock,
 }
 
 impl<'a> RenderContext<'a> {
@@ -15,12 +18,14 @@ impl<'a> RenderContext<'a> {
         history: &'a PushHistory,
         breakdown: &'a PointsBreakdown,
         state: &'a State,
+        clock: &'a Clock,
     ) -> Self {
         Self {
             push,
             history,
             breakdown,
             state,
+            clock,
         }
     }
 }

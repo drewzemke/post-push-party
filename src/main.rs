@@ -1,5 +1,6 @@
 mod bonus_track;
 mod cli;
+mod clock;
 #[cfg(feature = "dev")]
 mod dev;
 mod git;

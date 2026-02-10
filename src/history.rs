@@ -76,17 +76,14 @@ impl PushEntry {
         &self.branch
     }
 
-    #[cfg(test)]
     pub fn commits(&self) -> u64 {
         self.commits
     }
 
-    #[cfg(test)]
     pub fn lines_changed(&self) -> u64 {
         self.lines_changed
     }
 
-    #[cfg(test)]
     pub fn points_earned(&self) -> u64 {
         self.points_earned
     }
@@ -145,7 +142,7 @@ pub fn record(
     commits: u64,
     lines_changed: u64,
     points_earned: u64,
-) {
+) -> PushHistory {
     let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs())
@@ -161,6 +158,8 @@ pub fn record(
         points_earned,
     ));
     let _ = save(&history);
+
+    history
 }
 
 #[cfg(test)]

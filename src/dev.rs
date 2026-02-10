@@ -21,7 +21,7 @@ pub fn cheat(amount: i64) {
 pub fn push(num_commits: u64, lines: Option<Vec<u64>>) {
     // mirror the actual hook flow as closely as possible
     let mut state = state::load();
-    let history = history::load();
+    let mut history = history::load();
     let clock = Clock::from_now();
 
     // build fake commits with specified or default line counts
@@ -46,7 +46,7 @@ pub fn push(num_commits: u64, lines: Option<Vec<u64>>) {
 
     // record this push in history (like the real hook does)
     let lines_changed: u64 = push.commits().iter().map(|c| c.lines_changed()).sum();
-    history::record(
+    history = history::record(
         "dev://fake",
         "main",
         num_commits,

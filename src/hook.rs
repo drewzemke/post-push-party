@@ -1,4 +1,5 @@
 use crate::{
+    clock::Clock,
     git, history,
     party::{self, RenderContext},
     scoring, state,
@@ -8,7 +9,7 @@ pub fn post_push() {
     if let Some(push) = git::get_pushed_commits() {
         let mut state = state::load();
         let history = history::load();
-        let clock = scoring::now();
+        let clock = Clock::from_now();
 
         let breakdown = scoring::calculate_points(&push, &state, &history, &clock);
         state.earn_points(breakdown.total);
@@ -32,7 +33,7 @@ pub fn post_push() {
             );
         }
 
-        let ctx = RenderContext::new(&push, &history, &breakdown, &state);
+        let ctx = RenderContext::new(&push, &history, &breakdown, &state, &clock);
         party::display(&ctx);
     }
 }

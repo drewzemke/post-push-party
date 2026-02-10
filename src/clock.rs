@@ -47,4 +47,19 @@ impl Clock {
         let local_seconds = self.now as i64 + self.tz_offset_secs as i64;
         local_seconds.rem_euclid(86400)
     }
+
+    /// Creates a Clock for the current moment.
+    pub fn from_now() -> Self {
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
+        // get local timezone offset
+        let tz_offset_secs = chrono::Local::now().offset().local_minus_utc();
+
+        Self::with_offset(now, tz_offset_secs)
+    }
 }

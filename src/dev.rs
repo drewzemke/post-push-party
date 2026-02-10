@@ -1,3 +1,4 @@
+use crate::clock::Clock;
 use crate::git::{Commit, Push};
 use crate::party::RenderContext;
 use crate::{history, party, scoring, state};
@@ -21,7 +22,7 @@ pub fn push(num_commits: u64, lines: Option<Vec<u64>>) {
     // mirror the actual hook flow as closely as possible
     let mut state = state::load();
     let history = history::load();
-    let clock = scoring::now();
+    let clock = Clock::from_now();
 
     // build fake commits with specified or default line counts
     let commits: Vec<Commit> = (0..num_commits)
@@ -53,7 +54,7 @@ pub fn push(num_commits: u64, lines: Option<Vec<u64>>) {
         breakdown.total,
     );
 
-    let ctx = RenderContext::new(&push, &history, &breakdown, &state);
+    let ctx = RenderContext::new(&push, &history, &breakdown, &state, &clock);
     party::display(&ctx);
 }
 

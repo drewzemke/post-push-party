@@ -1,5 +1,4 @@
 mod big_push;
-mod clock;
 mod commit_value;
 mod context;
 mod first_push;
@@ -11,7 +10,7 @@ mod rapid_fire;
 mod streak;
 mod weekend_push;
 
-pub use clock::Clock;
+pub use crate::clock::Clock;
 pub use context::PushContext;
 
 use big_push::BigPush;

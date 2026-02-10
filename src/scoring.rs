@@ -96,21 +96,6 @@ pub fn calculate_points(
     }
 }
 
-/// Create a Clock for the current moment.
-pub fn now() -> Clock {
-    use std::time::{SystemTime, UNIX_EPOCH};
-
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs();
-
-    // get local timezone offset
-    let tz_offset_secs = chrono::Local::now().offset().local_minus_utc();
-
-    Clock::with_offset(now, tz_offset_secs)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -74,7 +74,7 @@ pub fn reset() {
     println!("state and history reset to defaults");
 }
 
-pub fn unlock(track_id: &str, level: u32) {
+pub fn bonus(track_id: &str, level: u32) {
     use crate::bonus_track::ALL_TRACKS;
 
     // verify track exists
@@ -95,4 +95,27 @@ pub fn unlock(track_id: &str, level: u32) {
         std::process::exit(1);
     }
     println!("{} set to level {}", track_id, level);
+}
+
+pub fn party(party_id: &str) {
+    use crate::party::ALL_PARTIES;
+
+    // verify party exists
+    let p = ALL_PARTIES.iter().find(|p| p.id() == party_id);
+    if p.is_none() {
+        eprintln!("unknown party: {}", party_id);
+        eprintln!(
+            "available: {:?}",
+            ALL_PARTIES.iter().map(|p| p.id()).collect::<Vec<_>>()
+        );
+        std::process::exit(1);
+    }
+
+    let mut s = state::load();
+    s.unlock_party(party_id);
+    if let Err(e) = state::save(&s) {
+        eprintln!("error saving state: {e}");
+        std::process::exit(1);
+    }
+    println!("{} unlocked and enabled", party_id);
 }

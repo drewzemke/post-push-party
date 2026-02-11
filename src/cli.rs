@@ -46,10 +46,16 @@ pub enum Command {
     Reset,
     /// set a bonus track to a specific level (dev only)
     #[cfg(feature = "dev")]
-    Unlock {
+    Bonus {
         /// track id (e.g. "first_push")
         track: String,
         /// level to set (1 = first tier)
         level: u32,
+    },
+    /// unlock and enable a party (dev only)
+    #[cfg(feature = "dev")]
+    Party {
+        /// party id (e.g. "big_text")
+        id: String,
     },
 }

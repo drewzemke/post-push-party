@@ -111,12 +111,17 @@ impl Party for Stats {
 
         println!(" Stats");
         println!("{GRAY} ─────{RESET}");
-        print_row(
-            "This Push",
-            push_commit_count as u64,
-            push_lines,
-            push_points,
-        );
+
+        // only show the "this push" row if there was more than one commit that counted
+        if push_commit_count > 0 {
+            print_row(
+                "This Push",
+                push_commit_count as u64,
+                push_lines,
+                push_points,
+            );
+        }
+
         print_row("Today", today_commit_count, today_lines, today_points);
         print_row(
             "Daily Avg",

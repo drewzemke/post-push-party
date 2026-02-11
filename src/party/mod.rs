@@ -1,4 +1,5 @@
 mod base;
+mod big_text;
 mod breakdown;
 mod color;
 mod context;
@@ -10,6 +11,7 @@ pub use color::Color as PartyColor;
 pub use context::RenderContext;
 
 use base::Base;
+use big_text::BigText;
 use breakdown::Breakdown;
 use exclamation::Exclamation;
 use quotes::Quotes;
@@ -37,13 +39,15 @@ pub trait Party: Sync {
 
 // static instances
 static BASE: Base = Base;
+static BIG_TEXT: BigText = BigText;
 static BREAKDOWN: Breakdown = Breakdown;
 static EXCLAMATION: Exclamation = Exclamation;
 static QUOTES: Quotes = Quotes;
 static STATS: Stats = Stats;
 
 // all parties in order
-pub static ALL_PARTIES: &[&'static dyn Party] = &[&BASE, &BREAKDOWN, &STATS, &EXCLAMATION, &QUOTES];
+pub static ALL_PARTIES: &[&'static dyn Party] =
+    &[&BASE, &BREAKDOWN, &STATS, &EXCLAMATION, &BIG_TEXT, &QUOTES];
 
 // display utilities
 const RESET: &str = "\x1b[0m";

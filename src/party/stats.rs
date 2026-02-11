@@ -73,9 +73,7 @@ impl Party for Stats {
             all_time_points += push.points_earned();
         }
 
-        // HELP: does it make more sense to consider only the days with pushes, or the
-        // number of days since the first push?
-        let num_days = days.len();
+        let num_days = days.len().max(1);
 
         // daily_average
         let daily_avg_commit_count = all_time_commit_count / num_days as u64;

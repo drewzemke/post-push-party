@@ -12,7 +12,7 @@ const EXCLAMATIONS: &[&str] = &[
     "WONDERFUL!",
 ];
 
-/// the most basic party that shows how many points were earned
+/// prints an emphatic message in all caps
 pub struct Exclamation;
 
 impl Party for Exclamation {
@@ -25,7 +25,7 @@ impl Party for Exclamation {
     }
 
     fn description(&self) -> &'static str {
-        "Prints an all-caps exclamation to celebrate the push."
+        "Prints an emphatic all-caps message to celebrate the push."
     }
 
     fn cost(&self) -> u64 {

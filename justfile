@@ -7,8 +7,11 @@ push n:
 reset:
     @cargo run --quiet --features dev -- reset
 
-unlock track level:
-    @cargo run --quiet --features dev -- unlock {{track}} {{level}}
+bonus track level:
+    @cargo run --quiet --features dev -- bonus {{track}} {{level}}
+
+party id:
+    @cargo run --quiet --features dev -- party {{id}}
 
 install:
     cargo install --path .

@@ -39,6 +39,8 @@ fn main() {
         #[cfg(feature = "dev")]
         Some(Command::Reset) => dev::reset(),
         #[cfg(feature = "dev")]
-        Some(Command::Unlock { track, level }) => dev::unlock(&track, level),
+        Some(Command::Bonus { track, level }) => dev::bonus(&track, level),
+        #[cfg(feature = "dev")]
+        Some(Command::Party { id }) => dev::party(&id),
     }
 }

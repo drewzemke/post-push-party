@@ -56,7 +56,7 @@ impl Party for Quotes {
     }
 
     // TODO: use color
-    fn render(&self, _ctx: &RenderContext, _color: PartyColor) {
+    fn render(&self, _ctx: &RenderContext, _color: &PartyColor) {
         let (quote, author) = random_pick(QUOTES);
 
         // FIXME: print this out more intelligently so that it word-wraps

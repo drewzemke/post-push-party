@@ -37,7 +37,7 @@ impl Party for Exclamation {
     }
 
     // TODO: use color
-    fn render(&self, _ctx: &RenderContext, _color: PartyColor) {
+    fn render(&self, _ctx: &RenderContext, _color: &PartyColor) {
         let exclaim = random_pick(EXCLAMATIONS);
         println!("{BOLD}{exclaim}{RESET}");
     }

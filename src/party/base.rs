@@ -1,4 +1,4 @@
-use super::{Party, PartyColor, RenderContext};
+use super::{Party, PartyColor, RenderContext, BOLD, RESET};
 
 /// the most basic party that shows how many points were earned
 pub struct Base;
@@ -26,12 +26,15 @@ impl Party for Base {
     }
 
     // TODO: use color
-    fn render(&self, ctx: &RenderContext, _color: PartyColor) {
+    fn render(&self, ctx: &RenderContext, color: &PartyColor) {
+        let color0 = color.get(0);
+        let color1 = color.get(1);
+
         let total = ctx.breakdown.total;
         if total > 0 {
-            println!("🎉 You earned {total} party points!");
+            println!("🎉 {color0}You earned {BOLD}{color1}{total} party points!{RESET}");
         } else {
-            println!("🎉 Pushed! (already counted)");
+            println!("🎉 {color0}Pushed! {color1}(already counted){RESET}");
         }
     }
 }

@@ -17,7 +17,7 @@ use exclamation::Exclamation;
 use quotes::Quotes;
 use stats::Stats;
 
-use crate::party::color::ALL_COLORS;
+use crate::{party::color::ALL_COLORS, state::ColorSelection};
 
 pub trait Party: Sync {
     /// unique identifier for state storage
@@ -77,9 +77,32 @@ pub fn display(ctx: &RenderContext) {
     println!();
 
     for party in enabled_parties {
-        // HACK: choosing a random color for now from a predefined list;
-        // will implement color unlocking / selection later
-        let color = random_pick(ALL_COLORS);
+        // resolve a color for this party based on the user's configuration
+        let color_selection = ctx.state.selected_color(party.id());
+
+        let color_name = match color_selection {
+            // if the user wants a random color, pick one from the list of available colors for this party
+            Some(ColorSelection::Random) => {
+                let unlocked_colors = ctx
+                    .state
+                    .unlocked_colors(party.id())
+                    .map(|set| set.iter().collect::<Vec<_>>())
+                    .unwrap_or_else(|| Vec::new());
+                random_pick(&unlocked_colors).to_string()
+            }
+
+            Some(ColorSelection::Specific(color_name)) => color_name.to_string(),
+
+            // if nothing has been chosen, go with white
+            None => PartyColor::WHITE.name().to_string(),
+        };
+
+        // look it up the resolved color name in the list of colors,
+        // falling back to white if not found (which shouldn't happen... right?)
+        let color = ALL_COLORS
+            .iter()
+            .find(|&&c| c.name() == color_name)
+            .unwrap_or(&&PartyColor::WHITE);
 
         party.render(ctx, color);
 

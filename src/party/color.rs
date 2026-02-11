@@ -32,7 +32,6 @@ impl Color {
         Self { name, palette }
     }
 
-    #[expect(dead_code)]
     pub fn name(&self) -> &'static str {
         self.name
     }

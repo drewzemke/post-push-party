@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
 use crate::bonus_track::{Reward, ALL_TRACKS};
+use crate::party::PartyColor;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct State {
@@ -26,10 +27,11 @@ pub struct State {
     pub enabled_parties: HashSet<String>,
 
     // pack_items: HashMap<PackItem, u32>,  // TODO: add when implementing packs
+    //
     /// which colors the user has unlocked for each party.
-    /// refers to parties by their identifier string
+    /// refers to parties by their identifier string, and to colors by their names
     #[serde(default)]
-    pub unlocked_colors: HashMap<String, HashSet<Color>>,
+    pub unlocked_colors: HashMap<String, HashSet<String>>,
 
     /// which color is currently configured for each color.
     /// refers to parties by their identifier string
@@ -43,18 +45,16 @@ pub struct State {
 //     // SlotsToken, ...
 // }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum Color {
-    Red,
-    // Blue, Green, ..., Rainbow, ...
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ColorSelection {
+    Specific(String), // color name
+    Random,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-pub enum ColorSelection {
-    #[default]
-    White,
-    Specific(Color),
-    Random,
+impl Default for ColorSelection {
+    fn default() -> Self {
+        Self::Specific(PartyColor::WHITE.name().to_string())
+    }
 }
 
 impl Default for State {
@@ -130,6 +130,14 @@ impl State {
                 self.enabled_parties.insert(id.to_string());
             }
         }
+    }
+
+    pub fn unlocked_colors(&self, party_id: &str) -> Option<&HashSet<String>> {
+        self.unlocked_colors.get(party_id)
+    }
+
+    pub fn selected_color(&self, party_id: &str) -> Option<&ColorSelection> {
+        self.active_color.get(party_id)
     }
 }
 

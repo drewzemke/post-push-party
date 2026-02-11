@@ -1,3 +1,5 @@
+use rand::Rng;
+
 /// generates a static str escape sequence for an rbg color
 macro_rules! rgb {
     ($r: literal, $g: literal, $b: literal) => {
@@ -40,12 +42,17 @@ impl Color {
         self.palette[idx]
     }
 
+    pub fn random_offset(&self) -> usize {
+        rand::rng().random_range(0..self.palette.len())
+    }
+
     pub const WHITE: Self = Self::new("White", &[ansi!(37)]);
 
     pub const CYAN: Self = Self::new("Cyan", &[ansi!(36)]);
     pub const YELLOW: Self = Self::new("Cyan", &[ansi!(35)]);
     pub const MAGENTA: Self = Self::new("Cyan", &[ansi!(33)]);
 
+    // FIXME: these colors don't look good together
     pub const SYNTHWAVE: Self = Self::new(
         "Synthwave",
         &[rgb!(255, 100, 200), rgb!(100, 200, 255), rgb!(80, 70, 110)],

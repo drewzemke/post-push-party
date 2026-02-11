@@ -29,34 +29,35 @@ impl Party for BigText {
         true
     }
 
-    fn render(&self, _ctx: &RenderContext, _color: &PartyColor) {
+    fn render(&self, _ctx: &RenderContext, color: &PartyColor) {
         let word = random_pick(WORDS);
-        let lines = render_word(word);
+        let offset = color.random_offset();
 
-        // TODO: use color parameter
-        println!("{}", BOLD);
+        // gather lines by scanning through each letter
+        // NOTE: adds a extra space before the word
+        let mut lines = vec![String::from(" "); LETTER_HEIGHT];
+
+        for (idx, ch) in word.chars().enumerate() {
+            let color = color.get(offset + idx);
+            if let Some(letter) = get_letter(ch) {
+                for (i, letter_line) in letter.iter().enumerate() {
+                    lines[i].push_str(color);
+                    lines[i].push_str(letter_line);
+
+                    if LETTER_SPACING > 0 {
+                        lines[i].push_str(&" ".repeat(LETTER_SPACING));
+                    }
+                }
+            }
+        }
+
+        // print each line
+        print!("{}", BOLD);
         for line in lines {
             println!("{}", line);
         }
         print!("{}", RESET);
     }
-}
-
-fn render_word(word: &str) -> Vec<String> {
-    let mut lines = vec![String::from(" "); LETTER_HEIGHT];
-
-    for ch in word.chars() {
-        if let Some(letter) = get_letter(ch) {
-            for (i, letter_line) in letter.iter().enumerate() {
-                lines[i].push_str(letter_line);
-                if LETTER_SPACING > 0 {
-                    lines[i].push_str(&" ".repeat(LETTER_SPACING));
-                }
-            }
-        }
-    }
-
-    lines
 }
 
 fn get_letter(ch: char) -> Option<&'static [&'static str; LETTER_HEIGHT]> {
@@ -92,10 +93,8 @@ fn get_letter(ch: char) -> Option<&'static [&'static str; LETTER_HEIGHT]> {
     }
 }
 
-// ============================================================================
 // ALPHABET
 // Each letter is 6 lines tall. Widths vary by letter.
-// ============================================================================
 
 #[rustfmt::skip]
 const A: [&str; 6] = [

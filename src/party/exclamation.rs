@@ -36,9 +36,18 @@ impl Party for Exclamation {
         true
     }
 
-    // TODO: use color
-    fn render(&self, _ctx: &RenderContext, _color: &PartyColor) {
+    fn render(&self, _ctx: &RenderContext, color: &PartyColor) {
+        let offset = color.random_offset();
         let exclaim = random_pick(EXCLAMATIONS);
-        println!("{BOLD}{exclaim}{RESET}");
+
+        // NOTE: adds a extra space before the word
+        print!("{BOLD} ");
+
+        for (idx, c) in exclaim.chars().enumerate() {
+            let color = color.get(offset + idx);
+            print!("{color}{c}")
+        }
+
+        println!("{RESET}");
     }
 }

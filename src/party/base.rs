@@ -25,10 +25,10 @@ impl Party for Base {
         true
     }
 
-    // TODO: use color
     fn render(&self, ctx: &RenderContext, color: &PartyColor) {
-        let color0 = color.get(0);
-        let color1 = color.get(1);
+        let offset = color.random_offset();
+        let color0 = color.get(offset);
+        let color1 = color.get(offset + 1);
 
         let total = ctx.breakdown.total;
         if total > 0 {

@@ -55,12 +55,15 @@ impl Party for Quotes {
         true
     }
 
-    // TODO: use color
-    fn render(&self, _ctx: &RenderContext, _color: &PartyColor) {
+    fn render(&self, _ctx: &RenderContext, color: &PartyColor) {
+        let offset = color.random_offset();
+        let color0 = color.get(offset);
+        let color1 = color.get(offset + 1);
+
         let (quote, author) = random_pick(QUOTES);
 
         // FIXME: print this out more intelligently so that it word-wraps
         // in the terminal
-        println!("\"{ITALICS}{quote}{RESET}\" — {author}");
+        println!("{color0}{ITALICS}\"{quote}\"{RESET} — {color1}{author}{RESET}");
     }
 }

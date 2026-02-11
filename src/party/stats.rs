@@ -26,7 +26,7 @@ impl Party for Stats {
         false
     }
 
-    fn render(&self, ctx: &RenderContext, _color: PartyColor) {
+    fn render(&self, ctx: &RenderContext, _color: &PartyColor) {
         let clock = ctx.clock;
 
         // this push

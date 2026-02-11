@@ -17,6 +17,8 @@ use exclamation::Exclamation;
 use quotes::Quotes;
 use stats::Stats;
 
+use crate::party::color::ALL_COLORS;
+
 pub trait Party: Sync {
     /// unique identifier for state storage
     fn id(&self) -> &'static str;
@@ -31,10 +33,11 @@ pub trait Party: Sync {
     fn cost(&self) -> u64;
 
     /// whether or not the color of the output of this party is configurable
+    #[expect(dead_code)]
     fn supports_color(&self) -> bool;
 
     /// prints the output of this party to stdout
-    fn render(&self, ctx: &RenderContext, color: PartyColor);
+    fn render(&self, ctx: &RenderContext, color: &PartyColor);
 }
 
 // static instances
@@ -74,23 +77,13 @@ pub fn display(ctx: &RenderContext) {
     println!();
 
     for party in enabled_parties {
-        // TODO: choose color
-        let color = PartyColor::White;
+        // HACK: choosing a random color for now from a predefined list;
+        // will implement color unlocking / selection later
+        let color = random_pick(ALL_COLORS);
 
         party.render(ctx, color);
 
         // print a blank line between parties (and after the last one)
         println!();
     }
-
-    // // big text or exclamation
-    // if use_big_text {
-    //     println!("{}{}", color, bold);
-    //     println!(" ███╗   ██╗██╗ ██████╗███████╗██╗");
-    //     println!(" ████╗  ██║██║██╔════╝██╔════╝██║");
-    //     println!(" ██╔██╗ ██║██║██║     █████╗  ██║");
-    //     println!(" ██║╚██╗██║██║██║     ██╔══╝  ╚═╝");
-    //     println!(" ██║ ╚████║██║╚██████╗███████╗██╗");
-    //     println!(" ╚═╝  ╚═══╝╚═╝ ╚═════╝╚══════╝╚═╝");
-    //     println!("{}", reset);
 }

@@ -29,7 +29,7 @@ impl Party for BigText {
         true
     }
 
-    fn render(&self, _ctx: &RenderContext, _color: PartyColor) {
+    fn render(&self, _ctx: &RenderContext, _color: &PartyColor) {
         let word = random_pick(WORDS);
         let lines = render_word(word);
 

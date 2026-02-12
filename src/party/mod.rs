@@ -61,9 +61,12 @@ const MAGENTA: &str = "\x1b[35m";
 const YELLOW: &str = "\x1b[33m";
 const GRAY: &str = "\x1b[90m";
 
+/// chooses a random element of a NONEMPTY list
 fn random_pick<T>(items: &[T]) -> &T {
     use rand::prelude::IndexedRandom;
-    items.choose(&mut rand::rng()).unwrap()
+    items
+        .choose(&mut rand::rng())
+        .expect("list must be nonempty")
 }
 
 /// renders every enabled party
@@ -87,8 +90,13 @@ pub fn display(ctx: &RenderContext) {
                     .state
                     .unlocked_colors(party.id())
                     .map(|set| set.iter().collect::<Vec<_>>())
-                    .unwrap_or_else(|| Vec::new());
-                random_pick(&unlocked_colors).to_string()
+                    .unwrap_or_default();
+
+                if unlocked_colors.is_empty() {
+                    PartyColor::WHITE.name().to_string()
+                } else {
+                    random_pick(&unlocked_colors).to_string()
+                }
             }
 
             Some(ColorSelection::Specific(color_name)) => color_name.to_string(),

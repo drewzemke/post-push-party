@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Post-Push Party Economy Simulator</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type="number"] { -moz-appearance: textfield; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      padding: 20px;
+      line-height: 1.4;
+    }
+    h1 { color: #f39c12; margin-bottom: 10px; }
+    h2 { color: #3498db; margin: 15px 0 10px; font-size: 1.1em; border-bottom: 1px solid #333; padding-bottom: 5px; }
+    h3 { color: #9b59b6; margin: 10px 0 5px; font-size: 0.95em; }
+
+    .container { display: grid; grid-template-columns: 300px 1fr 380px; gap: 20px; max-width: 1700px; margin: 0 auto; }
+    .panel { background: #16213e; padding: 15px; border-radius: 8px; }
+
+    .input-row { display: flex; align-items: center; margin: 5px 0; gap: 8px; }
+    .input-row label { flex: 1; font-size: 0.85em; color: #aaa; }
+    .input-row input[type="number"] { width: 70px; padding: 4px 6px; border: 1px solid #444; border-radius: 4px; background: #0f0f23; color: #eee; text-align: right; }
+    .input-row input[type="range"] { flex: 1; }
+    .input-row .value { width: 50px; text-align: right; font-family: monospace; color: #f39c12; }
+
+    .tier-row { display: grid; grid-template-columns: 28px repeat(5, 1fr); gap: 6px; margin: 4px 0; align-items: center; }
+    .tier-row.header { color: #888; font-size: 0.75em; margin-bottom: 5px; }
+    .tier-row input { width: 100%; padding: 5px; border: 1px solid #444; border-radius: 3px; background: #0f0f23; color: #eee; text-align: right; font-size: 0.9em; }
+    .tier-row .tier-label { font-size: 0.75em; color: #666; }
+
+    .bonus-name { font-size: 0.8em; color: #ccc; margin: 8px 0 3px; }
+    .bonus-name.first { margin-top: 0; }
+
+    #chart-container { position: relative; height: 400px; }
+
+    .profiles { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+    .profile-btn { padding: 6px 12px; border: 1px solid #444; border-radius: 4px; background: #0f0f23; color: #eee; cursor: pointer; font-size: 0.85em; }
+    .profile-btn:hover { border-color: #3498db; }
+    .profile-btn.active { border-color: #f39c12; background: #2a2a4e; }
+
+    .comparison { margin-top: 15px; }
+    .comparison label { display: flex; align-items: center; gap: 8px; font-size: 0.85em; cursor: pointer; }
+    .comparison input[type="checkbox"] { width: 16px; height: 16px; }
+
+    .unlock-table { margin-top: 15px; font-size: 0.8em; }
+    .unlock-table table { width: 100%; border-collapse: collapse; }
+    .unlock-table th, .unlock-table td { padding: 4px 8px; text-align: left; border-bottom: 1px solid #333; }
+    .unlock-table th { color: #888; }
+    .unlock-table .day { color: #2ecc71; font-family: monospace; }
+    .unlock-table .never { color: #e74c3c; }
+
+    .upgrade-item { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+    .upgrade-item label { flex: 1; font-size: 0.8em; color: #aaa; }
+    .upgrade-item input { width: 80px; padding: 3px 6px; border: 1px solid #444; border-radius: 3px; background: #0f0f23; color: #eee; text-align: right; }
+
+    .section-toggle { cursor: pointer; user-select: none; }
+    .section-toggle::before { content: '▼ '; font-size: 0.7em; }
+    .section-toggle.collapsed::before { content: '▶ '; }
+    .collapsible { overflow: hidden; transition: max-height 0.2s; }
+    .collapsible.collapsed { max-height: 0 !important; }
+
+    .sim-days { margin-bottom: 15px; }
+    .sim-days input { width: 80px; }
+
+    .stats-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #333; }
+    .stats-row:last-child { border-bottom: none; }
+    .stat-label { color: #888; font-size: 0.85em; }
+    .stat-value { color: #2ecc71; font-family: monospace; }
+
+    .presets { margin-bottom: 10px; }
+    .preset-btn { padding: 4px 8px; margin-right: 5px; border: 1px solid #555; border-radius: 3px; background: #0f0f23; color: #aaa; cursor: pointer; font-size: 0.75em; }
+    .preset-btn:hover { border-color: #3498db; color: #eee; }
+  </style>
+</head>
+<body>
+  <h1>Post-Push Party Economy Simulator</h1>
+
+  <div class="container">
+    <!-- Left Panel: Player Profile -->
+    <div class="panel">
+      <h2>Player Profile</h2>
+
+      <div class="profiles">
+        <button class="profile-btn" data-profile="casual">Casual</button>
+        <button class="profile-btn active" data-profile="regular">Regular</button>
+        <button class="profile-btn" data-profile="active">Active</button>
+        <button class="profile-btn" data-profile="grinder">Grinder</button>
+      </div>
+
+      <h3>Activity</h3>
+      <div class="input-row">
+        <label>Commits per push</label>
+        <input type="number" id="commits-per-push" value="5" min="1" max="50">
+      </div>
+      <div class="input-row">
+        <label>Pushes per day</label>
+        <input type="number" id="pushes-per-day" value="2" min="0" max="20" step="0.5">
+      </div>
+      <div class="input-row">
+        <label>Work days per week</label>
+        <input type="number" id="days-per-week" value="5" min="1" max="7">
+      </div>
+
+      <h3>Bonus Triggers</h3>
+      <div class="input-row">
+        <label>% 1-line commits (Sniper)</label>
+        <input type="number" id="sniper-pct" value="10" min="0" max="100">
+      </div>
+      <div class="input-row">
+        <label>% 1000+ line commits (Moby)</label>
+        <input type="number" id="moby-pct" value="1" min="0" max="100">
+      </div>
+      <div class="input-row">
+        <label>Repos pushed per day</label>
+        <input type="number" id="repos-per-day" value="1" min="1" max="10">
+      </div>
+      <div class="input-row">
+        <label>% pushes within 1hr (Rapid)</label>
+        <input type="number" id="rapid-pct" value="30" min="0" max="100">
+      </div>
+      <div class="input-row">
+        <label>% Fridays after 3pm</label>
+        <input type="number" id="friday-pct" value="50" min="0" max="100">
+      </div>
+
+      <h3>Strategy</h3>
+      <div class="input-row">
+        <label>Purchase strategy</label>
+        <select id="strategy">
+          <option value="cheapest">Always cheapest</option>
+          <option value="multipliers">Prioritize multipliers</option>
+          <option value="commit-value">Prioritize Commit Value</option>
+          <option value="parties">Prioritize parties</option>
+        </select>
+      </div>
+
+      <div class="sim-days">
+        <h3>Simulation</h3>
+        <div class="input-row">
+          <label>Days to simulate</label>
+          <input type="number" id="sim-days" value="180" min="30" max="730">
+        </div>
+      </div>
+
+      <div class="comparison">
+        <h3>Compare</h3>
+        <label><input type="checkbox" id="compare-enabled"> Enable comparison</label>
+        <div id="compare-options" style="margin-top: 10px; display: none;">
+          <select id="compare-type">
+            <option value="profile">Different profile</option>
+            <option value="pricing">Different pricing (2x)</option>
+            <option value="pricing-half">Different pricing (0.5x)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center: Chart & Stats -->
+    <div class="panel">
+      <h2>Points Over Time</h2>
+      <div id="chart-container">
+        <canvas id="chart"></canvas>
+      </div>
+
+      <div class="unlock-table">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h2 style="margin: 0; border: none;">Unlock Timeline</h2>
+          <button id="export-btn" style="padding: 6px 12px; border: 1px solid #444; border-radius: 4px; background: #0f0f23; color: #eee; cursor: pointer; font-size: 0.85em;">Export JSON</button>
+        </div>
+        <table id="unlock-timeline">
+          <thead>
+            <tr><th>Upgrade</th><th>Day</th><th>Total Cost</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Right Panel: Pricing -->
+    <div class="panel" style="max-height: calc(100vh - 80px); overflow-y: auto;">
+      <h2>Pricing Configuration</h2>
+
+      <div class="presets">
+        <button class="preset-btn" data-preset="current">Current</button>
+        <button class="preset-btn" data-preset="cheap">Cheap</button>
+        <button class="preset-btn" data-preset="expensive">Expensive</button>
+        <button class="preset-btn" data-preset="steep">Steep Curve</button>
+      </div>
+
+      <h3 class="section-toggle" data-section="commit-value">Commit Value (per commit)</h3>
+      <div class="collapsible" id="section-commit-value">
+        <div class="tier-row header">
+          <span></span><span>T1</span><span>T2</span><span>T3</span><span>T4</span><span>T5</span>
+        </div>
+        <div class="tier-row">
+          <span class="tier-label">Cost</span>
+          <input type="number" data-bonus="commit_value" data-tier="0" value="0" disabled>
+          <input type="number" data-bonus="commit_value" data-tier="1" value="25">
+          <input type="number" data-bonus="commit_value" data-tier="2" value="100">
+          <input type="number" data-bonus="commit_value" data-tier="3" value="400">
+          <input type="number" data-bonus="commit_value" data-tier="4" value="1600">
+        </div>
+        <div class="tier-row">
+          <span class="tier-label">Pts</span>
+          <input type="number" data-bonus="commit_value" data-tier="0" data-type="value" value="1">
+          <input type="number" data-bonus="commit_value" data-tier="1" data-type="value" value="2">
+          <input type="number" data-bonus="commit_value" data-tier="2" data-type="value" value="3">
+          <input type="number" data-bonus="commit_value" data-tier="3" data-type="value" value="4">
+          <input type="number" data-bonus="commit_value" data-tier="4" data-type="value" value="5">
+        </div>
+      </div>
+
+      <h3 class="section-toggle" data-section="multipliers">Multiplier Bonuses</h3>
+      <div class="collapsible" id="section-multipliers">
+        <div class="tier-row header">
+          <span></span><span>T1</span><span>T2</span><span>T3</span><span>T4</span><span>T5</span>
+        </div>
+
+        <div class="bonus-name first">First Push of Day</div>
+        <div class="tier-row">
+          <span class="tier-label">Cost</span>
+          <input type="number" data-bonus="first_push" data-tier="0" value="100">
+          <input type="number" data-bonus="first_push" data-tier="1" value="500">
+          <input type="number" data-bonus="first_push" data-tier="2" value="1500">
+          <input type="number" data-bonus="first_push" data-tier="3" value="5000">
+          <input type="number" data-bonus="first_push" data-tier="4" value="15000">
+        </div>
+
+        <div class="bonus-name">Rapid Fire (2nd push in 1hr)</div>
+        <div class="tier-row">
+          <span class="tier-label">Cost</span>
+          <input type="number" data-bonus="rapid_fire" data-tier="0" value="100">
+          <input type="number" data-bonus="rapid_fire" data-tier="1" value="500">
+          <input type="number" data-bonus="rapid_fire" data-tier="2" value="1500">
+          <input type="number" data-bonus="rapid_fire" data-tier="3" value="5000">
+          <input type="number" data-bonus="rapid_fire" data-tier="4" value="15000">
+        </div>
+
+        <div class="bonus-name">Big Push (10+ commits)</div>
+        <div class="tier-row">
+          <span class="tier-label">Cost</span>
+          <input type="number" data-bonus="big_push" data-tier="0" value="100">
+          <input type="number" data-bonus="big_push" data-tier="1" value="500">
+          <input type="number" data-bonus="big_push" data-tier="2" value="1500">
+          <input type="number" data-bonus="big_push" data-tier="3" value="5000">
+          <input type="number" data-bonus="big_push" data-tier="4" value="15000">
+        </div>
+
+        <div class="bonus-name">Streak (3+ consecutive days)</div>
+        <div class="tier-row">
+          <span class="tier-label">Cost</span>
+          <input type="number" data-bonus="streak" data-tier="0" value="100">
+          <input type="number" data-bonus="streak" data-tier="1" value="500">
+          <input type="number" data-bonus="streak" data-tier="2" value="1500">
+          <input type="number" data-bonus="streak" data-tier="3" value="5000">
+          <input type="number" data-bonus="streak" data-tier="4" value="15000">
+        </div>
+
+        <div class="bonus-name">Multiple Repos</div>
+        <div class="tier-row">
+          <span class="tier-label">Cost</span>
+          <input type="number" data-bonus="multi_repo" data-tier="0" value="100">
+          <input type="number" data-bonus="multi_repo" data-tier="1" value="500">
+          <input type="number" data-bonus="multi_repo" data-tier="2" value="1500">
+          <input type="number" data-bonus="multi_repo" data-tier="3" value="5000">
+          <input type="number" data-bonus="multi_repo" data-tier="4" value="15000">
+        </div>
+
+        <div class="bonus-name">Weekend Warrior</div>
+        <div class="tier-row">
+          <span class="tier-label">Cost</span>
+          <input type="number" data-bonus="weekend" data-tier="0" value="100">
+          <input type="number" data-bonus="weekend" data-tier="1" value="500">
+          <input type="number" data-bonus="weekend" data-tier="2" value="1500">
+          <input type="number" data-bonus="weekend" data-tier="3" value="5000">
+          <input type="number" data-bonus="weekend" data-tier="4" value="15000">
+        </div>
+
+        <div class="bonus-name">Friday Afternoon Deploy</div>
+        <div class="tier-row">
+          <span class="tier-label">Cost</span>
+          <input type="number" data-bonus="friday" data-tier="0" value="100">
+          <input type="number" data-bonus="friday" data-tier="1" value="500">
+          <input type="number" data-bonus="friday" data-tier="2" value="1500">
+          <input type="number" data-bonus="friday" data-tier="3" value="5000">
+          <input type="number" data-bonus="friday" data-tier="4" value="15000">
+        </div>
+
+        <div style="margin-top: 10px; padding: 8px; background: #0f0f23; border-radius: 4px;">
+          <div class="tier-row header">
+            <span></span><span>T1</span><span>T2</span><span>T3</span><span>T4</span><span>T5</span>
+          </div>
+          <div class="tier-row">
+            <span class="tier-label">Mult</span>
+            <input type="number" id="mult-t1" value="2" step="0.5">
+            <input type="number" id="mult-t2" value="3" step="0.5">
+            <input type="number" id="mult-t3" value="4" step="0.5">
+            <input type="number" id="mult-t4" value="5" step="0.5">
+            <input type="number" id="mult-t5" value="6" step="0.5">
+          </div>
+        </div>
+      </div>
+
+      <h3 class="section-toggle" data-section="flats">Flat Bonuses</h3>
+      <div class="collapsible" id="section-flats">
+        <div class="tier-row header">
+          <span></span><span>T1</span><span>T2</span><span>T3</span><span>T4</span><span>T5</span>
+        </div>
+
+        <div class="bonus-name first">Sniper (1-line commit)</div>
+        <div class="tier-row">
+          <span class="tier-label">Cost</span>
+          <input type="number" data-bonus="sniper" data-tier="0" value="50">
+          <input type="number" data-bonus="sniper" data-tier="1" value="200">
+          <input type="number" data-bonus="sniper" data-tier="2" value="800">
+          <input type="number" data-bonus="sniper" data-tier="3" value="3000">
+          <input type="number" data-bonus="sniper" data-tier="4" value="10000">
+        </div>
+
+        <div class="bonus-name">Moby Diff (1000+ lines)</div>
+        <div class="tier-row">
+          <span class="tier-label">Cost</span>
+          <input type="number" data-bonus="moby" data-tier="0" value="50">
+          <input type="number" data-bonus="moby" data-tier="1" value="200">
+          <input type="number" data-bonus="moby" data-tier="2" value="800">
+          <input type="number" data-bonus="moby" data-tier="3" value="3000">
+          <input type="number" data-bonus="moby" data-tier="4" value="10000">
+        </div>
+
+        <div style="margin-top: 10px; padding: 8px; background: #0f0f23; border-radius: 4px;">
+          <div class="tier-row header">
+            <span></span><span>T1</span><span>T2</span><span>T3</span><span>T4</span><span>T5</span>
+          </div>
+          <div class="tier-row">
+            <span class="tier-label">Pts</span>
+            <input type="number" id="flat-t1" value="5">
+            <input type="number" id="flat-t2" value="10">
+            <input type="number" id="flat-t3" value="20">
+            <input type="number" id="flat-t4" value="50">
+            <input type="number" id="flat-t5" value="100">
+          </div>
+        </div>
+      </div>
+
+      <h3 class="section-toggle" data-section="parties">Party Upgrades</h3>
+      <div class="collapsible" id="section-parties">
+        <div class="upgrade-item">
+          <label>Points Breakdown</label>
+          <input type="number" data-party="breakdown" value="25">
+        </div>
+        <div class="upgrade-item">
+          <label>Exclamation</label>
+          <input type="number" data-party="exclamation" value="500">
+        </div>
+        <div class="upgrade-item">
+          <label>Quotes</label>
+          <input type="number" data-party="quotes" value="500">
+        </div>
+        <div class="upgrade-item">
+          <label>Big Text</label>
+          <input type="number" data-party="bigtext" value="1000">
+        </div>
+        <div class="upgrade-item">
+          <label>Stats</label>
+          <input type="number" data-party="stats" value="1000">
+        </div>
+        <div class="upgrade-item">
+          <label>Fireworks</label>
+          <input type="number" data-party="fireworks" value="5000">
+        </div>
+      </div>
+
+      <h3 class="section-toggle" data-section="packs">Packs & Games (future)</h3>
+      <div class="collapsible" id="section-packs">
+        <div class="upgrade-item">
+          <label>Basic Pack</label>
+          <input type="number" data-pack="basic" value="100">
+        </div>
+        <div class="upgrade-item">
+          <label>Premium Pack</label>
+          <input type="number" data-pack="premium" value="500">
+        </div>
+        <div class="upgrade-item">
+          <label>Mega Pack</label>
+          <input type="number" data-pack="mega" value="2000">
+        </div>
+        <div class="upgrade-item">
+          <label>Snake Game Token</label>
+          <input type="number" data-game="snake" value="50">
+        </div>
+        <div class="upgrade-item">
+          <label>Slots Spin</label>
+          <input type="number" data-game="slots" value="25">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // profiles
+    const PROFILES = {
+      casual: { commitsPerPush: 2, pushesPerDay: 1, daysPerWeek: 4, sniperPct: 5, mobyPct: 0, reposPerDay: 1, rapidPct: 10, fridayPct: 30 },
+      regular: { commitsPerPush: 5, pushesPerDay: 2, daysPerWeek: 5, sniperPct: 10, mobyPct: 1, reposPerDay: 1, rapidPct: 30, fridayPct: 50 },
+      active: { commitsPerPush: 8, pushesPerDay: 4, daysPerWeek: 5, sniperPct: 15, mobyPct: 2, reposPerDay: 2, rapidPct: 50, fridayPct: 60 },
+      grinder: { commitsPerPush: 12, pushesPerDay: 6, daysPerWeek: 6, sniperPct: 20, mobyPct: 3, reposPerDay: 3, rapidPct: 70, fridayPct: 80 },
+    };
+
+    let chart = null;
+    let lastSimResult = null;
+
+    function getProfile() {
+      return {
+        commitsPerPush: parseFloat(document.getElementById('commits-per-push').value),
+        pushesPerDay: parseFloat(document.getElementById('pushes-per-day').value),
+        daysPerWeek: parseFloat(document.getElementById('days-per-week').value),
+        sniperPct: parseFloat(document.getElementById('sniper-pct').value) / 100,
+        mobyPct: parseFloat(document.getElementById('moby-pct').value) / 100,
+        reposPerDay: parseFloat(document.getElementById('repos-per-day').value),
+        rapidPct: parseFloat(document.getElementById('rapid-pct').value) / 100,
+        fridayPct: parseFloat(document.getElementById('friday-pct').value) / 100,
+      };
+    }
+
+    function getPricing() {
+      const pricing = {
+        bonuses: {},
+        parties: {},
+        packs: {},
+        games: {},
+        multiplierValues: [],
+        flatValues: [],
+        commitValues: [],
+      };
+
+      // bonus tier costs
+      const bonusNames = ['commit_value', 'first_push', 'rapid_fire', 'big_push', 'streak', 'multi_repo', 'weekend', 'friday', 'sniper', 'moby'];
+      bonusNames.forEach(name => {
+        pricing.bonuses[name] = [];
+        for (let t = 0; t < 5; t++) {
+          const el = document.querySelector(`input[data-bonus="${name}"][data-tier="${t}"]:not([data-type])`);
+          pricing.bonuses[name].push(el ? parseFloat(el.value) : 0);
+        }
+      });
+
+      // commit value points per tier
+      for (let t = 0; t < 5; t++) {
+        const el = document.querySelector(`input[data-bonus="commit_value"][data-tier="${t}"][data-type="value"]`);
+        pricing.commitValues.push(el ? parseFloat(el.value) : t + 1);
+      }
+
+      // multiplier values
+      for (let t = 1; t <= 5; t++) {
+        pricing.multiplierValues.push(parseFloat(document.getElementById(`mult-t${t}`).value));
+      }
+
+      // flat bonus values
+      for (let t = 1; t <= 5; t++) {
+        pricing.flatValues.push(parseFloat(document.getElementById(`flat-t${t}`).value));
+      }
+
+      // party costs
+      document.querySelectorAll('input[data-party]').forEach(el => {
+        pricing.parties[el.dataset.party] = parseFloat(el.value);
+      });
+
+      // pack costs
+      document.querySelectorAll('input[data-pack]').forEach(el => {
+        pricing.packs[el.dataset.pack] = parseFloat(el.value);
+      });
+
+      // game costs
+      document.querySelectorAll('input[data-game]').forEach(el => {
+        pricing.games[el.dataset.game] = parseFloat(el.value);
+      });
+
+      return pricing;
+    }
+
+    function simulate(profile, pricing, days, pricingMultiplier = 1) {
+      const state = {
+        points: 0,
+        bonusLevels: {
+          commit_value: 0, // starts at tier 1 (index 0)
+          first_push: -1,  // -1 = not unlocked
+          rapid_fire: -1,
+          big_push: -1,
+          streak: -1,
+          multi_repo: -1,
+          weekend: -1,
+          friday: -1,
+          sniper: -1,
+          moby: -1,
+        },
+        parties: {
+          breakdown: false,
+          exclamation: false,
+          quotes: false,
+          bigtext: false,
+          stats: false,
+          fireworks: false,
+        },
+        streakDays: 0,
+        lastPushDay: -1,
+      };
+
+      const history = [];
+      const unlocks = [];
+      const strategy = document.getElementById('strategy').value;
+
+      function getCost(type, name, level) {
+        let cost;
+        if (type === 'bonus') {
+          cost = pricing.bonuses[name][level];
+        } else {
+          cost = pricing.parties[name];
+        }
+        return Math.round(cost * pricingMultiplier);
+      }
+
+      function getAvailableUpgrades() {
+        const available = [];
+
+        // bonus upgrades
+        Object.keys(state.bonusLevels).forEach(name => {
+          const currentLevel = state.bonusLevels[name];
+          const nextLevel = currentLevel + 1;
+          if (nextLevel < 5) {
+            const cost = getCost('bonus', name, nextLevel);
+            let priority = 0;
+
+            if (strategy === 'multipliers') {
+              if (['first_push', 'rapid_fire', 'big_push', 'streak', 'multi_repo', 'weekend', 'friday'].includes(name)) {
+                priority = 100;
+              }
+            } else if (strategy === 'commit-value') {
+              if (name === 'commit_value') priority = 100;
+            }
+
+            available.push({ type: 'bonus', name, level: nextLevel, cost, priority });
+          }
+        });
+
+        // party unlocks
+        if (strategy !== 'parties') {
+          Object.keys(state.parties).forEach(name => {
+            if (!state.parties[name]) {
+              available.push({ type: 'party', name, cost: getCost('party', name, 0), priority: 0 });
+            }
+          });
+        } else {
+          Object.keys(state.parties).forEach(name => {
+            if (!state.parties[name]) {
+              available.push({ type: 'party', name, cost: getCost('party', name, 0), priority: 100 });
+            }
+          });
+        }
+
+        // sort by strategy
+        available.sort((a, b) => {
+          if (b.priority !== a.priority) return b.priority - a.priority;
+          return a.cost - b.cost;
+        });
+
+        return available;
+      }
+
+      function tryPurchase(day) {
+        let purchased = true;
+        while (purchased) {
+          purchased = false;
+          const available = getAvailableUpgrades();
+          for (const upgrade of available) {
+            if (state.points >= upgrade.cost) {
+              state.points -= upgrade.cost;
+              if (upgrade.type === 'bonus') {
+                state.bonusLevels[upgrade.name] = upgrade.level;
+                unlocks.push({ day, name: `${upgrade.name} T${upgrade.level + 1}`, cost: upgrade.cost });
+              } else {
+                state.parties[upgrade.name] = true;
+                unlocks.push({ day, name: upgrade.name, cost: upgrade.cost });
+              }
+              purchased = true;
+              break;
+            }
+          }
+        }
+      }
+
+      for (let day = 0; day < days; day++) {
+        const dayOfWeek = day % 7; // 0-4 = weekday, 5-6 = weekend
+        const isWorkDay = dayOfWeek < profile.daysPerWeek;
+        const isWeekend = dayOfWeek >= 5;
+        const isFriday = dayOfWeek === 4;
+
+        if (!isWorkDay) {
+          state.streakDays = 0;
+          history.push(state.points);
+          continue;
+        }
+
+        // update streak
+        if (state.lastPushDay === day - 1 || (state.lastPushDay === day - 2 && dayOfWeek === 0)) {
+          state.streakDays++;
+        } else if (day > 0) {
+          state.streakDays = 1;
+        } else {
+          state.streakDays = 1;
+        }
+        state.lastPushDay = day;
+
+        // simulate pushes for the day
+        const pushes = profile.pushesPerDay;
+
+        for (let push = 0; push < pushes; push++) {
+          const commits = profile.commitsPerPush;
+
+          // calculate base points
+          const commitValueLevel = state.bonusLevels.commit_value;
+          const pointsPerCommit = pricing.commitValues[commitValueLevel];
+          let basePoints = commits * pointsPerCommit;
+
+          // flat bonuses
+          const sniperCommits = Math.round(commits * profile.sniperPct);
+          const mobyCommits = Math.round(commits * profile.mobyPct);
+
+          if (state.bonusLevels.sniper >= 0) {
+            basePoints += sniperCommits * pricing.flatValues[state.bonusLevels.sniper];
+          }
+          if (state.bonusLevels.moby >= 0) {
+            basePoints += mobyCommits * pricing.flatValues[state.bonusLevels.moby];
+          }
+
+          // multipliers
+          let multiplier = 1;
+
+          // first push of day
+          if (push === 0 && state.bonusLevels.first_push >= 0) {
+            multiplier *= pricing.multiplierValues[state.bonusLevels.first_push];
+          }
+
+          // rapid fire (not first push, and within hour)
+          if (push > 0 && Math.random() < profile.rapidPct && state.bonusLevels.rapid_fire >= 0) {
+            multiplier *= pricing.multiplierValues[state.bonusLevels.rapid_fire];
+          }
+
+          // big push
+          if (commits >= 10 && state.bonusLevels.big_push >= 0) {
+            multiplier *= pricing.multiplierValues[state.bonusLevels.big_push];
+          }
+
+          // streak
+          if (state.streakDays >= 3 && state.bonusLevels.streak >= 0) {
+            multiplier *= pricing.multiplierValues[state.bonusLevels.streak];
+          }
+
+          // multi repo
+          if (profile.reposPerDay > 1 && state.bonusLevels.multi_repo >= 0) {
+            multiplier *= pricing.multiplierValues[state.bonusLevels.multi_repo];
+          }
+
+          // weekend
+          if (isWeekend && state.bonusLevels.weekend >= 0) {
+            multiplier *= pricing.multiplierValues[state.bonusLevels.weekend];
+          }
+
+          // friday
+          if (isFriday && Math.random() < profile.fridayPct && state.bonusLevels.friday >= 0) {
+            multiplier *= pricing.multiplierValues[state.bonusLevels.friday];
+          }
+
+          const earned = Math.round(basePoints * multiplier);
+          state.points += earned;
+        }
+
+        // try to purchase upgrades
+        tryPurchase(day);
+
+        history.push(state.points);
+      }
+
+      return { history, unlocks, finalState: state };
+    }
+
+    function updateChart() {
+      const profile = getProfile();
+      const pricing = getPricing();
+      const days = parseInt(document.getElementById('sim-days').value);
+
+      const result = simulate(profile, pricing, days);
+      lastSimResult = result;
+
+      const datasets = [{
+        label: 'Points',
+        data: result.history,
+        borderColor: '#3498db',
+        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+        fill: true,
+        tension: 0.1,
+      }];
+
+      // comparison
+      if (document.getElementById('compare-enabled').checked) {
+        const compareType = document.getElementById('compare-type').value;
+        let compareResult;
+
+        if (compareType === 'profile') {
+          const profiles = Object.keys(PROFILES);
+          const currentProfile = document.querySelector('.profile-btn.active')?.dataset.profile || 'regular';
+          const nextIdx = (profiles.indexOf(currentProfile) + 1) % profiles.length;
+          const compareProfile = { ...profile, ...PROFILES[profiles[nextIdx]] };
+          compareResult = simulate(compareProfile, pricing, days);
+          datasets.push({
+            label: `Points (${profiles[nextIdx]})`,
+            data: compareResult.history,
+            borderColor: '#e74c3c',
+            borderDash: [5, 5],
+            fill: false,
+            tension: 0.1,
+          });
+        } else if (compareType === 'pricing') {
+          compareResult = simulate(profile, pricing, days, 2);
+          datasets.push({
+            label: 'Points (2x prices)',
+            data: compareResult.history,
+            borderColor: '#e74c3c',
+            borderDash: [5, 5],
+            fill: false,
+            tension: 0.1,
+          });
+        } else {
+          compareResult = simulate(profile, pricing, days, 0.5);
+          datasets.push({
+            label: 'Points (0.5x prices)',
+            data: compareResult.history,
+            borderColor: '#2ecc71',
+            borderDash: [5, 5],
+            fill: false,
+            tension: 0.1,
+          });
+        }
+      }
+
+      if (chart) {
+        chart.data.labels = Array.from({ length: days }, (_, i) => i + 1);
+        chart.data.datasets = datasets;
+        chart.update();
+      } else {
+        const ctx = document.getElementById('chart').getContext('2d');
+        chart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: Array.from({ length: days }, (_, i) => i + 1),
+            datasets,
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { labels: { color: '#eee' } },
+            },
+            scales: {
+              x: {
+                title: { display: true, text: 'Day', color: '#888' },
+                ticks: { color: '#888' },
+                grid: { color: '#333' },
+              },
+              y: {
+                title: { display: true, text: 'Points', color: '#888' },
+                ticks: { color: '#888' },
+                grid: { color: '#333' },
+              },
+            },
+          },
+        });
+      }
+
+      // update unlock timeline
+      const tbody = document.querySelector('#unlock-timeline tbody');
+      tbody.innerHTML = '';
+      result.unlocks.forEach(u => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${u.name}</td><td class="day">${u.day + 1}</td><td>${u.cost}</td>`;
+        tbody.appendChild(tr);
+      });
+
+      // check for things never unlocked
+      const allBonuses = Object.keys(result.finalState.bonusLevels);
+      const allParties = Object.keys(result.finalState.parties);
+
+      allBonuses.forEach(name => {
+        const level = result.finalState.bonusLevels[name];
+        for (let t = level + 1; t < 5; t++) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${name} T${t + 1}</td><td class="never">never</td><td>-</td>`;
+          tbody.appendChild(tr);
+        }
+      });
+
+      allParties.forEach(name => {
+        if (!result.finalState.parties[name]) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${name}</td><td class="never">never</td><td>-</td>`;
+          tbody.appendChild(tr);
+        }
+      });
+    }
+
+    // event listeners
+    document.querySelectorAll('input, select').forEach(el => {
+      el.addEventListener('change', updateChart);
+      el.addEventListener('input', updateChart);
+    });
+
+    // profile buttons
+    document.querySelectorAll('.profile-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.profile-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const p = PROFILES[btn.dataset.profile];
+        document.getElementById('commits-per-push').value = p.commitsPerPush;
+        document.getElementById('pushes-per-day').value = p.pushesPerDay;
+        document.getElementById('days-per-week').value = p.daysPerWeek;
+        document.getElementById('sniper-pct').value = p.sniperPct;
+        document.getElementById('moby-pct').value = p.mobyPct;
+        document.getElementById('repos-per-day').value = p.reposPerDay;
+        document.getElementById('rapid-pct').value = p.rapidPct;
+        document.getElementById('friday-pct').value = p.fridayPct;
+        updateChart();
+      });
+    });
+
+    // comparison toggle
+    document.getElementById('compare-enabled').addEventListener('change', (e) => {
+      document.getElementById('compare-options').style.display = e.target.checked ? 'block' : 'none';
+      updateChart();
+    });
+
+    // section toggles
+    document.querySelectorAll('.section-toggle').forEach(toggle => {
+      toggle.addEventListener('click', () => {
+        toggle.classList.toggle('collapsed');
+        document.getElementById(`section-${toggle.dataset.section}`).classList.toggle('collapsed');
+      });
+    });
+
+    // pricing presets
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const preset = btn.dataset.preset;
+        const multipliers = {
+          current: [1, 1, 1, 1, 1],
+          cheap: [0.5, 0.5, 0.5, 0.5, 0.5],
+          expensive: [2, 2, 2, 2, 2],
+          steep: [0.5, 1, 2, 4, 8],
+        };
+
+        const m = multipliers[preset];
+        document.querySelectorAll('input[data-bonus][data-tier]:not([data-type])').forEach(el => {
+          if (el.disabled) return;
+          const tier = parseInt(el.dataset.tier);
+          const baseValues = {
+            commit_value: [0, 25, 100, 400, 1600],
+            first_push: [100, 500, 1500, 5000, 15000],
+            rapid_fire: [100, 500, 1500, 5000, 15000],
+            big_push: [100, 500, 1500, 5000, 15000],
+            streak: [100, 500, 1500, 5000, 15000],
+            multi_repo: [100, 500, 1500, 5000, 15000],
+            weekend: [100, 500, 1500, 5000, 15000],
+            friday: [100, 500, 1500, 5000, 15000],
+            sniper: [50, 200, 800, 3000, 10000],
+            moby: [50, 200, 800, 3000, 10000],
+          };
+          el.value = Math.round(baseValues[el.dataset.bonus][tier] * m[tier]);
+        });
+
+        document.querySelectorAll('input[data-party]').forEach(el => {
+          const baseValues = { breakdown: 25, exclamation: 500, quotes: 500, bigtext: 1000, stats: 1000, fireworks: 5000 };
+          el.value = Math.round(baseValues[el.dataset.party] * m[2]); // use middle tier multiplier for parties
+        });
+
+        updateChart();
+      });
+    });
+
+    // export functionality
+    document.getElementById('export-btn').addEventListener('click', () => {
+      const profile = getProfile();
+      const pricing = getPricing();
+      const days = parseInt(document.getElementById('sim-days').value);
+      const strategy = document.getElementById('strategy').value;
+
+      const report = {
+        exportedAt: new Date().toISOString(),
+        simulationDays: days,
+        profile: {
+          commitsPerPush: profile.commitsPerPush,
+          pushesPerDay: profile.pushesPerDay,
+          daysPerWeek: profile.daysPerWeek,
+          sniperPct: profile.sniperPct * 100,
+          mobyPct: profile.mobyPct * 100,
+          reposPerDay: profile.reposPerDay,
+          rapidPct: profile.rapidPct * 100,
+          fridayPct: profile.fridayPct * 100,
+        },
+        strategy,
+        pricing: {
+          bonusTierCosts: pricing.bonuses,
+          commitValuesPerTier: pricing.commitValues,
+          multiplierValuesPerTier: pricing.multiplierValues,
+          flatBonusValuesPerTier: pricing.flatValues,
+          partyUpgrades: pricing.parties,
+          packs: pricing.packs,
+          games: pricing.games,
+        },
+        unlockTimeline: lastSimResult ? lastSimResult.unlocks : [],
+        neverUnlocked: [],
+      };
+
+      // add never unlocked items
+      if (lastSimResult) {
+        Object.keys(lastSimResult.finalState.bonusLevels).forEach(name => {
+          const level = lastSimResult.finalState.bonusLevels[name];
+          for (let t = level + 1; t < 5; t++) {
+            report.neverUnlocked.push(`${name} T${t + 1}`);
+          }
+        });
+        Object.keys(lastSimResult.finalState.parties).forEach(name => {
+          if (!lastSimResult.finalState.parties[name]) {
+            report.neverUnlocked.push(name);
+          }
+        });
+      }
+
+      const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `party-economy-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // initial render
+    updateChart();
+  </script>
+</body>
+</html>

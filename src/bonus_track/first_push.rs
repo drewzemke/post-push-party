@@ -5,7 +5,7 @@ pub struct FirstPush;
 
 static TIERS: &[Tier] = &[
     Tier {
-        cost: 100,
+        cost: 50,
         reward: Reward::Multiplier(2),
     },
     Tier {
@@ -13,15 +13,15 @@ static TIERS: &[Tier] = &[
         reward: Reward::Multiplier(3),
     },
     Tier {
-        cost: 1500,
+        cost: 3000,
         reward: Reward::Multiplier(4),
     },
     Tier {
-        cost: 5000,
+        cost: 20000,
         reward: Reward::Multiplier(5),
     },
     Tier {
-        cost: 15000,
+        cost: 120000,
         reward: Reward::Multiplier(6),
     },
 ];

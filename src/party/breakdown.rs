@@ -19,7 +19,7 @@ impl Party for Breakdown {
     }
 
     fn cost(&self) -> u64 {
-        25
+        50
     }
 
     fn supports_color(&self) -> bool {

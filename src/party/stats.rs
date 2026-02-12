@@ -19,7 +19,7 @@ impl Party for Stats {
     }
 
     fn cost(&self) -> u64 {
-        1000
+        100
     }
 
     fn supports_color(&self) -> bool {

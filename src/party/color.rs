@@ -48,8 +48,8 @@ impl Color {
     pub const WHITE: Self = Self::new("White", &[ansi!(37)]);
 
     pub const CYAN: Self = Self::new("Cyan", &[ansi!(36)]);
-    pub const YELLOW: Self = Self::new("Cyan", &[ansi!(35)]);
-    pub const MAGENTA: Self = Self::new("Cyan", &[ansi!(33)]);
+    pub const YELLOW: Self = Self::new("Yellow", &[ansi!(35)]);
+    pub const MAGENTA: Self = Self::new("Magenta", &[ansi!(33)]);
 
     // FIXME: these colors don't look good together
     pub const SYNTHWAVE: Self = Self::new(

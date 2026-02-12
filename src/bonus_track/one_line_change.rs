@@ -5,7 +5,7 @@ pub struct OneLineChange;
 
 static TIERS: &[Tier] = &[
     Tier {
-        cost: 50,
+        cost: 25,
         reward: Reward::FlatPoints(5),
     },
     Tier {
@@ -13,12 +13,16 @@ static TIERS: &[Tier] = &[
         reward: Reward::FlatPoints(10),
     },
     Tier {
-        cost: 800,
+        cost: 1600,
         reward: Reward::FlatPoints(20),
     },
     Tier {
-        cost: 3000,
+        cost: 12000,
         reward: Reward::FlatPoints(50),
+    },
+    Tier {
+        cost: 80000,
+        reward: Reward::FlatPoints(100),
     },
 ];
 

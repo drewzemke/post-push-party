@@ -48,7 +48,7 @@ impl Party for Quotes {
     }
 
     fn cost(&self) -> u64 {
-        500
+        1000
     }
 
     fn supports_color(&self) -> bool {

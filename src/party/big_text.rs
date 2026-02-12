@@ -22,7 +22,7 @@ impl Party for BigText {
     }
 
     fn cost(&self) -> u64 {
-        1000
+        2000
     }
 
     fn supports_color(&self) -> bool {

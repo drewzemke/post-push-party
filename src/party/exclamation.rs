@@ -29,7 +29,7 @@ impl Party for Exclamation {
     }
 
     fn cost(&self) -> u64 {
-        500
+        200
     }
 
     fn supports_color(&self) -> bool {

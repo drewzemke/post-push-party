@@ -280,7 +280,7 @@ fn init_after_existing_commits_only_counts_new() {
 
     // push a commit BEFORE init
     env.vcs.commit_file("README.md", "# Test", "initial commit");
-    env.vcs.push();
+    env.vcs.git_push();
 
     // now init party
     env.party(&["init"]);

@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Drew Deleón-Zemke"]
 edition = "2021"
 license = "GPL-3.0"
-description = "Celebrate your git pushes!"
+description = "Push code, earn points, throw a party!"
 repository = "https://github.com/drewzemke/post-push-party"
 
 [[bin]]

@@ -272,6 +272,13 @@ impl Vcs for Jj<'_> {
     }
 }
 
+impl Jj<'_> {
+    /// used to push before the party hook is installed
+    pub fn git_push(&self) {
+        self.cmd(&["git", "push", "--allow-new", "-b", "main"]);
+    }
+}
+
 pub fn jj_env() -> TestEnv<Jj<'static>> {
     let state_dir = TempDir::new().expect("failed to create state tempdir");
     let remote_dir = TempDir::new().expect("failed to create remote tempdir");

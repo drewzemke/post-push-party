@@ -1,7 +1,15 @@
 [package]
-name = "party"
+name = "post-push-party"
 version = "0.1.0"
+authors = ["Drew Deleón-Zemke"]
 edition = "2021"
+license = "GPL-3.0"
+description = "Celebrate your git pushes!"
+repository = "https://github.com/drewzemke/post-push-party"
+
+[[bin]]
+name = "party"
+path = "src/main.rs"
 
 [dependencies]
 bincode = "1"

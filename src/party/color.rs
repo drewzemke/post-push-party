@@ -58,7 +58,7 @@ impl Color {
     );
 }
 
-pub static ALL_COLORS: &[&'static Color] = &[
+pub static ALL_COLORS: &[&Color] = &[
     &Color::WHITE,
     &Color::CYAN,
     &Color::MAGENTA,

@@ -83,7 +83,7 @@ impl PartyView {
     fn unlocked_parties(state: &State) -> impl Iterator<Item = &'static dyn Party> + use<'_> {
         ALL_PARTIES
             .iter()
-            .map(|p| *p)
+            .copied()
             .filter(|&party| state.is_party_unlocked(party.id()))
     }
 

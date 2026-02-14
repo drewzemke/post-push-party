@@ -74,7 +74,7 @@ pub fn display(ctx: &RenderContext) {
     let enabled_parties = ALL_PARTIES
         .iter()
         .filter(|party| ctx.state.is_party_enabled(party.id()))
-        .map(|p| *p);
+        .copied();
 
     // print a blank line before starting any party
     println!();

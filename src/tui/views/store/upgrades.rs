@@ -98,7 +98,7 @@ pub struct UpgradesView {
 
 impl UpgradesView {
     fn selected_party(&self) -> Option<&'static dyn Party> {
-        ALL_PARTIES.get(self.selection).map(|v| *v)
+        ALL_PARTIES.get(self.selection).copied()
     }
 
     const fn item_count(&self) -> usize {

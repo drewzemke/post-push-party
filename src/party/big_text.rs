@@ -43,10 +43,7 @@ impl Party for BigText {
                 for (i, letter_line) in letter.iter().enumerate() {
                     lines[i].push_str(color);
                     lines[i].push_str(letter_line);
-
-                    if LETTER_SPACING > 0 {
-                        lines[i].push_str(&" ".repeat(LETTER_SPACING));
-                    }
+                    lines[i].push_str(&" ".repeat(LETTER_SPACING));
                 }
             }
         }

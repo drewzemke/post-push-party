@@ -193,6 +193,9 @@ pub fn git_env() -> TestEnv<Git<'static>> {
     run(Command::new("git")
         .args(["init", "--bare"])
         .current_dir(remote_dir.path()));
+    run(Command::new("git")
+        .args(["symbolic-ref", "HEAD", "refs/heads/main"])
+        .current_dir(remote_dir.path()));
 
     Git::init(repo_dir.path(), remote_dir.path());
 
@@ -276,6 +279,9 @@ pub fn jj_env() -> TestEnv<Jj<'static>> {
 
     run(Command::new("git")
         .args(["init", "--bare"])
+        .current_dir(remote_dir.path()));
+    run(Command::new("git")
+        .args(["symbolic-ref", "HEAD", "refs/heads/main"])
         .current_dir(remote_dir.path()));
 
     Jj::init(repo_dir.path(), remote_dir.path());

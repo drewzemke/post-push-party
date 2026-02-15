@@ -1,5 +1,5 @@
 [package]
-name = "party-fireworks"
+name = "fireworks"
 edition = { workspace = true }
 version = { workspace = true }
 license = { workspace = true }

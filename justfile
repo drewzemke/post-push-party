@@ -24,4 +24,4 @@ install:
 
 # tests fireworks party
 fireworks:
-    cargo run -p party-fireworks
+    @cargo run --package fireworks

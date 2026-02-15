@@ -4,6 +4,7 @@ mod breakdown;
 mod color;
 mod context;
 mod exclamation;
+mod fireworks;
 mod quotes;
 mod stats;
 
@@ -14,6 +15,7 @@ use base::Base;
 use big_text::BigText;
 use breakdown::Breakdown;
 use exclamation::Exclamation;
+use fireworks::Fireworks;
 use quotes::Quotes;
 use stats::Stats;
 
@@ -47,10 +49,18 @@ static BREAKDOWN: Breakdown = Breakdown;
 static EXCLAMATION: Exclamation = Exclamation;
 static QUOTES: Quotes = Quotes;
 static STATS: Stats = Stats;
+static FIREWORKS: Fireworks = Fireworks;
 
 // all parties in order
-pub static ALL_PARTIES: &[&'static dyn Party] =
-    &[&BASE, &BREAKDOWN, &STATS, &EXCLAMATION, &BIG_TEXT, &QUOTES];
+pub static ALL_PARTIES: &[&'static dyn Party] = &[
+    &BASE,
+    &BREAKDOWN,
+    &STATS,
+    &EXCLAMATION,
+    &BIG_TEXT,
+    &QUOTES,
+    &FIREWORKS,
+];
 
 // display utilities
 const RESET: &str = "\x1b[0m";

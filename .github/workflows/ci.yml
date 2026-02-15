@@ -4,11 +4,16 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   build:
+    name: Build and Test
     runs-on: ubuntu-latest
 
     steps:
@@ -23,8 +28,11 @@ jobs:
       - name: Restore cargo cache
         uses: Swatinem/rust-cache@v2
 
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@v1.10.16
+
       - name: Install jj
-        run: cargo install --locked --bin jj jj-cli
+        run: cargo binstall --no-confirm jj-cli
 
       - name: Configure jj user
         run: |

@@ -1,4 +1,4 @@
-use rand::Rng;
+use rand::RngExt;
 
 /// generates a static str escape sequence for an rbg color
 macro_rules! rgb {

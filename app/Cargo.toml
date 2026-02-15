@@ -1,11 +1,12 @@
 [package]
 name = "post-push-party"
-version = "0.1.1"
-authors = ["Drew Deleón-Zemke"]
-edition = "2021"
-license = "GPL-3.0"
-description = "Push code, earn points, throw a party!"
-repository = "https://github.com/drewzemke/post-push-party"
+edition = { workspace = true }
+version = { workspace = true }
+authors = { workspace = true }
+license = { workspace = true }
+description = { workspace = true }
+repository = { workspace = true }
+default-run = "party"
 
 [[bin]]
 name = "party"

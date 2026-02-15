@@ -16,8 +16,8 @@ pub fn get_all_remote_refs(repo_path: &Path) -> HashMap<String, String> {
         .ok();
 
     let mut refs = HashMap::new();
-    if let Some(output) = output {
-        if output.status.success() {
+    if let Some(output) = output
+        && output.status.success() {
             let stdout = String::from_utf8_lossy(&output.stdout);
             for line in stdout.lines() {
                 // format: "origin/main abc123..."
@@ -33,7 +33,6 @@ pub fn get_all_remote_refs(repo_path: &Path) -> HashMap<String, String> {
                 }
             }
         }
-    }
     refs
 }
 
@@ -124,11 +123,10 @@ pub fn is_reachable_from_other_remote(
             .current_dir(repo_path)
             .output();
 
-        if let Ok(o) = result {
-            if o.status.success() {
+        if let Ok(o) = result
+            && o.status.success() {
                 return true;
             }
-        }
     }
 
     false

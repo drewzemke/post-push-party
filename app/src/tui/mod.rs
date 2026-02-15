@@ -31,17 +31,13 @@ pub fn run() -> io::Result<()> {
         terminal.draw(|frame| app.render(frame))?;
 
         let timeout = TICK_RATE.saturating_sub(last_tick.elapsed());
-        if event::poll(timeout)? {
-            if let Event::Key(key) = event::read()? {
-                if key.kind == KeyEventKind::Press {
-                    if let Some(action) = map_key(key) {
-                        if !app.handle(action) {
+        if event::poll(timeout)?
+            && let Event::Key(key) = event::read()?
+                && key.kind == KeyEventKind::Press
+                    && let Some(action) = map_key(key)
+                        && !app.handle(action) {
                             break;
                         }
-                    }
-                }
-            }
-        }
 
         if last_tick.elapsed() >= TICK_RATE {
             app.tick();

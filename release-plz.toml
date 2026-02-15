@@ -1,0 +1,8 @@
+[workspace]
+release = false
+publish = false
+
+[[package]]
+name = "post-push-party"
+release = true
+publish = true

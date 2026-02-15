@@ -41,10 +41,14 @@ pub fn run(colors: &[&str]) -> anyhow::Result<()> {
 
         // render
         let output = renderer.render(&sim);
-        execute!(stdout, MoveTo(0, 0)).unwrap();
-        stdout.write_all(output.as_bytes()).unwrap();
 
-        // FIXME: stop the program when nothing is left on screen
+        if let Some(output) = output {
+            execute!(stdout, MoveTo(0, 0)).unwrap();
+            stdout.write_all(output.as_bytes()).unwrap();
+        } else {
+            // nothing left on screen, so we're done
+            break;
+        }
     }
 
     // restore terminal

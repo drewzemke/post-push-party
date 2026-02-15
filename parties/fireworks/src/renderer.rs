@@ -19,8 +19,10 @@ impl<'a> Renderer<'a> {
         }
     }
 
-    pub fn render(&mut self, sim: &Sim) -> String {
+    /// returns None if nothing is left on screen
+    pub fn render(&mut self, sim: &Sim) -> Option<String> {
         self.cell_data.fill((0, 0));
+        let mut empty = true;
 
         for particle in sim.particles() {
             let x = particle.x;
@@ -30,6 +32,7 @@ impl<'a> Renderer<'a> {
                 continue;
             }
 
+            empty = false;
             let row = y as usize / 2;
             let col = x as usize;
 
@@ -55,6 +58,10 @@ impl<'a> Renderer<'a> {
             self.cell_data[idx].1 = particle.color_idx;
         }
 
+        if empty {
+            return None;
+        }
+
         let mut output = String::new();
 
         for (b, color_idx) in &self.cell_data {
@@ -66,6 +73,6 @@ impl<'a> Renderer<'a> {
             }
         }
 
-        output
+        Some(output)
     }
 }

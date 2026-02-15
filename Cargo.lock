@@ -1011,7 +1011,7 @@ dependencies = [
 
 [[package]]
 name = "party-fireworks"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "crossterm 0.28.1",
@@ -1121,7 +1121,7 @@ checksum = "c33a9471896f1c69cecef8d20cbe2f7accd12527ce60845ff44c153bb2a21b49"
 
 [[package]]
 name = "post-push-party"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "bincode",
  "chrono",

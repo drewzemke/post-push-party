@@ -19,6 +19,7 @@ chrono = "0.4"
 clap = { workspace = true }
 crossterm = { workspace = true }
 dirs = "6"
+fireworks = { path = "../parties/fireworks" }
 rand = { workspace = true }
 ratatui = { workspace = true }
 serde = { version = "1", features = ["derive"] }

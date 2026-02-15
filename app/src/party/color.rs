@@ -45,6 +45,10 @@ impl Color {
         rand::rng().random_range(0..self.palette.len())
     }
 
+    pub fn all(&self) -> &[&str] {
+        self.palette
+    }
+
     pub const WHITE: Self = Self::new("White", &[ansi!(37)]);
 
     pub const CYAN: Self = Self::new("Cyan", &[ansi!(36)]);

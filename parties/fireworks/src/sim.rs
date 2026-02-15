@@ -99,7 +99,6 @@ impl Sim {
     pub fn update(&mut self, dt_secs: f64) {
         let mut rng = rand::rng();
 
-        // TODO: check if velocity is negative, explode!
         for (p, live) in &mut self.rockets {
             if !*live {
                 continue;

@@ -1,30 +1,16 @@
-[package]
-name = "post-push-party"
-version = "0.1.1"
-authors = ["Drew Deleón-Zemke"]
-edition = "2021"
-license = "GPL-3.0"
-description = "Push code, earn points, throw a party!"
-repository = "https://github.com/drewzemke/post-push-party"
+[workspace]
+members = ["app"]
+resolver = "2"
 
-[[bin]]
-name = "party"
-path = "src/main.rs"
-
-[dependencies]
-bincode = "1"
-chrono = "0.4"
+[workspace.dependencies]
 clap = { version = "4", features = ["derive"] }
 crossterm = "0.28"
-dirs = "6"
 rand = "0.9"
 ratatui = "0.30"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-tui-scrollview = "0.6"
 
-[dev-dependencies]
-tempfile = "3"
-
-[features]
-dev = []
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+authors = ["Drew Deleón-Zemke"]
+repository = "https://github.com/drewzemke/post-push-party"
+license = "GPL-3.0"

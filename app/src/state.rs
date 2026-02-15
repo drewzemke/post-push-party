@@ -98,11 +98,10 @@ impl State {
         }
         // find commit_value track and get reward
         for track in ALL_TRACKS.iter() {
-            if track.id() == "commit_value" {
-                if let Some(Reward::FlatPoints(n)) = track.reward_at_level(level) {
+            if track.id() == "commit_value"
+                && let Some(Reward::FlatPoints(n)) = track.reward_at_level(level) {
                     return n;
                 }
-            }
         }
         1
     }

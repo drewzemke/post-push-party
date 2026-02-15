@@ -142,8 +142,8 @@ pub fn get_pushed_commits() -> Option<Push> {
             continue;
         }
 
-        if let Some(patch_id) = commands::get_patch_id(&repo_path, &sha) {
-            if !seen.contains(&patch_id) {
+        if let Some(patch_id) = commands::get_patch_id(&repo_path, &sha)
+            && !seen.contains(&patch_id) {
                 let lines_changed = commands::get_lines_changed(&repo_path, &sha).unwrap_or(0);
                 crate::debug_log!(
                     "hook: new commit {} ({}) - {} lines",
@@ -155,7 +155,6 @@ pub fn get_pushed_commits() -> Option<Push> {
                 new_patch_ids.push(patch_id);
                 new_commits.push(Commit::new(sha, lines_changed, now));
             }
-        }
     }
 
     // update stored refs

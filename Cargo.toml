@@ -1,16 +1,17 @@
 [workspace]
-members = ["app"]
+members = ["app", "parties/*"]
 resolver = "2"
 
 [workspace.dependencies]
 clap = { version = "4", features = ["derive"] }
 crossterm = "0.28"
-rand = "0.9"
+rand = "0.10"
 ratatui = "0.30"
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 authors = ["Drew Deleón-Zemke"]
+description = "Push code, earn points, throw a party!"
 repository = "https://github.com/drewzemke/post-push-party"
 license = "GPL-3.0"

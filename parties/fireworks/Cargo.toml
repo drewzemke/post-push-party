@@ -1,0 +1,10 @@
+[package]
+name = "party-fireworks"
+edition = { workspace = true }
+version = { workspace = true }
+license = { workspace = true }
+
+[dependencies]
+anyhow = "1.0.101"
+crossterm = { workspace = true }
+rand = { workspace = true }

@@ -39,7 +39,8 @@ pub trait Party: Sync {
     fn supports_color(&self) -> bool;
 
     /// prints the output of this party to stdout
-    fn render(&self, ctx: &RenderContext, color: &PartyColor);
+    /// returns whether or not permanent content was printed to the terminal
+    fn render(&self, ctx: &RenderContext, color: &PartyColor) -> bool;
 }
 
 // static instances
@@ -122,9 +123,11 @@ pub fn display(ctx: &RenderContext) {
             .find(|&&c| c.name() == color_name)
             .unwrap_or(&&PartyColor::WHITE);
 
-        party.render(ctx, color);
+        let printed_text = party.render(ctx, color);
 
-        // print a blank line between parties (and after the last one)
-        println!();
+        // print blank line after each party that prints text
+        if printed_text {
+            println!();
+        }
     }
 }

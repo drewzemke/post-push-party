@@ -26,7 +26,7 @@ impl Party for Breakdown {
         false
     }
 
-    fn render(&self, ctx: &RenderContext, _color: &PartyColor) {
+    fn render(&self, ctx: &RenderContext, _color: &PartyColor) -> bool {
         let breakdown = ctx.breakdown;
         let commits = breakdown.commits;
         let points_per_commit = breakdown.points_per_commit;
@@ -63,5 +63,7 @@ impl Party for Breakdown {
 
         // TODO:
         // add "= <total>"?
+
+        true
     }
 }

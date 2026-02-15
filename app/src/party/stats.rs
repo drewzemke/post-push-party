@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use super::{Party, PartyColor, RenderContext, BOLD, CYAN, GRAY, MAGENTA, RESET, YELLOW};
+use super::{BOLD, CYAN, GRAY, MAGENTA, Party, PartyColor, RESET, RenderContext, YELLOW};
 
 /// the most basic party that shows how many points were earned
 pub struct Stats;
@@ -26,7 +26,7 @@ impl Party for Stats {
         false
     }
 
-    fn render(&self, ctx: &RenderContext, _color: &PartyColor) {
+    fn render(&self, ctx: &RenderContext, _color: &PartyColor) -> bool {
         let clock = ctx.clock;
 
         // this push
@@ -135,6 +135,8 @@ impl Party for Stats {
             all_time_lines,
             all_time_points,
         );
+
+        true
     }
 }
 

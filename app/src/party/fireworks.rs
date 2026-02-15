@@ -25,8 +25,9 @@ impl Party for Fireworks {
     }
 
     // TODO: use color
-    fn render(&self, _ctx: &RenderContext, color: &PartyColor) {
+    fn render(&self, _ctx: &RenderContext, color: &PartyColor) -> bool {
         let colors = color.all();
         let _ = fireworks::run(colors);
+        false
     }
 }

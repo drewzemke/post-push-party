@@ -1,4 +1,4 @@
-use super::{random_pick, Party, PartyColor, RenderContext, BOLD, RESET};
+use super::{BOLD, Party, PartyColor, RESET, RenderContext, random_pick};
 
 const EXCLAMATIONS: &[&str] = &[
     "AWESOME!",
@@ -36,7 +36,7 @@ impl Party for Exclamation {
         true
     }
 
-    fn render(&self, _ctx: &RenderContext, color: &PartyColor) {
+    fn render(&self, _ctx: &RenderContext, color: &PartyColor) -> bool {
         let offset = color.random_offset();
         let exclaim = random_pick(EXCLAMATIONS);
 
@@ -49,5 +49,7 @@ impl Party for Exclamation {
         }
 
         println!("{RESET}");
+
+        true
     }
 }

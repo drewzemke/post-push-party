@@ -1,4 +1,4 @@
-use super::{random_pick, Party, PartyColor, RenderContext, BOLD, RESET};
+use super::{BOLD, Party, PartyColor, RESET, RenderContext, random_pick};
 
 /// Prints a random word in large ASCII art letters.
 pub struct BigText;
@@ -29,7 +29,7 @@ impl Party for BigText {
         true
     }
 
-    fn render(&self, _ctx: &RenderContext, color: &PartyColor) {
+    fn render(&self, _ctx: &RenderContext, color: &PartyColor) -> bool {
         let word = random_pick(WORDS);
         let offset = color.random_offset();
 
@@ -54,6 +54,8 @@ impl Party for BigText {
             println!("{}", line);
         }
         print!("{}", RESET);
+
+        true
     }
 }
 

@@ -61,7 +61,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --locked --release --target ${{ matrix.target }}
+          args: --locked --release --target ${{ matrix.target }} --package post-push-party
           use-cross: ${{ matrix.cross_arch }}
 
       - name: Package

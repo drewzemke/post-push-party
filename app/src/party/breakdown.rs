@@ -31,6 +31,13 @@ impl Party for Breakdown {
 
     fn render(&self, ctx: &RenderContext, _color: &PartyColor) -> bool {
         let breakdown = ctx.breakdown;
+
+        // if no points were earned, just say so
+        if breakdown.total == 0 {
+            println!("   {}", dim("(No points earned.)"));
+            return true;
+        }
+
         let commits = breakdown.commits;
         let points_per_commit = breakdown.points_per_commit;
 

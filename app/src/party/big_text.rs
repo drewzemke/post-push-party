@@ -1,4 +1,4 @@
-use super::{BOLD, Party, PartyColor, RESET, RenderContext, random_pick};
+use super::{Party, PartyColor, RenderContext, random_pick};
 
 /// Prints a random word in large ASCII art letters.
 pub struct BigText;
@@ -49,11 +49,9 @@ impl Party for BigText {
         }
 
         // print each line
-        print!("{}", BOLD);
         for line in lines {
             println!("{}", line);
         }
-        print!("{}", RESET);
 
         true
     }

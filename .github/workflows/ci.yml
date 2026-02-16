@@ -25,9 +25,6 @@ jobs:
         with:
           components: clippy
 
-      - name: Restore cargo cache
-        uses: Swatinem/rust-cache@v2
-
       - name: Install cargo-binstall
         uses: cargo-bins/cargo-binstall@v1.10.16
 
@@ -38,6 +35,9 @@ jobs:
         run: |
           jj config set --user user.name "Test User"
           jj config set --user user.email "test@example.com"
+
+      - name: Restore cargo cache
+        uses: Swatinem/rust-cache@v2
 
       - name: Build
         run: cargo build

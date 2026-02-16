@@ -1,6 +1,9 @@
 use crate::scoring::AppliedBonus;
 
-use super::{Party, PartyColor, RenderContext};
+use super::{
+    BOLD, BRIGHT_MAGENTA, BRIGHT_YELLOW, DIM, GREEN, MAGENTA, NORMAL, Party, PartyColor, RESET,
+    RenderContext, YELLOW,
+};
 
 /// shows how the total points were calculated for a push, including bonuses
 pub struct Breakdown;
@@ -31,8 +34,6 @@ impl Party for Breakdown {
         let commits = breakdown.commits;
         let points_per_commit = breakdown.points_per_commit;
 
-        // TODO: colorize
-
         //  N commits × M points per commit
         let commit_word = if commits == 1 { "commit" } else { "commits" };
         let point_word = if points_per_commit == 1 {
@@ -40,7 +41,9 @@ impl Party for Breakdown {
         } else {
             "points"
         };
-        println!("   {commits} {commit_word} × {points_per_commit} {point_word} per commit",);
+        println!(
+            "  {BOLD}{GREEN}{commits}{RESET} {commit_word} {MAGENTA}×{RESET} {BOLD}{BRIGHT_MAGENTA}{points_per_commit}{RESET} {point_word} per commit",
+        );
 
         // flat bonuses first (they add to base)
         for bonus in &breakdown.applied {
@@ -50,19 +53,28 @@ impl Party for Breakdown {
                 count,
             } = bonus
             {
-                println!("   + {points} {name} ({count} ×)");
+                let extra_words = if *count > 1 {
+                    format!("{DIM} (applied {count} times){RESET}")
+                } else {
+                    String::new()
+                };
+                println!(
+                    "   {DIM}{MAGENTA}+ {BOLD}{BRIGHT_MAGENTA}{points}{RESET} {name}{extra_words}"
+                );
             }
         }
 
         // multiplier bonuses (multiply the total)
         for bonus in &breakdown.applied {
             if let AppliedBonus::Multiplier { name, value } = bonus {
-                println!("   × {value} {name}");
+                println!("   {DIM}{MAGENTA}× {BOLD}{BRIGHT_MAGENTA}{value}{RESET} {name}");
             }
         }
 
-        // TODO:
-        // add "= <total>"?
+        println!(
+            "   {DIM}={NORMAL} {BOLD}{BRIGHT_YELLOW}{}{NORMAL} {YELLOW}P{RESET}",
+            breakdown.total
+        );
 
         true
     }

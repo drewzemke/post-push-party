@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use super::{BOLD, CYAN, GRAY, MAGENTA, Party, PartyColor, RESET, RenderContext, YELLOW};
+use super::{BOLD, CYAN, GRAY, GREEN, Party, PartyColor, RESET, RenderContext, YELLOW};
 
 /// the most basic party that shows how many points were earned
 pub struct Stats;
@@ -97,9 +97,9 @@ impl Party for Stats {
             let line_word = if lines == 1 { "line" } else { "lines" };
 
             let header = format!("{BOLD}{header:>wh$}{RESET}", wh = 10);
-            let commits = format!("{MAGENTA}{commits}{RESET} {commit_word},");
-            let lines = format!("{YELLOW}{lines}{RESET} {line_word} changed,");
-            let points = format!("{CYAN}{points}{RESET} {point_word}");
+            let commits = format!("{GREEN}{commits}{RESET} {commit_word},");
+            let lines = format!("{CYAN}{lines}{RESET} {line_word} changed,");
+            let points = format!("{YELLOW}{points}{RESET} {point_word}");
 
             println!(
                 "{header}: {commits:<wc$} {lines:<wl$} {points:<wp$}",

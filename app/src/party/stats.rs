@@ -106,7 +106,7 @@ impl Party for Stats {
 
             println!(
                 "{header}: {commits:<wc$} {lines:<wl$} {points:<wp$}",
-                wc = w_commits + 18,
+                wc = w_commits + 19,
                 wl = w_lines + 24,
                 wp = w_points + 6
             );

@@ -2,9 +2,9 @@
 cheat n:
     @cargo run --quiet --package post-push-party --features dev -- cheat {{n}}
 
-# simulates pushing n commits
-push n:
-    @cargo run --quiet --package post-push-party --features dev -- push {{n}}
+# simulates pushing n commits with m lines each
+push n m="10":
+    @cargo run --quiet --package post-push-party --features dev -- push {{n}} --lines {{m}}
 
 # resets local game state
 reset:

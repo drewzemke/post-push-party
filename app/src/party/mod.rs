@@ -7,6 +7,7 @@ mod exclamation;
 mod fireworks;
 mod quotes;
 mod stats;
+mod style;
 
 pub use color::Color as PartyColor;
 pub use context::RenderContext;
@@ -62,30 +63,6 @@ pub static ALL_PARTIES: &[&'static dyn Party] = &[
     &QUOTES,
     &FIREWORKS,
 ];
-
-// display utilities
-const RESET: &str = "\x1b[0m";
-const BOLD: &str = "\x1b[1m";
-const DIM: &str = "\x1b[2m";
-const ITALICS: &str = "\x1b[3m";
-const NORMAL: &str = "\x1b[22m";
-const RESET_COLOR: &str = "\x1b[39m";
-
-const RED: &str = "\x1b[31m";
-const GREEN: &str = "\x1b[32m";
-const YELLOW: &str = "\x1b[33m";
-const BLUE: &str = "\x1b[34m";
-const MAGENTA: &str = "\x1b[35m";
-const CYAN: &str = "\x1b[36m";
-const GRAY: &str = "\x1b[90m";
-
-const BRIGHT_RED: &str = "\x1b[91m";
-const BRIGHT_GREEN: &str = "\x1b[92m";
-const BRIGHT_YELLOW: &str = "\x1b[93m";
-const BRIGHT_BLUE: &str = "\x1b[94m";
-const BRIGHT_MAGENTA: &str = "\x1b[95m";
-const BRIGHT_CYAN: &str = "\x1b[96m";
-const BRIGHT_WHITE: &str = "\x1b[97m";
 
 /// chooses a random element of a NONEMPTY list
 fn random_pick<T>(items: &[T]) -> &T {

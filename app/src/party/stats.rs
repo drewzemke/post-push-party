@@ -1,6 +1,9 @@
 use std::collections::HashSet;
 
-use super::{BOLD, CYAN, GRAY, GREEN, Party, PartyColor, RESET, RenderContext, YELLOW};
+use super::{
+    Party, PartyColor, RenderContext,
+    style::{bold, cyan, gray, green, yellow},
+};
 
 /// the most basic party that shows how many points were earned
 pub struct Stats;
@@ -96,10 +99,10 @@ impl Party for Stats {
             let point_word = if points == 1 { "point" } else { "points" };
             let line_word = if lines == 1 { "line" } else { "lines" };
 
-            let header = format!("{BOLD}{header:>wh$}{RESET}", wh = 10);
-            let commits = format!("{GREEN}{commits}{RESET} {commit_word},");
-            let lines = format!("{CYAN}{lines}{RESET} {line_word} changed,");
-            let points = format!("{YELLOW}{points}{RESET} {point_word}");
+            let header = bold(format!("{header:>wh$}", wh = 10));
+            let commits = format!("{} {commit_word},", green(commits));
+            let lines = format!("{} {line_word} changed,", cyan(lines));
+            let points = format!("{} {point_word}", yellow(points));
 
             println!(
                 "{header}: {commits:<wc$} {lines:<wl$} {points:<wp$}",
@@ -110,7 +113,7 @@ impl Party for Stats {
         };
 
         println!(" Stats");
-        println!("{GRAY} ─────{RESET}");
+        println!(" {}", gray("─────"));
 
         // only show the "this push" row if there was more than one commit that counted
         if push_commit_count > 0 {

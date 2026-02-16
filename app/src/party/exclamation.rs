@@ -1,4 +1,7 @@
-use super::{BOLD, Party, PartyColor, RESET, RenderContext, random_pick};
+use super::{
+    Party, PartyColor, RenderContext, random_pick,
+    style::{RESET_COLOR, bold},
+};
 
 const EXCLAMATIONS: &[&str] = &[
     "AWESOME!",
@@ -41,14 +44,14 @@ impl Party for Exclamation {
         let exclaim = random_pick(EXCLAMATIONS);
 
         // NOTE: adds a extra space before the word
-        print!("{BOLD} ");
+        let mut str = String::from(" ");
 
         for (idx, c) in exclaim.chars().enumerate() {
             let color = color.get(offset + idx);
-            print!("{color}{c}")
+            str.push_str(&format!("{color}{c}"));
         }
 
-        println!("{RESET}");
+        println!("{}{RESET_COLOR}", bold(str));
 
         true
     }

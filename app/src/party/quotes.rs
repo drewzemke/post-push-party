@@ -1,6 +1,7 @@
-use crate::party::ITALICS;
-
-use super::{Party, PartyColor, RESET, RenderContext, random_pick};
+use super::{
+    Party, PartyColor, RenderContext, random_pick,
+    style::{RESET_COLOR, italic, white},
+};
 
 const QUOTES: &[(&str, &str)] = &[
     // simplicity / craft:
@@ -111,7 +112,9 @@ impl Party for Quotes {
 
         // FIXME: print this out more intelligently so that it word-wraps
         // in the terminal
-        println!("{color0}{ITALICS}\"{quote}\"{RESET} — {color1}{author}{RESET}");
+        let quote = italic(format!("\"{quote}\""));
+        let hyphen = white('—');
+        println!("{color0}{quote} {hyphen} {color1}{author}{RESET_COLOR}");
 
         true
     }

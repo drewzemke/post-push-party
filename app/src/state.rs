@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
 use crate::bonus_track::{Reward, ALL_TRACKS};
-use crate::party::PartyColor;
+use crate::party::{Party, PartyColor};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct State {
@@ -168,6 +168,28 @@ pub fn save(state: &State) -> std::io::Result<()> {
 pub fn status() {
     let state = load();
     println!("You have {} party points.", state.party_points);
+}
+
+pub fn stats() {
+    let state = load();
+
+    if !state.is_party_unlocked("stats") {
+        println!("You haven't unlocked the Stats party yet.");
+        return;
+    }
+
+    let history = crate::history::load();
+    let clock = crate::clock::Clock::from_now();
+    let push = crate::git::Push::default();
+    let breakdown = crate::scoring::PointsBreakdown {
+        commits: 0,
+        points_per_commit: 0,
+        total: 0,
+        applied: vec![],
+    };
+
+    let ctx = crate::party::RenderContext::new(&push, &history, &breakdown, &state, &clock);
+    crate::party::stats::Stats.render(&ctx, &crate::party::PartyColor::WHITE);
 }
 
 pub fn dump() {

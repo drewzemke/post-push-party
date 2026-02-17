@@ -6,7 +6,7 @@ mod context;
 mod exclamation;
 mod fireworks;
 mod quotes;
-mod stats;
+pub(crate) mod stats;
 mod style;
 
 pub use color::Color as PartyColor;

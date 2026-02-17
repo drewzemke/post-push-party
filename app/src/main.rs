@@ -23,6 +23,7 @@ fn main() {
         Some(Command::Init) => init::run(),
         Some(Command::Uninit) => init::run_uninit(),
         Some(Command::Status) => state::status(),
+        Some(Command::Stats) => state::stats(),
         Some(Command::Hook) => hook::post_push(),
         Some(Command::Dump) => state::dump(),
         Some(Command::Snapshot) => hook::pre_push(),

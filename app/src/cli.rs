@@ -13,8 +13,8 @@ pub enum Command {
     Init,
     /// remove hook from current repo
     Uninit,
-    /// show current level and upgrade cost
-    Status,
+    /// prints current party points
+    Points,
     /// show push and commit stats
     Stats,
     /// called by git hook (not user-facing)

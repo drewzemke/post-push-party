@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
-use crate::bonus_track::{Reward, ALL_TRACKS};
+use crate::bonus_track::{ALL_TRACKS, Reward};
 use crate::party::{Party, PartyColor};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -99,9 +99,10 @@ impl State {
         // find commit_value track and get reward
         for track in ALL_TRACKS.iter() {
             if track.id() == "commit_value"
-                && let Some(Reward::FlatPoints(n)) = track.reward_at_level(level) {
-                    return n;
-                }
+                && let Some(Reward::FlatPoints(n)) = track.reward_at_level(level)
+            {
+                return n;
+            }
         }
         1
     }
@@ -165,7 +166,7 @@ pub fn save(state: &State) -> std::io::Result<()> {
     save_to_path(state, &path)
 }
 
-pub fn status() {
+pub fn points() {
     let state = load();
     println!("You have {} party points.", state.party_points);
 }

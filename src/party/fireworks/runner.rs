@@ -7,10 +7,7 @@ use crossterm::{
     terminal::{Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen},
 };
 
-use crate::{renderer::Renderer, sim::Sim};
-
-mod renderer;
-mod sim;
+use super::{renderer::Renderer, sim::Sim};
 
 pub fn run(colors: &[&str]) -> anyhow::Result<()> {
     // start terminal

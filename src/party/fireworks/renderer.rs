@@ -1,4 +1,4 @@
-use crate::sim::Sim;
+use super::sim::Sim;
 
 pub struct Renderer<'a> {
     /// (rows, cols)

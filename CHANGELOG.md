@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3](https://github.com/drewzemke/post-push-party/compare/v0.1.2...v0.1.3) - 2026-02-17
+
+### Added
+
+- *(cli)* change `status` subcommand to `points`
+- *(cli)* add stats subcommand
+- *(party)* simplify points breakdown if no commits counted
+- *(party)* add color to points breakdown party
+- *(party)* fireworks party stops after particles leave screen
+- *(party)* add fireworks party
+
+### Fixed
+
+- *(party)* text alignment in stats party
+- *(ci)* restore cache after installing jj
+- *(party)* don't print extra blank line after fireworks party
+
+### Other
+
+- convert from workspace back to single package
+- *(post-push-party)* release v0.1.3
+- *(party)* extract utility functions for color/font control
+- specificy readme in main package
+
 ## [0.1.2](https://github.com/drewzemke/post-push-party/compare/v0.1.1...v0.1.2) - 2026-02-15
 
 ### Other

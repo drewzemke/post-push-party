@@ -15,6 +15,8 @@ pub enum Command {
     Uninit,
     /// show current level and upgrade cost
     Status,
+    /// show push and commit stats
+    Stats,
     /// called by git hook (not user-facing)
     #[command(hide = true)]
     Hook,

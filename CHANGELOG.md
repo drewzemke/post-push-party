@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2](https://github.com/drewzemke/post-push-party/compare/v0.1.1...v0.1.2) - 2026-02-15
+
+### Other
+
+- fix some lints
+- add fireworks crate (unintegrated)
+- convert to cargo workspace
+
 ## [0.1.1](https://github.com/drewzemke/post-push-party/compare/v0.1.0...v0.1.1) - 2026-02-14
 
 ### Added

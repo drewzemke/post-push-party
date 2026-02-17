@@ -6,5 +6,5 @@ const COLORS: [&str; 4] = [
 ];
 
 fn main() -> anyhow::Result<()> {
-    fireworks::run(&COLORS)
+    post_push_party::party::fireworks::run(&COLORS)
 }

@@ -1,5 +1,9 @@
 use super::{Party, PartyColor, RenderContext};
 
+mod renderer;
+mod runner;
+mod sim;
+
 /// a full-screen fireworks display
 pub struct Fireworks;
 
@@ -27,7 +31,7 @@ impl Party for Fireworks {
     // TODO: use color
     fn render(&self, _ctx: &RenderContext, color: &PartyColor) -> bool {
         let colors = color.all();
-        let _ = fireworks::run(colors);
+        let _ = runner::run(colors);
         false
     }
 }

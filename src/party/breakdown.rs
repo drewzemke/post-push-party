@@ -1,7 +1,7 @@
 use crate::scoring::AppliedBonus;
 
 use super::{
-    Party, PartyColor, RenderContext,
+    Palette, Party, RenderContext,
     style::{bold, bright_magenta, bright_yellow, dim, green, magenta, yellow},
 };
 
@@ -29,7 +29,7 @@ impl Party for Breakdown {
         false
     }
 
-    fn render(&self, ctx: &RenderContext, _color: &PartyColor) -> bool {
+    fn render(&self, ctx: &RenderContext, _palette: &Palette) -> bool {
         let breakdown = ctx.breakdown;
 
         // if no points were earned, just say so

@@ -1,5 +1,5 @@
 use super::{
-    Party, PartyColor, RenderContext, random_pick,
+    Palette, Party, RenderContext, random_pick,
     style::{RESET_COLOR, bold},
 };
 
@@ -39,15 +39,15 @@ impl Party for Exclamation {
         true
     }
 
-    fn render(&self, _ctx: &RenderContext, color: &PartyColor) -> bool {
-        let offset = color.random_offset();
+    fn render(&self, _ctx: &RenderContext, palette: &Palette) -> bool {
+        let offset = palette.random_offset();
         let exclaim = random_pick(EXCLAMATIONS);
 
         // NOTE: adds a extra space before the word
         let mut str = String::from(" ");
 
         for (idx, c) in exclaim.chars().enumerate() {
-            let color = color.get(offset + idx);
+            let color = palette.get(offset + idx);
             str.push_str(&format!("{color}{c}"));
         }
 

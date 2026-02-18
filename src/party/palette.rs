@@ -22,14 +22,14 @@ macro_rules! ansi {
     };
 }
 
-pub struct Color {
+pub struct Palette {
     name: &'static str,
-    palette: &'static [&'static str],
+    colors: &'static [&'static str],
 }
 
-impl Color {
-    pub const fn new(name: &'static str, palette: &'static [&'static str]) -> Self {
-        Self { name, palette }
+impl Palette {
+    pub const fn new(name: &'static str, colors: &'static [&'static str]) -> Self {
+        Self { name, colors }
     }
 
     pub fn name(&self) -> &'static str {
@@ -37,16 +37,17 @@ impl Color {
     }
 
     pub fn get(&self, offset: usize) -> &'static str {
-        let idx = offset.rem_euclid(self.palette.len());
-        self.palette[idx]
+        let idx = offset.rem_euclid(self.colors.len());
+        self.colors[idx]
     }
 
     pub fn random_offset(&self) -> usize {
-        rand::rng().random_range(0..self.palette.len())
+        rand::rng().random_range(0..self.colors.len())
     }
 
-    pub fn all(&self) -> &[&str] {
-        self.palette
+    /// a list of all of the colors in this palette
+    pub fn colors(&self) -> &[&str] {
+        self.colors
     }
 
     pub const WHITE: Self = Self::new("White", &[ansi!(37)]);
@@ -62,10 +63,10 @@ impl Color {
     );
 }
 
-pub static ALL_COLORS: &[&Color] = &[
-    &Color::WHITE,
-    &Color::CYAN,
-    &Color::MAGENTA,
-    &Color::YELLOW,
-    &Color::SYNTHWAVE,
+pub static ALL_PALETTES: &[&Palette] = &[
+    &Palette::WHITE,
+    &Palette::CYAN,
+    &Palette::MAGENTA,
+    &Palette::YELLOW,
+    &Palette::SYNTHWAVE,
 ];

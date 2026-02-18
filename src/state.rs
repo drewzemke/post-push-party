@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
 use crate::bonus_track::{ALL_TRACKS, Reward};
-use crate::party::{Party, PartyColor};
+use crate::party::{Palette, Party};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct State {
@@ -28,15 +28,15 @@ pub struct State {
 
     // pack_items: HashMap<PackItem, u32>,  // TODO: add when implementing packs
     //
-    /// which colors the user has unlocked for each party.
-    /// refers to parties by their identifier string, and to colors by their names
+    /// which palettes the user has unlocked for each party.
+    /// refers to parties by their identifier string, and to palettes by their names
     #[serde(default)]
-    pub unlocked_colors: HashMap<String, HashSet<String>>,
+    pub unlocked_palettes: HashMap<String, HashSet<String>>,
 
-    /// which color is currently configured for each color.
-    /// refers to parties by their identifier string
+    /// which palette is currently configured for each party.
+    /// refers to parties by their identifier string, palettes by their name
     #[serde(default)]
-    pub active_color: HashMap<String, ColorSelection>,
+    pub active_palette: HashMap<String, PaletteSelection>,
 }
 
 // #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -46,14 +46,14 @@ pub struct State {
 // }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ColorSelection {
-    Specific(String), // color name
+pub enum PaletteSelection {
+    Specific(String), // palette name
     Random,
 }
 
-impl Default for ColorSelection {
+impl Default for PaletteSelection {
     fn default() -> Self {
-        Self::Specific(PartyColor::WHITE.name().to_string())
+        Self::Specific(Palette::WHITE.name().to_string())
     }
 }
 
@@ -71,8 +71,8 @@ impl Default for State {
             bonus_levels,
             enabled_parties: unlocked_parties.clone(),
             unlocked_parties,
-            unlocked_colors: HashMap::new(),
-            active_color: HashMap::new(),
+            unlocked_palettes: HashMap::new(),
+            active_palette: HashMap::new(),
         }
     }
 }
@@ -132,12 +132,12 @@ impl State {
         }
     }
 
-    pub fn unlocked_colors(&self, party_id: &str) -> Option<&HashSet<String>> {
-        self.unlocked_colors.get(party_id)
+    pub fn unlocked_palettes(&self, party_id: &str) -> Option<&HashSet<String>> {
+        self.unlocked_palettes.get(party_id)
     }
 
-    pub fn selected_color(&self, party_id: &str) -> Option<&ColorSelection> {
-        self.active_color.get(party_id)
+    pub fn selected_palette(&self, party_id: &str) -> Option<&PaletteSelection> {
+        self.active_palette.get(party_id)
     }
 }
 
@@ -190,7 +190,7 @@ pub fn stats() {
     };
 
     let ctx = crate::party::RenderContext::new(&push, &history, &breakdown, &state, &clock);
-    crate::party::stats::Stats.render(&ctx, &crate::party::PartyColor::WHITE);
+    crate::party::stats::Stats.render(&ctx, &crate::party::Palette::WHITE);
 }
 
 pub fn dump() {

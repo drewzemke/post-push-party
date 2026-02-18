@@ -1,16 +1,16 @@
 mod base;
 mod big_text;
 mod breakdown;
-mod color;
 mod context;
 mod exclamation;
 mod fireworks;
+mod palette;
 mod quotes;
 pub(crate) mod stats;
 mod style;
 
-pub use color::Color as PartyColor;
 pub use context::RenderContext;
+pub use palette::Palette;
 
 use base::Base;
 use big_text::BigText;
@@ -20,7 +20,7 @@ use fireworks::Fireworks;
 use quotes::Quotes;
 use stats::Stats;
 
-use crate::{party::color::ALL_COLORS, state::ColorSelection};
+use crate::{party::palette::ALL_PALETTES, state::PaletteSelection};
 
 pub trait Party: Sync {
     /// unique identifier for state storage
@@ -35,13 +35,13 @@ pub trait Party: Sync {
     /// unlock cost
     fn cost(&self) -> u64;
 
-    /// whether or not the color of the output of this party is configurable
+    /// whether or not the color palette of the output of this party is configurable
     #[expect(dead_code)]
     fn supports_color(&self) -> bool;
 
     /// prints the output of this party to stdout
     /// returns whether or not permanent content was printed to the terminal
-    fn render(&self, ctx: &RenderContext, color: &PartyColor) -> bool;
+    fn render(&self, ctx: &RenderContext, palette: &Palette) -> bool;
 }
 
 // static instances
@@ -84,38 +84,38 @@ pub fn display(ctx: &RenderContext) {
 
     for party in enabled_parties {
         // resolve a color for this party based on the user's configuration
-        let color_selection = ctx.state.selected_color(party.id());
+        let palette_selection = ctx.state.selected_palette(party.id());
 
-        let color_name = match color_selection {
-            // if the user wants a random color, pick one from the list of available colors for this party
-            Some(ColorSelection::Random) => {
-                let unlocked_colors = ctx
+        let palette_name = match palette_selection {
+            // if the user wants a random palette, pick one from the list of available palettes for this party
+            Some(PaletteSelection::Random) => {
+                let unlocked_palettes = ctx
                     .state
-                    .unlocked_colors(party.id())
+                    .unlocked_palettes(party.id())
                     .map(|set| set.iter().collect::<Vec<_>>())
                     .unwrap_or_default();
 
-                if unlocked_colors.is_empty() {
-                    PartyColor::WHITE.name().to_string()
+                if unlocked_palettes.is_empty() {
+                    Palette::WHITE.name().to_string()
                 } else {
-                    random_pick(&unlocked_colors).to_string()
+                    random_pick(&unlocked_palettes).to_string()
                 }
             }
 
-            Some(ColorSelection::Specific(color_name)) => color_name.to_string(),
+            Some(PaletteSelection::Specific(color_name)) => color_name.to_string(),
 
             // if nothing has been chosen, go with white
-            None => PartyColor::WHITE.name().to_string(),
+            None => Palette::WHITE.name().to_string(),
         };
 
-        // look it up the resolved color name in the list of colors,
+        // look it up the resolved palette name in the list of palettes,
         // falling back to white if not found (which shouldn't happen... right?)
-        let color = ALL_COLORS
+        let palette = ALL_PALETTES
             .iter()
-            .find(|&&c| c.name() == color_name)
-            .unwrap_or(&&PartyColor::WHITE);
+            .find(|&&c| c.name() == palette_name)
+            .unwrap_or(&&Palette::WHITE);
 
-        let printed_text = party.render(ctx, color);
+        let printed_text = party.render(ctx, palette);
 
         // print blank line after each party that prints text
         if printed_text {

@@ -1,5 +1,5 @@
 use super::{
-    Party, PartyColor, RenderContext,
+    Palette, Party, RenderContext,
     style::{RESET_COLOR, bold},
 };
 
@@ -28,10 +28,10 @@ impl Party for Base {
         true
     }
 
-    fn render(&self, ctx: &RenderContext, color: &PartyColor) -> bool {
-        let offset = color.random_offset();
-        let color0 = color.get(offset);
-        let color1 = color.get(offset + 1);
+    fn render(&self, ctx: &RenderContext, palette: &Palette) -> bool {
+        let offset = palette.random_offset();
+        let color0 = palette.get(offset);
+        let color1 = palette.get(offset + 1);
 
         let total = ctx.breakdown.total;
         if total > 0 {

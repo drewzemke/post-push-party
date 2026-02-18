@@ -1,4 +1,4 @@
-use super::{Party, PartyColor, RenderContext, random_pick};
+use super::{Palette, Party, RenderContext, random_pick};
 
 /// Prints a random word in large ASCII art letters.
 pub struct BigText;
@@ -29,16 +29,16 @@ impl Party for BigText {
         true
     }
 
-    fn render(&self, _ctx: &RenderContext, color: &PartyColor) -> bool {
+    fn render(&self, _ctx: &RenderContext, palette: &Palette) -> bool {
         let word = random_pick(WORDS);
-        let offset = color.random_offset();
+        let offset = palette.random_offset();
 
         // gather lines by scanning through each letter
         // NOTE: adds a extra space before the word
         let mut lines = vec![String::from(" "); LETTER_HEIGHT];
 
         for (idx, ch) in word.chars().enumerate() {
-            let color = color.get(offset + idx);
+            let color = palette.get(offset + idx);
             if let Some(letter) = get_letter(ch) {
                 for (i, letter_line) in letter.iter().enumerate() {
                     lines[i].push_str(color);

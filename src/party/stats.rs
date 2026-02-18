@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use super::{
-    Party, PartyColor, RenderContext,
+    Palette, Party, RenderContext,
     style::{bold, cyan, gray, green, yellow},
 };
 
@@ -29,7 +29,7 @@ impl Party for Stats {
         false
     }
 
-    fn render(&self, ctx: &RenderContext, _color: &PartyColor) -> bool {
+    fn render(&self, ctx: &RenderContext, _palette: &Palette) -> bool {
         let clock = ctx.clock;
 
         // this push

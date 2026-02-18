@@ -1,5 +1,5 @@
 use super::{
-    Party, PartyColor, RenderContext, random_pick,
+    Palette, Party, RenderContext, random_pick,
     style::{RESET_COLOR, italic, white},
 };
 
@@ -103,10 +103,10 @@ impl Party for Quotes {
         true
     }
 
-    fn render(&self, _ctx: &RenderContext, color: &PartyColor) -> bool {
-        let offset = color.random_offset();
-        let color0 = color.get(offset);
-        let color1 = color.get(offset + 1);
+    fn render(&self, _ctx: &RenderContext, palette: &Palette) -> bool {
+        let offset = palette.random_offset();
+        let color0 = palette.get(offset);
+        let color1 = palette.get(offset + 1);
 
         let (quote, author) = random_pick(QUOTES);
 

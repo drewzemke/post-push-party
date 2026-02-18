@@ -1,4 +1,4 @@
-use super::{Party, PartyColor, RenderContext};
+use super::{Palette, Party, RenderContext};
 
 mod renderer;
 mod runner;
@@ -29,8 +29,8 @@ impl Party for Fireworks {
     }
 
     // TODO: use color
-    fn render(&self, _ctx: &RenderContext, color: &PartyColor) -> bool {
-        let colors = color.all();
+    fn render(&self, _ctx: &RenderContext, palette: &Palette) -> bool {
+        let colors = palette.colors();
         let _ = runner::run(colors);
         false
     }

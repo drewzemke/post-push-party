@@ -14,8 +14,12 @@ pub fn map_key(key: KeyEvent) -> Option<Action> {
         KeyCode::Left | KeyCode::Char('h') => Some(Action::Left),
         KeyCode::Right | KeyCode::Char('l') => Some(Action::Right),
 
-        KeyCode::Tab => Some(Action::Right), // tab cycles forward
+        // FIXME: these should be mapped to separate actions,
+        // don't use left/right for tabs
+        KeyCode::Tab => Some(Action::Right),
         KeyCode::BackTab => Some(Action::Left),
+
+        KeyCode::Char('p') => Some(Action::Palette),
 
         KeyCode::Char('1') => Some(Action::Tab(0)),
         KeyCode::Char('2') => Some(Action::Tab(1)),

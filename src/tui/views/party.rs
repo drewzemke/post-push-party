@@ -2,7 +2,7 @@ use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Padding};
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
-use crate::party::{Party, ALL_PARTIES};
+use crate::party::{ALL_PARTIES, Palette, Party};
 use crate::state::State;
 use crate::tui::widgets::ShimmerBlock;
 
@@ -11,25 +11,52 @@ use super::{Action, Route, View, ViewResult};
 const ITEM_HEIGHT: u16 = 5;
 const SCROLL_PADDING: u16 = ITEM_HEIGHT;
 
-struct PartyItem {
+struct PartyItem<'a> {
+    /// the party being detailed
     party: &'static dyn Party,
+
+    /// whether this party is enabled in user's state
     enabled: bool,
+
+    /// whether this party is selected in the UI
     selected: bool,
+
+    /// whether or not the user is currently selecting a palette for this item
+    selecting_palette: bool,
+
+    /// the index of the selected palette among the available palettes for this party
+    palette_idx: usize,
+
+    /// the palettes for this party
+    palettes: Option<&'a Vec<String>>,
+
+    /// used for animations
     tick: u32,
 }
 
-impl PartyItem {
-    fn new(party: &'static dyn Party, enabled: bool, selected: bool, tick: u32) -> Self {
+impl<'a> PartyItem<'a> {
+    fn new(
+        party: &'static dyn Party,
+        enabled: bool,
+        selected: bool,
+        selecting_palette: bool,
+        palette_idx: usize,
+        palettes: Option<&'a Vec<String>>,
+        tick: u32,
+    ) -> Self {
         Self {
             party,
             enabled,
             selected,
+            selecting_palette,
+            palette_idx,
+            palettes,
             tick,
         }
     }
 }
 
-impl Widget for PartyItem {
+impl<'a> Widget for PartyItem<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let inner = if self.selected {
             let block = ShimmerBlock::new(self.tick);
@@ -73,10 +100,27 @@ impl Widget for PartyItem {
     }
 }
 
+#[derive(Default, Clone, Copy)]
+enum Mode {
+    #[default]
+    SelectingParty,
+    SelectingPalette {
+        /// index of selected palette within the (sorted!)
+        /// list of palettes for the current party.
+        palette_idx: usize,
+    },
+}
+
 #[derive(Default)]
 pub struct PartyView {
+    /// index selected party
     selection: usize,
+
+    /// manages scrolling of entire view
     scroll_state: ScrollViewState,
+
+    /// determines what the user is doing
+    mode: Mode,
 }
 
 impl PartyView {
@@ -110,6 +154,12 @@ impl PartyView {
             self.scroll_state.set_offset(Position::new(0, new_offset));
         }
     }
+
+    fn palettes_for_selected_party<'b>(&'_ self, state: &'b State) -> Option<&'b Vec<String>> {
+        self.selected_party(state)
+            .map(|party| party.id())
+            .and_then(|id| state.unlocked_palettes(id))
+    }
 }
 
 impl View for PartyView {
@@ -125,7 +175,21 @@ impl View for PartyView {
             let enabled = state.is_party_enabled(party.id());
             let selected = self.selection == i;
 
-            let item = PartyItem::new(party, enabled, selected, tick);
+            let (selecting_palette, palette_idx) = match self.mode {
+                Mode::SelectingParty => (false, state.selected_palette_idx(party.id())),
+                Mode::SelectingPalette { palette_idx } if selected => (true, palette_idx),
+                Mode::SelectingPalette { .. } => (false, state.selected_palette_idx(party.id())),
+            };
+
+            let item = PartyItem::new(
+                party,
+                enabled,
+                selected,
+                selecting_palette,
+                palette_idx,
+                state.unlocked_palettes(party.id()),
+                tick,
+            );
             let item_rect = Rect::new(0, i as u16 * ITEM_HEIGHT, content_width, ITEM_HEIGHT);
             scroll_view.render_widget(item, item_rect);
         }
@@ -134,41 +198,94 @@ impl View for PartyView {
     }
 
     fn handle(&mut self, action: Action, state: &mut State) -> ViewResult {
-        match action {
-            Action::Up => {
+        let mode = self.mode;
+        match (action, mode) {
+            (Action::Up, Mode::SelectingParty) => {
                 let count = Self::item_count(state);
                 self.selection = (self.selection + count - 1) % count;
                 self.update_scroll(20);
                 ViewResult::Redraw
             }
-            Action::Down => {
+            (Action::Up, Mode::SelectingPalette { palette_idx }) => {
+                let count = self.palettes_for_selected_party(state).map(|v| v.len());
+
+                if let Some(count) = count {
+                    let palette_idx = (palette_idx + count - 1) % (count + 1); // add one for random option
+                    self.mode = Mode::SelectingPalette { palette_idx };
+                }
+
+                ViewResult::Redraw
+            }
+            (Action::Down, Mode::SelectingParty) => {
                 self.selection = (self.selection + 1) % Self::item_count(state);
                 self.update_scroll(20);
                 ViewResult::Redraw
             }
-            Action::Select => {
+            (Action::Down, Mode::SelectingPalette { palette_idx }) => {
+                let count = self.palettes_for_selected_party(state).map(|v| v.len());
+
+                if let Some(count) = count {
+                    let palette_idx = (palette_idx + 1) % (count + 1); // add one for random option
+                    self.mode = Mode::SelectingPalette { palette_idx };
+                }
+                ViewResult::Redraw
+            }
+            (Action::Select, Mode::SelectingParty) => {
                 if let Some(party) = self.selected_party(state) {
                     state.toggle_party(party.id());
                 }
                 ViewResult::Redraw
             }
-            Action::Tab(i) => ViewResult::Navigate(match i {
-                0 => Route::Store(Default::default()),
-                1 => Route::Party,
-                2 => Route::Packs,
-                _ => Route::Games,
-            }),
-            Action::Quit => ViewResult::Exit,
+            (Action::Select, Mode::SelectingPalette { palette_idx }) => {
+                if let Some(party) = self.selected_party(state) {
+                    state.set_selected_palette(party.id(), palette_idx);
+                }
+                self.mode = Mode::SelectingParty;
+                ViewResult::Redraw
+            }
+            (Action::Back, Mode::SelectingPalette { .. }) => {
+                self.mode = Mode::SelectingParty;
+                ViewResult::Redraw
+            }
+            (Action::Palette, Mode::SelectingParty) => {
+                if let Some(party) = self.selected_party(state) {
+                    let palette_idx = state.selected_palette_idx(party.id());
+                    self.mode = Mode::SelectingPalette { palette_idx };
+                }
+                ViewResult::Redraw
+            }
+            (Action::Palette, Mode::SelectingPalette { .. }) => {
+                self.mode = Mode::SelectingParty;
+                ViewResult::Redraw
+            }
+            (Action::Tab(i), _) => {
+                self.mode = Mode::SelectingParty;
+                ViewResult::Navigate(match i {
+                    0 => Route::Store(Default::default()),
+                    1 => Route::Party,
+                    2 => Route::Packs,
+                    _ => Route::Games,
+                })
+            }
+            (Action::Quit, _) => ViewResult::Exit,
             _ => ViewResult::None,
         }
     }
 
     fn key_hints(&self) -> Vec<(&'static str, &'static str)> {
-        vec![
-            ("↑↓", "select"),
-            ("Enter", "toggle"),
-            ("1-4", "tab"),
-            ("q", "quit"),
-        ]
+        match self.mode {
+            Mode::SelectingParty => vec![
+                ("↑↓", "select"),
+                ("enter", "toggle"),
+                ("p", "change palette"),
+                ("q", "quit"),
+            ],
+            Mode::SelectingPalette { .. } => vec![
+                ("↑↓", "select"),
+                ("enter", "set palette"),
+                ("esc", "cancel"),
+                ("q", "quit"),
+            ],
+        }
     }
 }

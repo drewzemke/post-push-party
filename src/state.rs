@@ -31,12 +31,12 @@ pub struct State {
     /// which palettes the user has unlocked for each party.
     /// refers to parties by their identifier string, and to palettes by their names
     #[serde(default)]
-    pub unlocked_palettes: HashMap<String, HashSet<String>>,
+    pub unlocked_palettes: HashMap<String, Vec<String>>,
 
     /// which palette is currently configured for each party.
     /// refers to parties by their identifier string, palettes by their name
     #[serde(default)]
-    pub active_palette: HashMap<String, PaletteSelection>,
+    pub active_palettes: HashMap<String, PaletteSelection>,
 }
 
 // #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -65,14 +65,19 @@ impl Default for State {
         let mut unlocked_parties = HashSet::new();
         unlocked_parties.insert("base".to_string());
 
+        let white = Palette::WHITE.name().to_string();
+
         Self {
             party_points: 0,
             lifetime_points_earned: 0,
             bonus_levels,
             enabled_parties: unlocked_parties.clone(),
             unlocked_parties,
-            unlocked_palettes: HashMap::new(),
-            active_palette: HashMap::new(),
+            unlocked_palettes: HashMap::from([("base".to_string(), vec![white.clone()])]),
+            active_palettes: HashMap::from([(
+                "base".to_string(),
+                PaletteSelection::Specific(white),
+            )]),
         }
     }
 }
@@ -117,9 +122,16 @@ impl State {
 
     pub fn unlock_party(&mut self, id: &str) {
         self.unlocked_parties.insert(id.to_string());
-
-        // enable by default when unlocked
         self.enabled_parties.insert(id.to_string());
+
+        // seed with white palette if no palettes unlocked yet
+        if !self.unlocked_palettes.contains_key(id) {
+            let white = Palette::WHITE.name().to_string();
+            self.unlocked_palettes
+                .insert(id.to_string(), vec![white.clone()]);
+            self.active_palettes
+                .insert(id.to_string(), PaletteSelection::Specific(white));
+        }
     }
 
     pub fn toggle_party(&mut self, id: &str) {
@@ -132,12 +144,44 @@ impl State {
         }
     }
 
-    pub fn unlocked_palettes(&self, party_id: &str) -> Option<&HashSet<String>> {
+    pub fn unlocked_palettes(&self, party_id: &str) -> Option<&Vec<String>> {
         self.unlocked_palettes.get(party_id)
     }
 
     pub fn selected_palette(&self, party_id: &str) -> Option<&PaletteSelection> {
-        self.active_palette.get(party_id)
+        self.active_palettes.get(party_id)
+    }
+
+    /// the index of the selected palette for the given party.
+    /// returns the length of the unlocked palettes list if "random" is selected.
+    /// falls back to 0 if state is somehow missing.
+    pub fn selected_palette_idx(&self, party_id: &str) -> usize {
+        let Some(palettes) = self.unlocked_palettes(party_id) else {
+            return 0;
+        };
+        let Some(selected) = self.selected_palette(party_id) else {
+            return 0;
+        };
+        match selected {
+            PaletteSelection::Specific(palette_name) => palettes
+                .iter()
+                .position(|name| *name == *palette_name)
+                .unwrap_or(0),
+            PaletteSelection::Random => palettes.len(),
+        }
+    }
+
+    /// sets the selected palette for a party based on its index in the list of available palettes
+    ///
+    /// NOTE: if the index is outside of the valid range, the palette selection will be set to "random"
+    pub fn set_selected_palette(&mut self, party_id: &str, palette_idx: usize) {
+        let palettes = self.unlocked_palettes(party_id);
+        let palette_name = palettes.and_then(|palettes| palettes.get(palette_idx));
+        let selection = match palette_name {
+            Some(name) => PaletteSelection::Specific(name.to_string()),
+            None => PaletteSelection::Random,
+        };
+        self.active_palettes.insert(party_id.to_string(), selection);
     }
 }
 

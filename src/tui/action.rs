@@ -8,6 +8,7 @@ pub enum Action {
     Select,
     Back,
     Tab(usize),
+    Palette,
     Quit,
 }
 

@@ -37,6 +37,6 @@ pub trait View {
     /// handle an action, potentially mutating game state
     fn handle(&mut self, action: Action, state: &mut State) -> ViewResult;
 
-    /// key hints for the footer, e.g. [("↑↓", "select"), ("Enter", "confirm")]
+    /// key hints for the footer, e.g. [("↑↓", "select"), ("enter", "confirm")]
     fn key_hints(&self) -> Vec<(&'static str, &'static str)>;
 }

@@ -30,6 +30,6 @@ impl View for PacksView {
     }
 
     fn key_hints(&self) -> Vec<(&'static str, &'static str)> {
-        vec![("1-4", "tab"), ("q", "quit")]
+        vec![("q", "quit")]
     }
 }

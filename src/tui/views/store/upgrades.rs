@@ -2,7 +2,7 @@ use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Padding, Paragraph};
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
-use crate::party::{Party, ALL_PARTIES};
+use crate::party::{ALL_PARTIES, Party};
 use crate::state::State;
 use crate::tui::action::{Action, Route, StoreRoute};
 use crate::tui::views::{MessageType, View, ViewResult};
@@ -217,8 +217,8 @@ impl View for UpgradesView {
     fn key_hints(&self) -> Vec<(&'static str, &'static str)> {
         vec![
             ("↑↓", "select"),
-            ("Enter", "buy"),
-            ("Esc", "back"),
+            ("enter", "buy"),
+            ("esc", "back"),
             ("q", "quit"),
         ]
     }

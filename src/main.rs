@@ -43,5 +43,7 @@ fn main() {
         Some(Command::Bonus { track, level }) => dev::bonus(&track, level),
         #[cfg(feature = "dev")]
         Some(Command::Party { id }) => dev::party(&id),
+        #[cfg(feature = "dev")]
+        Some(Command::Palette { id }) => dev::palette(&id),
     }
 }

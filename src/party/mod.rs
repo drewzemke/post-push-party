@@ -4,7 +4,7 @@ mod breakdown;
 mod context;
 mod exclamation;
 mod fireworks;
-mod palette;
+pub(crate) mod palette;
 mod quotes;
 pub(crate) mod stats;
 mod style;

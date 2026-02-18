@@ -97,6 +97,36 @@ pub fn bonus(track_id: &str, level: u32) {
     println!("{} set to level {}", track_id, level);
 }
 
+pub fn palette(party_id: &str) {
+    use crate::party::{ALL_PARTIES, palette::ALL_PALETTES};
+
+    let ids: Vec<&str> = if party_id == "all" {
+        ALL_PARTIES.iter().map(|p| p.id()).collect()
+    } else {
+        if !ALL_PARTIES.iter().any(|p| p.id() == party_id) {
+            eprintln!("unknown party: {}", party_id);
+            eprintln!(
+                "available: {:?} (or \"all\")",
+                ALL_PARTIES.iter().map(|p| p.id()).collect::<Vec<_>>()
+            );
+            std::process::exit(1);
+        }
+        vec![party_id]
+    };
+
+    let palette_names: Vec<String> = ALL_PALETTES.iter().map(|p| p.name().to_string()).collect();
+
+    let mut s = state::load();
+    for id in &ids {
+        s.unlocked_palettes.insert(id.to_string(), palette_names.clone());
+    }
+    if let Err(e) = state::save(&s) {
+        eprintln!("error saving state: {e}");
+        std::process::exit(1);
+    }
+    println!("unlocked all palettes for: {}", ids.join(", "));
+}
+
 pub fn party(party_id: &str) {
     use crate::party::ALL_PARTIES;
 

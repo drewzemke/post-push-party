@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4](https://github.com/drewzemke/post-push-party/compare/v0.1.3...v0.1.4) - 2026-02-18
+
+### Other
+
+- *(tui)* state management for palette selection UI
+- *(tui)* standardize some key hints
+- *(dev)* add dev command for unlocking all palettes for a party
+- rename "color" -> "palette"
+
 ## [0.1.3](https://github.com/drewzemke/post-push-party/compare/v0.1.2...v0.1.3) - 2026-02-17
 
 ### Added

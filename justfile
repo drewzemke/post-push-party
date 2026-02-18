@@ -18,6 +18,10 @@ bonus track level:
 party id:
     @cargo run --quiet --features dev -- party {{id}}
 
+# unlocks all palettes for a party (or "all")
+palette id:
+    @cargo run --quiet --features dev -- palette {{id}}
+
 # installs app to local machine
 install:
     cargo install --path .

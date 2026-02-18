@@ -60,4 +60,10 @@ pub enum Command {
         /// party id (e.g. "big_text")
         id: String,
     },
+    /// unlock all palettes for a party (dev only)
+    #[cfg(feature = "dev")]
+    Palette {
+        /// party id, or "all" for every party
+        id: String,
+    },
 }

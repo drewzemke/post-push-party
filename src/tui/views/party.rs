@@ -2,7 +2,8 @@ use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Padding};
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
-use crate::party::{ALL_PARTIES, Palette, Party};
+use crate::party::Palette;
+use crate::party::{ALL_PARTIES, Party, palette::ALL_PALETTES};
 use crate::state::State;
 use crate::tui::widgets::ShimmerBlock;
 
@@ -10,6 +11,29 @@ use super::{Action, Route, View, ViewResult};
 
 const ITEM_HEIGHT: u16 = 5;
 const SCROLL_PADDING: u16 = ITEM_HEIGHT;
+const PALETTE_SELECTOR_WIDTH: u16 = 20;
+
+fn palette_preview(palette: &Palette, faded: bool) -> String {
+    // FIXME this should return a line/span using ratatui colors
+    // try these: ▓▒░
+    // let c = if faded { '▒' } else { '█' };
+    // let colors = palette.colors();
+    // match colors.len() {
+    //     1 => format!("{}{c}{c}{c}{c}{c}{c}{c}", colors[0]),
+    //     2 => format!("{}{c}{c}{c}{}{c}{c}{c}", colors[0], colors[1]),
+    //     3 => format!("{}{c}{c}{}{c}{c}{}{c}{c}", colors[0], colors[1], colors[2]),
+    //     _ => {
+    //         let mut s = String::new();
+    //         for n in 0..6 {
+    //             let color = colors[n % colors.len()];
+    //             s.push_str(color);
+    //             s.push(c);
+    //         }
+    //         s
+    //     }
+    // }
+    "YAYYYY".to_string()
+}
 
 struct PartyItem<'a> {
     /// the party being detailed
@@ -73,20 +97,31 @@ impl<'a> Widget for PartyItem<'a> {
             inner
         };
 
-        let chunks = Layout::vertical([
+        // split horizontally: details on the left and palette selection on the right
+        let chunks = Layout::horizontal([
+            Constraint::Fill(1),                        // name
+            Constraint::Length(PALETTE_SELECTOR_WIDTH), // description
+        ])
+        .split(inner);
+
+        //
+        // details
+        //
+
+        let details_chunks = Layout::vertical([
             Constraint::Length(1), // name
             Constraint::Length(1), // description
             Constraint::Length(1), // status
         ])
-        .split(inner);
+        .split(chunks[0]);
 
         // name
         let title = Text::from(self.party.name()).reset().bold();
-        title.render(chunks[0], buf);
+        title.render(details_chunks[0], buf);
 
         // description
         let desc = Text::from(self.party.description()).dark_gray();
-        desc.render(chunks[1], buf);
+        desc.render(details_chunks[1], buf);
 
         // enabled status
         let (status_text, status_style) = if self.enabled {
@@ -96,7 +131,35 @@ impl<'a> Widget for PartyItem<'a> {
         };
 
         let status = Text::from(status_text).style(status_style);
-        status.render(chunks[2], buf);
+        status.render(details_chunks[2], buf);
+
+        //
+        // palette selection
+        //
+        let Some(palettes) = self.palettes else {
+            return;
+        };
+
+        let palette_chunks = Layout::vertical([
+            Constraint::Length(1),
+            Constraint::Length(1),
+            Constraint::Length(1),
+        ])
+        .split(chunks[1]);
+
+        let center_palette = palettes
+            .get(self.palette_idx)
+            .and_then(|name| ALL_PALETTES.iter().find(|&&p| p.name() == name));
+
+        let palette_string = if let Some(palette) = center_palette {
+            palette_preview(palette, false)
+        } else {
+            "??????".to_string()
+        };
+
+        Text::from(palette_string)
+            .alignment(Alignment::Right)
+            .render(palette_chunks[1], buf);
     }
 }
 

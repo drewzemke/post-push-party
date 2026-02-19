@@ -8,9 +8,9 @@ use std::io;
 use std::time::{Duration, Instant};
 
 use crossterm::{
-    event::{self, Event, KeyEventKind},
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
     ExecutableCommand,
+    event::{self, Event, KeyEventKind},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use ratatui::prelude::*;
 
@@ -33,11 +33,12 @@ pub fn run() -> io::Result<()> {
         let timeout = TICK_RATE.saturating_sub(last_tick.elapsed());
         if event::poll(timeout)?
             && let Event::Key(key) = event::read()?
-                && key.kind == KeyEventKind::Press
-                    && let Some(action) = map_key(key)
-                        && !app.handle(action) {
-                            break;
-                        }
+            && key.kind == KeyEventKind::Press
+            && let Some(action) = map_key(key)
+            && !app.handle(action)
+        {
+            break;
+        }
 
         if last_tick.elapsed() >= TICK_RATE {
             app.tick();

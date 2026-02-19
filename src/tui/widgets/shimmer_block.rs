@@ -3,7 +3,7 @@ use ratatui::symbols::border::THICK as BORDER;
 use ratatui::widgets::Widget;
 
 const SHIMMER_WIDTH: u32 = 18;
-const CYCLE_LENGTH: u32 = 180;
+const CYCLE_LENGTH: u32 = 500;
 
 pub struct ShimmerBlock {
     tick: u32,
@@ -93,8 +93,7 @@ fn shimmer_color(x: u16, y: u16, area: Rect, tick: u32) -> Color {
 
     // gold shimmer effect
     match dist {
-        0..=3 => Color::White,
-        4..=8 => Color::LightYellow,
+        0..=4 => Color::White,
         _ => Color::Yellow,
     }
 }

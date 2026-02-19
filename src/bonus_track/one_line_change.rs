@@ -1,6 +1,6 @@
 use super::{BonusTrack, PushContext, Reward, Tier};
 
-/// bonus for surgical single-line commits
+/// bonus for surgically small 1-to-2-line commits
 pub struct OneLineChange;
 
 static TIERS: &[Tier] = &[
@@ -36,7 +36,7 @@ impl BonusTrack for OneLineChange {
     }
 
     fn description(&self) -> &'static str {
-        "More points for surgical single-line commits."
+        "More points for surgical one- or two-line commits."
     }
 
     fn tiers(&self) -> &'static [Tier] {
@@ -47,7 +47,7 @@ impl BonusTrack for OneLineChange {
         ctx.push
             .commits()
             .iter()
-            .filter(|c| c.lines_changed() == 1)
+            .filter(|c| c.lines_changed() == 1 || c.lines_changed() == 2)
             .count() as u32
     }
 }
@@ -60,13 +60,13 @@ mod tests {
     use crate::history::PushHistory;
 
     #[test]
-    fn applies_to_single_line_commits() {
+    fn applies_to_1_and_2_line_commits() {
         let history = PushHistory::default();
         let clock = Clock::default();
         let push = Push::new(vec![
             Commit::with_lines(1),
             Commit::with_lines(10),
-            Commit::with_lines(1),
+            Commit::with_lines(2),
             Commit::with_lines(5),
         ]);
         let ctx = PushContext {
@@ -95,7 +95,7 @@ mod tests {
     fn does_not_apply_to_multi_line_commits() {
         let history = PushHistory::default();
         let clock = Clock::default();
-        let push = Push::new(vec![Commit::with_lines(2), Commit::with_lines(100)]);
+        let push = Push::new(vec![Commit::with_lines(5), Commit::with_lines(100)]);
         let ctx = PushContext {
             push: &push,
             history: &history,

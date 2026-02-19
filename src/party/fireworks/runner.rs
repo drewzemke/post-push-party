@@ -9,7 +9,10 @@ use crossterm::{
 
 use super::{renderer::Renderer, sim::Sim};
 
-pub fn run(colors: &[&str]) -> anyhow::Result<()> {
+pub fn run(colors: &[String]) -> anyhow::Result<()> {
+    // HACK could probably smooth this out
+    let colors = colors.iter().map(|s| s.as_str()).collect::<Vec<_>>();
+
     // start terminal
     let mut stdout = stdout();
     execute!(stdout, Hide, EnterAlternateScreen)?;
@@ -18,7 +21,7 @@ pub fn run(colors: &[&str]) -> anyhow::Result<()> {
 
     let (cols, rows) = crossterm::terminal::size().unwrap();
 
-    let mut renderer = Renderer::new(rows as usize, cols as usize, colors);
+    let mut renderer = Renderer::new(rows as usize, cols as usize, &colors);
     let mut sim = Sim::new(cols as f64, rows as f64 * 2.);
     let mut time = std::time::Instant::now();
 

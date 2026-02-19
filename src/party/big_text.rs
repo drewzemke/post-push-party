@@ -38,10 +38,10 @@ impl Party for BigText {
         let mut lines = vec![String::from(" "); LETTER_HEIGHT];
 
         for (idx, ch) in word.chars().enumerate() {
-            let color = palette.get(offset + idx);
+            let color = palette.get_ansi_escape(offset + idx);
             if let Some(letter) = get_letter(ch) {
                 for (i, letter_line) in letter.iter().enumerate() {
-                    lines[i].push_str(color);
+                    lines[i].push_str(&color);
                     lines[i].push_str(letter_line);
                     lines[i].push_str(&" ".repeat(LETTER_SPACING));
                 }

@@ -30,8 +30,8 @@ impl Party for Fireworks {
 
     // TODO: use color
     fn render(&self, _ctx: &RenderContext, palette: &Palette) -> bool {
-        let colors = palette.colors();
-        let _ = runner::run(colors);
+        let colors = palette.all_ansi_escapes();
+        let _ = runner::run(&colors);
         false
     }
 }

@@ -47,7 +47,7 @@ impl Party for Exclamation {
         let mut str = String::from(" ");
 
         for (idx, c) in exclaim.chars().enumerate() {
-            let color = palette.get(offset + idx);
+            let color = palette.get_ansi_escape(offset + idx);
             str.push_str(&format!("{color}{c}"));
         }
 

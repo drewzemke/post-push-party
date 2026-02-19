@@ -1,34 +1,38 @@
 use rand::RngExt;
 
-/// generates a static str escape sequence for an rbg color
+enum Color {
+    Rgb(u8, u8, u8),
+    Ansi(u8),
+}
+
 macro_rules! rgb {
     ($r: literal, $g: literal, $b: literal) => {
-        concat!(
-            "\x1b[38;2;",
-            stringify!($r),
-            ";",
-            stringify!($g),
-            ";",
-            stringify!($b),
-            "m"
-        )
+        Color::Rgb($r, $g, $b)
     };
 }
 
-/// generates a static str escape sequence for an ansi color
 macro_rules! ansi {
     ($code: literal) => {
-        concat!("\x1b[", stringify!($code), "m")
+        Color::Ansi($code)
     };
+}
+
+impl Color {
+    fn to_ansi_escape(&self) -> String {
+        match self {
+            Color::Rgb(r, g, b) => format!("\x1b[38;2;{r};{g};{b}m"),
+            Color::Ansi(v) => format!("\x1b[{v}m"),
+        }
+    }
 }
 
 pub struct Palette {
     name: &'static str,
-    colors: &'static [&'static str],
+    colors: &'static [Color],
 }
 
 impl Palette {
-    pub const fn new(name: &'static str, colors: &'static [&'static str]) -> Self {
+    const fn new(name: &'static str, colors: &'static [Color]) -> Self {
         Self { name, colors }
     }
 
@@ -36,9 +40,9 @@ impl Palette {
         self.name
     }
 
-    pub fn get(&self, offset: usize) -> &'static str {
+    pub fn get_ansi_escape(&self, offset: usize) -> String {
         let idx = offset.rem_euclid(self.colors.len());
-        self.colors[idx]
+        self.colors[idx].to_ansi_escape()
     }
 
     pub fn random_offset(&self) -> usize {
@@ -46,15 +50,15 @@ impl Palette {
     }
 
     /// a list of all of the colors in this palette
-    pub fn colors(&self) -> &[&str] {
-        self.colors
+    pub fn all_ansi_escapes(&self) -> Vec<String> {
+        self.colors.iter().map(Color::to_ansi_escape).collect()
     }
 
     pub const WHITE: Self = Self::new("White", &[ansi!(37)]);
 
     pub const CYAN: Self = Self::new("Cyan", &[ansi!(36)]);
-    pub const YELLOW: Self = Self::new("Yellow", &[ansi!(35)]);
-    pub const MAGENTA: Self = Self::new("Magenta", &[ansi!(33)]);
+    pub const YELLOW: Self = Self::new("Yellow", &[ansi!(33)]);
+    pub const MAGENTA: Self = Self::new("Magenta", &[ansi!(35)]);
 
     // FIXME: these colors don't look good together
     pub const SYNTHWAVE: Self = Self::new(

@@ -30,8 +30,8 @@ impl Party for Base {
 
     fn render(&self, ctx: &RenderContext, palette: &Palette) -> bool {
         let offset = palette.random_offset();
-        let color0 = palette.get(offset);
-        let color1 = palette.get(offset + 1);
+        let color0 = palette.get_ansi_escape(offset);
+        let color1 = palette.get_ansi_escape(offset + 1);
 
         let total = ctx.breakdown.total;
         if total > 0 {

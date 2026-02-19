@@ -105,8 +105,8 @@ impl Party for Quotes {
 
     fn render(&self, _ctx: &RenderContext, palette: &Palette) -> bool {
         let offset = palette.random_offset();
-        let color0 = palette.get(offset);
-        let color1 = palette.get(offset + 1);
+        let color0 = palette.get_ansi_escape(offset);
+        let color1 = palette.get_ansi_escape(offset + 1);
 
         let (quote, author) = random_pick(QUOTES);
 

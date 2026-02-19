@@ -35,7 +35,8 @@ impl Party for Base {
 
         let total = ctx.breakdown.total;
         if total > 0 {
-            let points = bold(format!("{color1}{total} party points!{RESET_COLOR}"));
+            let points_word = if total == 1 { "point" } else { "points" };
+            let points = bold(format!("{color1}{total} party {points_word}!{RESET_COLOR}"));
             println!("🎉 {color0}You earned {points}");
         } else {
             println!("🎉 {color0}Pushed! {color1}(already counted){RESET_COLOR}");

@@ -2,8 +2,7 @@ use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Padding};
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
-use crate::party::Palette;
-use crate::party::{ALL_PARTIES, Party, palette::ALL_PALETTES};
+use crate::party::{ALL_PARTIES, Palette, Party, palette::ALL_PALETTES};
 use crate::state::State;
 use crate::tui::widgets::ShimmerBlock;
 
@@ -13,26 +12,33 @@ const ITEM_HEIGHT: u16 = 5;
 const SCROLL_PADDING: u16 = ITEM_HEIGHT;
 const PALETTE_SELECTOR_WIDTH: u16 = 20;
 
-fn palette_preview(palette: &Palette, faded: bool) -> String {
-    // FIXME this should return a line/span using ratatui colors
+fn palette_preview(palette: &Palette, faded: bool) -> Line<'_> {
     // try these: ▓▒░
-    // let c = if faded { '▒' } else { '█' };
-    // let colors = palette.colors();
-    // match colors.len() {
-    //     1 => format!("{}{c}{c}{c}{c}{c}{c}{c}", colors[0]),
-    //     2 => format!("{}{c}{c}{c}{}{c}{c}{c}", colors[0], colors[1]),
-    //     3 => format!("{}{c}{c}{}{c}{c}{}{c}{c}", colors[0], colors[1], colors[2]),
-    //     _ => {
-    //         let mut s = String::new();
-    //         for n in 0..6 {
-    //             let color = colors[n % colors.len()];
-    //             s.push_str(color);
-    //             s.push(c);
-    //         }
-    //         s
-    //     }
-    // }
-    "YAYYYY".to_string()
+    let c = if faded { '▒' } else { '█' };
+    let colors = palette.all_ratatui();
+
+    let mut spans: Vec<Span> = Vec::new();
+
+    match colors.len() {
+        1 => spans.push(format!("{c}{c}{c}{c}{c}{c}").fg(colors[0])),
+        2 => {
+            spans.push(format!("{c}{c}{c}").fg(colors[0]));
+            spans.push(format!("{c}{c}{c}").fg(colors[1]));
+        }
+        3 => {
+            spans.push(format!("{c}{c}").fg(colors[0]));
+            spans.push(format!("{c}{c}").fg(colors[1]));
+            spans.push(format!("{c}{c}").fg(colors[2]));
+        }
+        _ => {
+            for n in 0..6 {
+                let color = colors[n % colors.len()];
+                spans.push(c.to_string().fg(color))
+            }
+        }
+    }
+
+    Line::from(spans)
 }
 
 struct PartyItem<'a> {
@@ -99,8 +105,8 @@ impl<'a> Widget for PartyItem<'a> {
 
         // split horizontally: details on the left and palette selection on the right
         let chunks = Layout::horizontal([
-            Constraint::Fill(1),                        // name
-            Constraint::Length(PALETTE_SELECTOR_WIDTH), // description
+            Constraint::Fill(1),
+            Constraint::Length(PALETTE_SELECTOR_WIDTH),
         ])
         .split(inner);
 
@@ -151,15 +157,64 @@ impl<'a> Widget for PartyItem<'a> {
             .get(self.palette_idx)
             .and_then(|name| ALL_PALETTES.iter().find(|&&p| p.name() == name));
 
-        let palette_string = if let Some(palette) = center_palette {
-            palette_preview(palette, false)
+        let (palette_name, palette_swatch) = if let Some(palette) = center_palette {
+            (palette.name(), palette_preview(palette, false))
         } else {
-            "??????".to_string()
+            ("Random", "??????".into())
         };
 
-        Text::from(palette_string)
-            .alignment(Alignment::Right)
-            .render(palette_chunks[1], buf);
+        let center_split = Layout::horizontal([
+            Constraint::Fill(1),   // name
+            Constraint::Length(1), // space
+            Constraint::Length(6), // swatch
+        ])
+        .split(palette_chunks[1]);
+
+        Text::from(palette_swatch)
+            .alignment(Alignment::Left)
+            .render(center_split[2], buf);
+
+        if self.selecting_palette {
+            Text::from(palette_name)
+                .alignment(Alignment::Right)
+                .render(center_split[0], buf);
+
+            let top_palette = palettes
+                .get((self.palette_idx + palettes.len()) % (palettes.len() + 1))
+                .and_then(|name| ALL_PALETTES.iter().find(|&&p| p.name() == name));
+
+            let top_swatch = if let Some(palette) = top_palette {
+                palette_preview(palette, false)
+            } else {
+                "??????".dim().into()
+            };
+
+            let btm_palette = palettes
+                .get((self.palette_idx + 1) % (palettes.len() + 1))
+                .and_then(|name| ALL_PALETTES.iter().find(|&&p| p.name() == name));
+
+            let btm_swatch = if let Some(palette) = btm_palette {
+                palette_preview(palette, false)
+            } else {
+                "??????".dim().into()
+            };
+
+            Text::from(top_swatch)
+                .alignment(Alignment::Right)
+                .render(palette_chunks[0], buf);
+
+            Text::from("            ▲")
+                .alignment(Alignment::Left)
+                .render(palette_chunks[0], buf);
+
+            Text::from(btm_swatch)
+                .alignment(Alignment::Right)
+                .render(palette_chunks[2], buf);
+
+            Text::from("            ▼")
+                .alignment(Alignment::Left)
+                .render(palette_chunks[2], buf);
+        }
     }
 }
 
@@ -273,7 +328,7 @@ impl View for PartyView {
                 let count = self.palettes_for_selected_party(state).map(|v| v.len());
 
                 if let Some(count) = count {
-                    let palette_idx = (palette_idx + count - 1) % (count + 1); // add one for random option
+                    let palette_idx = (palette_idx + count) % (count + 1); // add one for random option
                     self.mode = Mode::SelectingPalette { palette_idx };
                 }
 

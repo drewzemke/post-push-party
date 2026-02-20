@@ -1,4 +1,5 @@
 use rand::RngExt;
+use ratatui::style::Color as RatatuiColor;
 
 enum Color {
     Rgb(u8, u8, u8),
@@ -24,6 +25,31 @@ impl Color {
             Color::Ansi(v) => format!("\x1b[{v}m"),
         }
     }
+
+    fn to_ratatui(&self) -> RatatuiColor {
+        match self {
+            Color::Rgb(r, g, b) => RatatuiColor::Rgb(*r, *g, *b),
+            Color::Ansi(v) => match v {
+                30 => RatatuiColor::Black,
+                31 => RatatuiColor::Red,
+                32 => RatatuiColor::Green,
+                33 => RatatuiColor::Yellow,
+                34 => RatatuiColor::Blue,
+                35 => RatatuiColor::Magenta,
+                36 => RatatuiColor::Cyan,
+                37 => RatatuiColor::Gray,
+                90 => RatatuiColor::DarkGray,
+                91 => RatatuiColor::LightRed,
+                92 => RatatuiColor::LightGreen,
+                93 => RatatuiColor::LightYellow,
+                94 => RatatuiColor::LightBlue,
+                95 => RatatuiColor::LightMagenta,
+                96 => RatatuiColor::LightCyan,
+                97 => RatatuiColor::White,
+                _ => RatatuiColor::Reset,
+            },
+        }
+    }
 }
 
 pub struct Palette {
@@ -45,13 +71,22 @@ impl Palette {
         self.colors[idx].to_ansi_escape()
     }
 
+    #[expect(dead_code)]
+    pub fn get_ratatui(&self, offset: usize) -> RatatuiColor {
+        let idx = offset.rem_euclid(self.colors.len());
+        self.colors[idx].to_ratatui()
+    }
+
     pub fn random_offset(&self) -> usize {
         rand::rng().random_range(0..self.colors.len())
     }
 
-    /// a list of all of the colors in this palette
     pub fn all_ansi_escapes(&self) -> Vec<String> {
         self.colors.iter().map(Color::to_ansi_escape).collect()
+    }
+
+    pub fn all_ratatui(&self) -> Vec<RatatuiColor> {
+        self.colors.iter().map(Color::to_ratatui).collect()
     }
 
     pub const WHITE: Self = Self::new("White", &[ansi!(37)]);

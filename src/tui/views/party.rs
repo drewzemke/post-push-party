@@ -1,3 +1,5 @@
+use std::cell::Cell;
+
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Padding};
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
@@ -75,7 +77,7 @@ impl<'a> Widget for PartyItem<'a> {
         };
 
         // split horizontally: details on the left and palette selection on the right
-        let chunks = Layout::horizontal([
+        let split = Layout::horizontal([
             Constraint::Fill(1),
             Constraint::Length(PALETTE_SELECTOR_WIDTH),
         ])
@@ -85,20 +87,20 @@ impl<'a> Widget for PartyItem<'a> {
         // details
         //
 
-        let details_chunks = Layout::vertical([
+        let details_split = Layout::vertical([
             Constraint::Length(1), // name
             Constraint::Length(1), // description
             Constraint::Length(1), // status
         ])
-        .split(chunks[0]);
+        .split(split[0]);
 
         // name
         let title = Text::from(self.party.name()).reset().bold();
-        title.render(details_chunks[0], buf);
+        title.render(details_split[0], buf);
 
         // description
         let desc = Text::from(self.party.description()).dark_gray();
-        desc.render(details_chunks[1], buf);
+        desc.render(details_split[1], buf);
 
         // enabled status
         let (status_text, status_style) = if self.enabled {
@@ -108,7 +110,7 @@ impl<'a> Widget for PartyItem<'a> {
         };
 
         let status = Text::from(status_text).style(status_style);
-        status.render(details_chunks[2], buf);
+        status.render(details_split[2], buf);
 
         //
         // palette selection
@@ -118,7 +120,7 @@ impl<'a> Widget for PartyItem<'a> {
         };
 
         let widget = PaletteSelector::new(palettes, self.palette_idx, self.selecting_palette);
-        widget.render(chunks[1], buf);
+        widget.render(split[1], buf);
     }
 }
 
@@ -138,11 +140,14 @@ pub struct PartyView {
     /// index selected party
     selection: usize,
 
+    /// determines what the user is doing
+    mode: Mode,
+
     /// manages scrolling of entire view
     scroll_state: ScrollViewState,
 
-    /// determines what the user is doing
-    mode: Mode,
+    /// tracks viewport_height (determined at render time but used in `handle`)
+    viewport_height: Cell<u16>,
 }
 
 impl PartyView {
@@ -161,7 +166,9 @@ impl PartyView {
         Self::unlocked_parties(state).nth(self.selection)
     }
 
-    fn update_scroll(&mut self, viewport_height: u16) {
+    fn update_scroll(&mut self) {
+        let viewport_height = self.viewport_height.get();
+
         let selected_top = self.selection as u16 * ITEM_HEIGHT;
         let selected_bottom = selected_top + ITEM_HEIGHT;
 
@@ -186,6 +193,8 @@ impl PartyView {
 
 impl View for PartyView {
     fn render(&self, frame: &mut Frame, area: Rect, state: &State, tick: u32) {
+        self.viewport_height.set(area.height);
+
         let content_area = area.inner(Margin::new(1, 0));
         let content_width = content_area.width.saturating_sub(1); // leave room for scrollbar
         let content_height = Self::item_count(state) as u16 * ITEM_HEIGHT;
@@ -225,7 +234,7 @@ impl View for PartyView {
             (Action::Up, Mode::SelectingParty) => {
                 let count = Self::item_count(state);
                 self.selection = (self.selection + count - 1) % count;
-                self.update_scroll(20);
+                self.update_scroll();
                 ViewResult::Redraw
             }
             (Action::Up, Mode::SelectingPalette { palette_idx }) => {
@@ -240,7 +249,7 @@ impl View for PartyView {
             }
             (Action::Down, Mode::SelectingParty) => {
                 self.selection = (self.selection + 1) % Self::item_count(state);
-                self.update_scroll(20);
+                self.update_scroll();
                 ViewResult::Redraw
             }
             (Action::Down, Mode::SelectingPalette { palette_idx }) => {

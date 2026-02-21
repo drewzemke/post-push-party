@@ -1,8 +1,10 @@
+use std::cell::Cell;
+
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
-use crate::bonus_track::{Reward, Tier, ALL_TRACKS};
+use crate::bonus_track::{ALL_TRACKS, Reward, Tier};
 use crate::state::State;
 use crate::tui::action::{Action, Route, StoreRoute};
 use crate::tui::views::{MessageType, View, ViewResult};
@@ -62,18 +64,18 @@ impl<'a> Widget for BonusItem<'a> {
         };
 
         // three horizontal segments
-        let chunks = Layout::horizontal([
+        let split = Layout::horizontal([
             Constraint::Fill(1),                 // name + description
             Constraint::Length(COST_INFO_WIDTH), // cost info
         ])
         .split(inner);
 
         // name + description
-        let name_chunks = Layout::vertical([
+        let name_split = Layout::vertical([
             Constraint::Length(1), // name
             Constraint::Fill(1),   // description
         ])
-        .split(chunks[0].inner(Margin::new(1, 0)));
+        .split(split[0].inner(Margin::new(1, 0)));
 
         let current_reward = if self.owned_level == 0 {
             None
@@ -90,13 +92,13 @@ impl<'a> Widget for BonusItem<'a> {
             ]);
         }
 
-        Line::from(name_spans).render(name_chunks[0], buf);
+        Line::from(name_spans).render(name_split[0], buf);
 
         let description = Paragraph::new(self.description)
             .wrap(Wrap::default())
             .reset()
             .dim();
-        description.render(name_chunks[1], buf);
+        description.render(name_split[1], buf);
 
         // cost info
 
@@ -104,16 +106,16 @@ impl<'a> Widget for BonusItem<'a> {
         let block = Block::default()
             .borders(Borders::LEFT)
             .border_style(Style::default().dark_gray());
-        let inner = block.inner(chunks[1]);
-        block.render(chunks[1], buf);
+        let inner = block.inner(split[1]);
+        block.render(split[1], buf);
 
-        let chunks = Layout::vertical([
+        let split = Layout::vertical([
             Constraint::Length(1),
             Constraint::Length(1),
             Constraint::Length(1),
         ])
         .split(inner);
-        let middle = chunks[1];
+        let middle = split[1];
 
         let next_tier = self.tiers.get(self.owned_level);
         let cost = next_tier.map(|t| t.cost).unwrap_or(0);
@@ -159,7 +161,7 @@ impl<'a> Widget for BonusItem<'a> {
         }
 
         // // tiers: show current tier first, then next (gold), then rest
-        // let tiers_area = chunks[2];
+        // let tiers_area = split[2];
         // let max_visible = (tiers_area.width / TIER_WIDTH) as usize;
 
         // // start from current tier (last owned), or 0 if none owned
@@ -170,7 +172,7 @@ impl<'a> Widget for BonusItem<'a> {
         // let tiers_constraints: Vec<_> = (0..visible_count)
         //     .map(|_| Constraint::Length(TIER_WIDTH))
         //     .collect();
-        // let tiers_chunks = Layout::horizontal(tiers_constraints).split(tiers_area);
+        // let tiers_split = Layout::horizontal(tiers_constraints).split(tiers_area);
 
         // for (render_idx, idx) in (start_idx..end_idx).enumerate() {
         //     let tier = &self.tiers[idx];
@@ -200,7 +202,7 @@ impl<'a> Widget for BonusItem<'a> {
         //         Style::default().fg(Color::DarkGray)
         //     };
 
-        //     let chunk = tiers_chunks[render_idx];
+        //     let chunk = tiers_split[render_idx];
 
         //     let block = Block::default()
         //         .border_style(border_style)
@@ -208,13 +210,13 @@ impl<'a> Widget for BonusItem<'a> {
         //     let inner = block.inner(chunk);
         //     block.render(chunk, buf);
 
-        //     let inner_chunks =
+        //     let inner_split =
         //         Layout::vertical([Constraint::Length(1), Constraint::Length(1)]).split(inner);
 
         //     let label_text = Text::from(tier_label)
         //         .style(style)
         //         .alignment(Alignment::Center);
-        //     label_text.render(inner_chunks[0], buf);
+        //     label_text.render(inner_split[0], buf);
 
         //     let cost_display = if idx < owned_level {
         //         "✓".to_string()
@@ -224,7 +226,7 @@ impl<'a> Widget for BonusItem<'a> {
         //     let cost_text = Text::from(cost_display)
         //         .style(style)
         //         .alignment(Alignment::Center);
-        //     cost_text.render(inner_chunks[1], buf);
+        //     cost_text.render(inner_split[1], buf);
         // }
     }
 }
@@ -233,10 +235,13 @@ impl<'a> Widget for BonusItem<'a> {
 pub struct BonusesView {
     selection: usize,
     scroll_state: ScrollViewState,
+    viewport_height: Cell<u16>,
 }
 
 impl BonusesView {
-    fn update_scroll(&mut self, viewport_height: u16) {
+    fn update_scroll(&mut self) {
+        let viewport_height = self.viewport_height.get();
+
         let selected_top = self.selection as u16 * ITEM_HEIGHT;
         let selected_bottom = selected_top + ITEM_HEIGHT;
 
@@ -255,7 +260,9 @@ impl BonusesView {
 
 impl View for BonusesView {
     fn render(&self, frame: &mut Frame, area: Rect, state: &State, tick: u32) {
-        let chunks = Layout::vertical([Constraint::Length(2), Constraint::Fill(1)]).split(area);
+        self.viewport_height.set(area.height);
+
+        let split = Layout::vertical([Constraint::Length(2), Constraint::Fill(1)]).split(area);
 
         // sub-header
         let block = Block::default()
@@ -265,10 +272,10 @@ impl View for BonusesView {
             .alignment(Alignment::Center)
             .style(Style::default().fg(Color::Reset))
             .block(block);
-        frame.render_widget(header, chunks[0]);
+        frame.render_widget(header, split[0]);
 
         // content area with scrollview
-        let content_area = chunks[1].inner(Margin::new(1, 0));
+        let content_area = split[1].inner(Margin::new(1, 0));
         let content_width = content_area.width.saturating_sub(1); // leave room for scrollbar
         let content_height = ALL_TRACKS.len() as u16 * ITEM_HEIGHT;
 
@@ -298,12 +305,12 @@ impl View for BonusesView {
             Action::Up => {
                 let count = ALL_TRACKS.len();
                 self.selection = (self.selection + count - 1) % count;
-                self.update_scroll(20);
+                self.update_scroll();
                 ViewResult::Redraw
             }
             Action::Down => {
                 self.selection = (self.selection + 1) % ALL_TRACKS.len();
-                self.update_scroll(20);
+                self.update_scroll();
                 ViewResult::Redraw
             }
             Action::Select => {

@@ -1,3 +1,5 @@
+use std::cell::Cell;
+
 use ratatui::{
     prelude::*,
     widgets::{Block, Borders, Padding, Paragraph, Wrap},
@@ -106,7 +108,9 @@ impl Widget for PackListItem {
 #[derive(Default)]
 pub struct PacksView {
     selection: usize,
+
     scroll_state: ScrollViewState,
+    viewport_height: Cell<u16>,
 }
 
 impl PacksView {
@@ -118,7 +122,9 @@ impl PacksView {
         ALL_PACKS.len()
     }
 
-    fn update_scroll(&mut self, viewport_height: u16) {
+    fn update_scroll(&mut self) {
+        let viewport_height = self.viewport_height.get();
+
         let selected_top = self.selection as u16 * ITEM_HEIGHT;
         let selected_bottom = selected_top + ITEM_HEIGHT;
 
@@ -140,8 +146,10 @@ impl PacksView {
 
 impl View for PacksView {
     fn render(&self, frame: &mut Frame, area: Rect, state: &State, tick: u32) {
+        self.viewport_height.set(area.height);
+
         // split out header
-        let chunks = Layout::vertical([Constraint::Length(2), Constraint::Fill(1)]).split(area);
+        let split = Layout::vertical([Constraint::Length(2), Constraint::Fill(1)]).split(area);
 
         let block = Block::default()
             .borders(Borders::TOP)
@@ -150,10 +158,10 @@ impl View for PacksView {
             .alignment(Alignment::Center)
             .style(Style::default().fg(Color::Reset))
             .block(block);
-        frame.render_widget(header, chunks[0]);
+        frame.render_widget(header, split[0]);
 
         // content area
-        let content_area = chunks[1].inner(Margin::new(1, 0));
+        let content_area = split[1].inner(Margin::new(1, 0));
         let content_width = content_area.width.saturating_sub(1); // leave room for scrollbar
         let content_height = self.item_count() as u16 * ITEM_HEIGHT;
 
@@ -180,12 +188,12 @@ impl View for PacksView {
             Action::Up => {
                 let count = self.item_count();
                 self.selection = (self.selection + count - 1) % count;
-                self.update_scroll(20); // approximate viewport height
+                self.update_scroll(); // approximate viewport height
                 ViewResult::Redraw
             }
             Action::Down => {
                 self.selection = (self.selection + 1) % self.item_count();
-                self.update_scroll(20);
+                self.update_scroll();
                 ViewResult::Redraw
             }
             Action::Select => {

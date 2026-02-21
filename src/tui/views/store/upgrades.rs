@@ -1,3 +1,5 @@
+use std::cell::Cell;
+
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Padding, Paragraph};
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
@@ -93,7 +95,9 @@ impl Widget for PartyListItem {
 #[derive(Default)]
 pub struct UpgradesView {
     selection: usize,
+
     scroll_state: ScrollViewState,
+    viewport_height: Cell<u16>,
 }
 
 impl UpgradesView {
@@ -105,7 +109,9 @@ impl UpgradesView {
         ALL_PARTIES.len()
     }
 
-    fn update_scroll(&mut self, viewport_height: u16) {
+    fn update_scroll(&mut self) {
+        let viewport_height = self.viewport_height.get();
+
         let selected_top = self.selection as u16 * ITEM_HEIGHT;
         let selected_bottom = selected_top + ITEM_HEIGHT;
 
@@ -127,6 +133,8 @@ impl UpgradesView {
 
 impl View for UpgradesView {
     fn render(&self, frame: &mut Frame, area: Rect, state: &State, tick: u32) {
+        self.viewport_height.set(area.height);
+
         // split out header
         let chunks = Layout::vertical([Constraint::Length(2), Constraint::Fill(1)]).split(area);
 
@@ -167,12 +175,12 @@ impl View for UpgradesView {
             Action::Up => {
                 let count = self.item_count();
                 self.selection = (self.selection + count - 1) % count;
-                self.update_scroll(20); // approximate viewport height
+                self.update_scroll();
                 ViewResult::Redraw
             }
             Action::Down => {
                 self.selection = (self.selection + 1) % self.item_count();
-                self.update_scroll(20);
+                self.update_scroll();
                 ViewResult::Redraw
             }
             Action::Select => {

@@ -229,8 +229,8 @@ impl State {
     }
 
     /// how many packs of the given type the player has
-    pub fn pack_count(&self, pack: Pack) -> u32 {
-        self.packs.get(&pack).copied().unwrap_or_default()
+    pub fn pack_count(&self, pack: &Pack) -> u32 {
+        self.packs.get(pack).copied().unwrap_or_default()
     }
 
     /// decrements the number of packs of a given type
@@ -449,17 +449,17 @@ mod tests {
     #[test]
     fn test_add_and_open_pack() {
         let mut state = State::default();
-        assert_eq!(state.pack_count(Pack::Basic), 0);
+        assert_eq!(state.pack_count(&Pack::Basic), 0);
 
         state.add_pack(Pack::Basic);
-        assert_eq!(state.pack_count(Pack::Basic), 1);
+        assert_eq!(state.pack_count(&Pack::Basic), 1);
 
         state.open_pack(Pack::Basic);
-        assert_eq!(state.pack_count(Pack::Basic), 0);
+        assert_eq!(state.pack_count(&Pack::Basic), 0);
 
         // nothing breaks
         state.open_pack(Pack::Basic);
-        assert_eq!(state.pack_count(Pack::Basic), 0);
+        assert_eq!(state.pack_count(&Pack::Basic), 0);
     }
 
     #[test]
@@ -467,14 +467,14 @@ mod tests {
         let mut state = State::default();
 
         assert_eq!(state.lifetime_packs_earned, 0);
-        assert_eq!(state.pack_count(Pack::Basic), 0);
+        assert_eq!(state.pack_count(&Pack::Basic), 0);
 
         // should earn 1 pack
         let thresholds = state.earn_points(PACK_ACCRUAL_RATE);
 
         assert_eq!(thresholds, vec![PACK_ACCRUAL_RATE]);
         assert_eq!(state.lifetime_packs_earned, 1);
-        assert_eq!(state.pack_count(Pack::Basic), 1);
+        assert_eq!(state.pack_count(&Pack::Basic), 1);
 
         // should earn 2 packs at once
         let thresholds = state.earn_points(5 * PACK_ACCRUAL_RATE);
@@ -484,6 +484,6 @@ mod tests {
             vec![3 * PACK_ACCRUAL_RATE, 6 * PACK_ACCRUAL_RATE]
         );
         assert_eq!(state.lifetime_packs_earned, 3);
-        assert_eq!(state.pack_count(Pack::Basic), 3);
+        assert_eq!(state.pack_count(&Pack::Basic), 3);
     }
 }

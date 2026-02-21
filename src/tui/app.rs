@@ -32,7 +32,7 @@ impl App {
             tick: 0,
             store: StoreView::default(),
             party: PartyView::default(),
-            packs: PacksView,
+            packs: PacksView::default(),
             games: GamesView,
         }
     }

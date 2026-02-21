@@ -169,12 +169,12 @@ impl View for PacksView {
             .horizontal_scrollbar_visibility(ScrollbarVisibility::Never);
 
         // render items into scroll view
-        for (i, &pack) in ALL_PACKS.iter().enumerate() {
+        for (i, pack) in ALL_PACKS.iter().enumerate() {
             let affordable = state.party_points >= pack.cost();
             let selected = self.selection == i;
             let num_owned = state.pack_count(pack);
 
-            let item = PackListItem::new(pack, num_owned, affordable, selected, tick);
+            let item = PackListItem::new(*pack, num_owned, affordable, selected, tick);
             let item_rect = Rect::new(0, i as u16 * ITEM_HEIGHT, content_width, ITEM_HEIGHT);
             scroll_view.render_widget(item, item_rect);
         }

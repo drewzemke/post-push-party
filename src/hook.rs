@@ -12,7 +12,7 @@ pub fn post_push() {
         let clock = Clock::from_now();
 
         let breakdown = scoring::calculate_points(&push, &state, &history, &clock);
-        state.earn_points(breakdown.total);
+        let packs_earned = state.earn_points(breakdown.total);
 
         if let Err(e) = state::save(&state) {
             eprintln!("warning: could not save state: {e}");
@@ -33,7 +33,7 @@ pub fn post_push() {
             );
         }
 
-        let ctx = RenderContext::new(&push, &history, &breakdown, &state, &clock);
+        let ctx = RenderContext::new(&push, &history, &breakdown, &state, &clock, packs_earned);
         party::display(&ctx);
     }
 }

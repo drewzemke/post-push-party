@@ -10,6 +10,7 @@ pub struct RenderContext<'a> {
     pub breakdown: &'a PointsBreakdown,
     pub state: &'a State,
     pub clock: &'a Clock,
+    pub pack_thresholds: Vec<u64>,
 }
 
 impl<'a> RenderContext<'a> {
@@ -19,6 +20,7 @@ impl<'a> RenderContext<'a> {
         breakdown: &'a PointsBreakdown,
         state: &'a State,
         clock: &'a Clock,
+        pack_thresholds: Vec<u64>,
     ) -> Self {
         Self {
             push,
@@ -26,6 +28,7 @@ impl<'a> RenderContext<'a> {
             breakdown,
             state,
             clock,
+            pack_thresholds,
         }
     }
 }

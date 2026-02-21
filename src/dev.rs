@@ -38,7 +38,7 @@ pub fn push(num_commits: u64, lines: Option<Vec<u64>>) {
     let push = Push::with_repo(commits, "dev://fake");
 
     let breakdown = scoring::calculate_points(&push, &state, &history, &clock);
-    state.earn_points(breakdown.total);
+    let packs_earned = state.earn_points(breakdown.total);
 
     if let Err(e) = state::save(&state) {
         eprintln!("warning: could not save state: {e}");
@@ -54,7 +54,7 @@ pub fn push(num_commits: u64, lines: Option<Vec<u64>>) {
         breakdown.total,
     );
 
-    let ctx = RenderContext::new(&push, &history, &breakdown, &state, &clock);
+    let ctx = RenderContext::new(&push, &history, &breakdown, &state, &clock, packs_earned);
     party::display(&ctx);
 }
 
@@ -118,7 +118,8 @@ pub fn palette(party_id: &str) {
 
     let mut s = state::load();
     for id in &ids {
-        s.unlocked_palettes.insert(id.to_string(), palette_names.clone());
+        s.unlocked_palettes
+            .insert(id.to_string(), palette_names.clone());
     }
     if let Err(e) = state::save(&s) {
         eprintln!("error saving state: {e}");

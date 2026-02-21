@@ -6,6 +6,17 @@ use crate::bonus_track::{ALL_TRACKS, Reward};
 use crate::pack::Pack;
 use crate::party::{Palette, Party};
 
+/// measures how quickly the player gains packs automatically based
+/// on lifetime points. specifically it's the rate of increase of
+/// difference between subsequent break points
+///
+/// eg. if the value is 25, then the player will get points
+/// at: 0  + 1 * 25 = 25
+///     25 + 2 * 25 = 75
+///     75 + 3 * 25 = 150
+///     ... etc
+const PACK_ACCRUAL_RATE: u64 = 25;
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct State {
     pub party_points: u64,
@@ -15,19 +26,19 @@ pub struct State {
 
     /// refers to bonus tracks by their identifier string
     #[serde(default)]
-    pub bonus_levels: HashMap<String, u32>,
+    bonus_levels: HashMap<String, u32>,
 
-    /// which parties the user has unlocked via the store.
+    /// which parties the player has unlocked via the store.
     /// refers to parties by their identifier string
     #[serde(default)]
-    pub unlocked_parties: HashSet<String>,
+    unlocked_parties: HashSet<String>,
 
-    /// which parties have been enabled by the user.
+    /// which parties have been enabled by the player.
     /// refers to parties by their identifier string
     #[serde(default)]
-    pub enabled_parties: HashSet<String>,
+    enabled_parties: HashSet<String>,
 
-    /// which palettes the user has unlocked for each party.
+    /// which palettes the player has unlocked for each party.
     /// refers to parties by their identifier string, and to palettes by their names
     #[serde(default)]
     pub unlocked_palettes: HashMap<String, Vec<String>>,
@@ -35,11 +46,15 @@ pub struct State {
     /// which palette is currently configured for each party.
     /// refers to parties by their identifier string, palettes by their name
     #[serde(default)]
-    pub active_palettes: HashMap<String, PaletteSelection>,
+    active_palettes: HashMap<String, PaletteSelection>,
 
-    /// how many packs of each time the user has
+    /// how many packs of each time the player has
     #[serde(default)]
     pub packs: HashMap<Pack, u32>,
+
+    /// how many packs have been earned though the points accrual mechanism
+    #[serde(default)]
+    pub lifetime_packs_earned: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -76,14 +91,40 @@ impl Default for State {
                 PaletteSelection::Specific(white),
             )]),
             packs: HashMap::new(),
+            lifetime_packs_earned: 0,
         }
     }
 }
 
 impl State {
-    pub fn earn_points(&mut self, amount: u64) {
+    /// if packs were earned as a result of earning these points,
+    /// this returns the list of point thresholds that were
+    /// crossed. otherwise an empty list
+    pub fn earn_points(&mut self, amount: u64) -> Vec<u64> {
         self.party_points += amount;
         self.lifetime_points_earned += amount;
+
+        let mut thresholds = Vec::new();
+
+        // check if we've crossed a threshold for which we should
+        // grant packs. the thresholds values are
+        //   PACK_ACCRUAL_RATE * (n+1) * (n+2) / 2
+        // where n is the number of packs earned in this way so far
+        let mut threshold =
+            PACK_ACCRUAL_RATE * (self.lifetime_packs_earned + 1) * (self.lifetime_packs_earned + 2)
+                / 2;
+        while threshold <= self.lifetime_points_earned {
+            self.lifetime_packs_earned += 1;
+            self.add_pack(Pack::Basic);
+            thresholds.push(threshold);
+
+            threshold = PACK_ACCRUAL_RATE
+                * (self.lifetime_packs_earned + 1)
+                * (self.lifetime_packs_earned + 2)
+                / 2
+        }
+
+        thresholds
     }
 
     pub fn bonus_level(&self, id: &str) -> u32 {
@@ -182,12 +223,12 @@ impl State {
         self.active_palettes.insert(party_id.to_string(), selection);
     }
 
-    /// adds a pack to the user's inventory
+    /// adds a pack to the player's inventory
     pub fn add_pack(&mut self, pack: Pack) {
-        self.packs.entry(pack).and_modify(|n| *n += 1).or_default();
+        self.packs.entry(pack).and_modify(|n| *n += 1).or_insert(1);
     }
 
-    /// how many packs of the given type the user has
+    /// how many packs of the given type the player has
     pub fn pack_count(&self, pack: Pack) -> u32 {
         self.packs.get(&pack).copied().unwrap_or_default()
     }
@@ -248,7 +289,8 @@ pub fn stats() {
         applied: vec![],
     };
 
-    let ctx = crate::party::RenderContext::new(&push, &history, &breakdown, &state, &clock);
+    let ctx =
+        crate::party::RenderContext::new(&push, &history, &breakdown, &state, &clock, Vec::new());
     crate::party::stats::Stats.render(&ctx, &crate::party::Palette::WHITE);
 }
 
@@ -256,6 +298,7 @@ pub fn dump() {
     let state = load();
     println!("party_points: {}", state.party_points);
     println!("lifetime_points_earned: {}", state.lifetime_points_earned);
+    println!("lifetime_packs_earned: {}", state.lifetime_packs_earned);
     println!("points_per_commit: {}", state.points_per_commit());
     println!("bonus_levels: {:?}", state.bonus_levels);
     println!("unlocked_parties: {:?}", state.unlocked_parties);
@@ -401,5 +444,46 @@ mod tests {
 
         let loaded = load_from_path(&path);
         assert_eq!(loaded, State::default());
+    }
+
+    #[test]
+    fn test_add_and_open_pack() {
+        let mut state = State::default();
+        assert_eq!(state.pack_count(Pack::Basic), 0);
+
+        state.add_pack(Pack::Basic);
+        assert_eq!(state.pack_count(Pack::Basic), 1);
+
+        state.open_pack(Pack::Basic);
+        assert_eq!(state.pack_count(Pack::Basic), 0);
+
+        // nothing breaks
+        state.open_pack(Pack::Basic);
+        assert_eq!(state.pack_count(Pack::Basic), 0);
+    }
+
+    #[test]
+    fn get_packs_based_on_lifetime_points() {
+        let mut state = State::default();
+
+        assert_eq!(state.lifetime_packs_earned, 0);
+        assert_eq!(state.pack_count(Pack::Basic), 0);
+
+        // should earn 1 pack
+        let thresholds = state.earn_points(PACK_ACCRUAL_RATE);
+
+        assert_eq!(thresholds, vec![PACK_ACCRUAL_RATE]);
+        assert_eq!(state.lifetime_packs_earned, 1);
+        assert_eq!(state.pack_count(Pack::Basic), 1);
+
+        // should earn 2 packs at once
+        let thresholds = state.earn_points(5 * PACK_ACCRUAL_RATE);
+
+        assert_eq!(
+            thresholds,
+            vec![3 * PACK_ACCRUAL_RATE, 6 * PACK_ACCRUAL_RATE]
+        );
+        assert_eq!(state.lifetime_packs_earned, 3);
+        assert_eq!(state.pack_count(Pack::Basic), 3);
     }
 }

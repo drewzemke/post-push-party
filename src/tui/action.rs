@@ -33,6 +33,7 @@ pub enum StoreRoute {
     Grid,
     Upgrades,
     Bonuses,
+    Packs,
 }
 
 impl Route {

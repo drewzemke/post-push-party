@@ -8,6 +8,7 @@ mod history;
 mod hook;
 mod init;
 mod log;
+mod pack;
 mod party;
 mod scoring;
 mod state;

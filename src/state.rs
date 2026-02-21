@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
 use crate::bonus_track::{ALL_TRACKS, Reward};
+use crate::pack::Pack;
 use crate::party::{Palette, Party};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -26,8 +27,6 @@ pub struct State {
     #[serde(default)]
     pub enabled_parties: HashSet<String>,
 
-    // pack_items: HashMap<PackItem, u32>,  // TODO: add when implementing packs
-    //
     /// which palettes the user has unlocked for each party.
     /// refers to parties by their identifier string, and to palettes by their names
     #[serde(default)]
@@ -37,13 +36,11 @@ pub struct State {
     /// refers to parties by their identifier string, palettes by their name
     #[serde(default)]
     pub active_palettes: HashMap<String, PaletteSelection>,
-}
 
-// #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-// pub enum PackItem {
-//     SnakeToken,
-//     // SlotsToken, ...
-// }
+    /// how many packs of each time the user has
+    #[serde(default)]
+    pub packs: HashMap<Pack, u32>,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PaletteSelection {
@@ -78,6 +75,7 @@ impl Default for State {
                 "base".to_string(),
                 PaletteSelection::Specific(white),
             )]),
+            packs: HashMap::new(),
         }
     }
 }
@@ -183,6 +181,23 @@ impl State {
         };
         self.active_palettes.insert(party_id.to_string(), selection);
     }
+
+    /// adds a pack to the user's inventory
+    pub fn add_pack(&mut self, pack: Pack) {
+        self.packs.entry(pack).and_modify(|n| *n += 1).or_default();
+    }
+
+    /// how many packs of the given type the user has
+    pub fn pack_count(&self, pack: Pack) -> u32 {
+        self.packs.get(&pack).copied().unwrap_or_default()
+    }
+
+    /// decrements the number of packs of a given type
+    pub fn open_pack(&mut self, pack: Pack) {
+        self.packs
+            .entry(pack)
+            .and_modify(|n| *n = n.saturating_sub(1));
+    }
 }
 
 pub fn state_dir() -> Option<PathBuf> {
@@ -268,10 +283,11 @@ mod tests {
     use tempfile::tempdir;
 
     #[test]
-    fn default_state_has_zero_points() {
+    fn default_state_has_zero_points_or_packs() {
         let state = State::default();
         assert_eq!(state.party_points, 0);
         assert_eq!(state.lifetime_points_earned, 0);
+        assert_eq!(state.packs.values().count(), 0)
     }
 
     #[test]

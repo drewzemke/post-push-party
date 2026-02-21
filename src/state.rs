@@ -233,6 +233,11 @@ impl State {
         self.packs.get(pack).copied().unwrap_or_default()
     }
 
+    /// how many packs of all types the player has
+    pub fn pack_total(&self) -> u32 {
+        self.packs.values().sum()
+    }
+
     /// decrements the number of packs of a given type
     pub fn open_pack(&mut self, pack: Pack) {
         self.packs

@@ -93,7 +93,12 @@ impl App {
             .split(area);
 
         // header
-        render_header(frame, chunks[0].inner(Margin::new(1, 0)), &self.route);
+        render_header(
+            frame,
+            chunks[0].inner(Margin::new(1, 0)),
+            &self.route,
+            &self.state,
+        );
 
         // content
         match &self.route {

@@ -1,11 +1,30 @@
 use ratatui::prelude::*;
 use ratatui::widgets::Paragraph;
 
-use crate::tui::action::Route;
+use crate::{state::State, tui::action::Route};
 
-const TABS: [&str; 4] = ["[1] Store", "[2] Party", "[3] Packs", "[4] Games"];
+#[derive(PartialEq)]
+enum Tab {
+    Store,
+    Party,
+    Packs,
+    Games,
+}
 
-pub fn render_header(frame: &mut Frame, area: Rect, route: &Route) {
+impl Tab {
+    fn name(&self) -> &'static str {
+        match self {
+            Tab::Store => "Store",
+            Tab::Party => "Party",
+            Tab::Packs => "Packs",
+            Tab::Games => "Game",
+        }
+    }
+}
+
+const TABS: [Tab; 4] = [Tab::Store, Tab::Party, Tab::Packs, Tab::Games];
+
+pub fn render_header(frame: &mut Frame, area: Rect, route: &Route, state: &State) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(1), Constraint::Length(1)])
@@ -23,18 +42,28 @@ pub fn render_header(frame: &mut Frame, area: Rect, route: &Route) {
     frame.render_widget(version, title_chunks[1]);
 
     // tabs
+    let pack_total = state.pack_total();
     let selected = route.tab_index();
     let tabs: Vec<Span> = TABS
         .iter()
         .enumerate()
-        .flat_map(|(i, &tab)| {
+        .flat_map(|(i, tab)| {
             let style = if i == selected {
                 Style::default().fg(Color::Reset)
             } else {
                 Style::default().fg(Color::DarkGray)
             };
+            let name = tab.name();
+            let count = if *tab == Tab::Packs && pack_total > 0 {
+                format!(" ({pack_total})")
+            } else {
+                "".to_string()
+            };
             let sep = if i < TABS.len() - 1 { "   " } else { "" };
-            vec![Span::styled(tab, style), Span::raw(sep)]
+            vec![
+                Span::styled(format!("{name}{count}"), style),
+                Span::raw(sep),
+            ]
         })
         .collect();
 

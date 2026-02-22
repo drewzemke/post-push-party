@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pack Rarity Simulator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type="number"] { -moz-appearance: textfield; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      padding: 20px;
+      line-height: 1.4;
+    }
+    h1 { color: #f39c12; margin-bottom: 10px; }
+    h2 { color: #3498db; margin: 15px 0 10px; font-size: 1.1em; border-bottom: 1px solid #333; padding-bottom: 5px; }
+    h3 { color: #9b59b6; margin: 10px 0 5px; font-size: 0.95em; }
+
+    .container { display: grid; grid-template-columns: 320px 1fr; gap: 20px; max-width: 1200px; margin: 0 auto; }
+    .panel { background: #16213e; padding: 15px; border-radius: 8px; }
+
+    .input-row { display: flex; align-items: center; margin: 5px 0; gap: 8px; }
+    .input-row label { flex: 1; font-size: 0.85em; color: #aaa; }
+    .input-row input[type="number"] { width: 80px; padding: 4px 6px; border: 1px solid #444; border-radius: 4px; background: #0f0f23; color: #eee; text-align: right; }
+
+    .template-editor { margin: 10px 0; }
+    .template-slots { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+    .template-slot { padding: 6px 12px; border-radius: 4px; font-size: 0.85em; font-weight: bold; cursor: pointer; border: 2px solid transparent; }
+    .template-slot:hover { opacity: 0.8; }
+    .slot-common { background: #555; color: #eee; }
+    .slot-rare { background: #3498db; color: #fff; }
+    .slot-epic { background: #9b59b6; color: #fff; }
+    .slot-legendary { background: #f39c12; color: #fff; }
+
+    .template-buttons { display: flex; gap: 6px; margin-top: 8px; }
+    .template-buttons button { padding: 4px 10px; border: 1px solid #444; border-radius: 4px; background: #0f0f23; color: #aaa; cursor: pointer; font-size: 0.8em; }
+    .template-buttons button:hover { border-color: #3498db; color: #eee; }
+
+    .presets { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
+    .preset-btn { padding: 5px 10px; border: 1px solid #555; border-radius: 4px; background: #0f0f23; color: #aaa; cursor: pointer; font-size: 0.8em; }
+    .preset-btn:hover { border-color: #3498db; color: #eee; }
+    .preset-btn.active { border-color: #f39c12; background: #2a2a4e; color: #eee; }
+
+    .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+
+    .rarity-bar { margin: 8px 0; }
+    .rarity-label { display: flex; justify-content: space-between; font-size: 0.85em; margin-bottom: 3px; }
+    .rarity-label .name { font-weight: bold; }
+    .rarity-label .pct { color: #2ecc71; font-family: monospace; }
+    .bar-bg { height: 24px; background: #0f0f23; border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; display: flex; align-items: center; padding-left: 8px; font-size: 0.75em; font-weight: bold; }
+    .bar-common { background: #555; }
+    .bar-rare { background: #3498db; }
+    .bar-epic { background: #9b59b6; }
+    .bar-legendary { background: #f39c12; }
+
+    .stats-section { margin-top: 15px; }
+    .stat-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #333; font-size: 0.85em; }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-label { color: #888; }
+    .stat-value { color: #2ecc71; font-family: monospace; }
+
+    .pack-breakdown { margin-top: 15px; }
+    .pack-type-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.8em; color: #aaa; }
+    .pack-type-row .count { font-family: monospace; color: #eee; }
+
+    .note { font-size: 0.75em; color: #666; margin-top: 10px; font-style: italic; }
+  </style>
+</head>
+<body>
+  <h1>Pack Rarity Simulator</h1>
+
+  <div class="container">
+    <div class="panel">
+      <h2>Configuration</h2>
+
+      <h3>Upgrade Probabilities</h3>
+      <div class="input-row">
+        <label>Common → Rare</label>
+        <input type="number" id="prob-c2r" value="10" min="0" max="100" step="1">
+        <span style="color:#888; font-size:0.85em">%</span>
+      </div>
+      <div class="input-row">
+        <label>Rare → Epic</label>
+        <input type="number" id="prob-r2e" value="10" min="0" max="100" step="1">
+        <span style="color:#888; font-size:0.85em">%</span>
+      </div>
+      <div class="input-row">
+        <label>Epic → Legendary</label>
+        <input type="number" id="prob-e2l" value="10" min="0" max="100" step="1">
+        <span style="color:#888; font-size:0.85em">%</span>
+      </div>
+
+      <div class="presets">
+        <button class="preset-btn" data-preset="conservative">Conservative</button>
+        <button class="preset-btn active" data-preset="default">Default</button>
+        <button class="preset-btn" data-preset="generous">Generous</button>
+        <button class="preset-btn" data-preset="hearthstone">Hearthstone-ish</button>
+      </div>
+
+      <h3>Pack Template</h3>
+      <div class="template-editor">
+        <div class="template-slots" id="template-slots"></div>
+        <div class="template-buttons">
+          <button id="add-common">+ Common</button>
+          <button id="add-rare">+ Rare</button>
+          <button id="add-epic">+ Epic</button>
+          <button id="add-legendary">+ Legendary</button>
+          <button id="remove-last">Remove</button>
+        </div>
+        <div class="presets" style="margin-top: 8px;">
+          <button class="preset-btn" data-template="basic">Basic (4C 1R)</button>
+          <button class="preset-btn" data-template="premium">Premium (3C 2R)</button>
+          <button class="preset-btn" data-template="epic">Epic (2C 2R 1E)</button>
+        </div>
+      </div>
+
+      <h3>Simulation</h3>
+      <div class="input-row">
+        <label>Packs to open</label>
+        <input type="number" id="num-packs" value="10000" min="100" max="100000" step="100">
+      </div>
+
+      <p class="note">Results update automatically as you change inputs.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Results</h2>
+
+      <div class="results-grid">
+        <div>
+          <h3>Per-Item Rarity Distribution</h3>
+          <div id="item-bars"></div>
+
+          <div class="stats-section">
+            <h3>Per-Item Stats</h3>
+            <div id="item-stats"></div>
+          </div>
+        </div>
+
+        <div>
+          <h3>Per-Pack Stats</h3>
+          <div id="pack-stats"></div>
+
+          <div class="stats-section">
+            <h3>Pack Composition Breakdown</h3>
+            <p style="font-size:0.75em; color:#666; margin-bottom:8px;">most common pack types</p>
+            <div id="pack-breakdown"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const RARITIES = ['common', 'rare', 'epic', 'legendary'];
+    const RARITY_COLORS = { common: '#555', rare: '#3498db', epic: '#9b59b6', legendary: '#f39c12' };
+
+    const PRESETS = {
+      conservative: { c2r: 5, r2e: 5, e2l: 3 },
+      default: { c2r: 10, r2e: 10, e2l: 10 },
+      generous: { c2r: 25, r2e: 15, e2l: 10 },
+      // hearthstone per-card rates are ~71% C, 23% R, 4.4% E, 1.1% L
+      // with a template of 4C 1R, we need upgrade probs that produce similar output
+      // C->R ~22%, R->E ~18%, E->L ~20% gets close
+      'hearthstone-ish': { c2r: 22, r2e: 18, e2l: 20 },
+    };
+
+    const TEMPLATE_PRESETS = {
+      basic: ['common', 'common', 'common', 'common', 'rare'],
+      premium: ['common', 'common', 'common', 'rare', 'rare'],
+      epic: ['common', 'common', 'rare', 'rare', 'epic'],
+    };
+
+    let template = ['common', 'common', 'common', 'common', 'rare'];
+
+    function getProbs() {
+      return {
+        c2r: parseFloat(document.getElementById('prob-c2r').value) / 100,
+        r2e: parseFloat(document.getElementById('prob-r2e').value) / 100,
+        e2l: parseFloat(document.getElementById('prob-e2l').value) / 100,
+      };
+    }
+
+    function upgradeRarity(rarity, probs) {
+      while (true) {
+        let roll = Math.random();
+        if (rarity === 'common' && roll < probs.c2r) { rarity = 'rare'; }
+        else if (rarity === 'rare' && roll < probs.r2e) { rarity = 'epic'; }
+        else if (rarity === 'epic' && roll < probs.e2l) { rarity = 'legendary'; }
+        else break;
+      }
+      return rarity;
+    }
+
+    function simulate() {
+      const probs = getProbs();
+      const numPacks = parseInt(document.getElementById('num-packs').value);
+      const itemsPerPack = template.length;
+      const totalItems = numPacks * itemsPerPack;
+
+      // per-item counts
+      const itemCounts = { common: 0, rare: 0, epic: 0, legendary: 0 };
+
+      // per-pack composition tracking
+      const packTypes = {};
+      let packsWithEpicPlus = 0;
+      let packsWithLegendary = 0;
+      let allCommonPacks = 0;
+
+      for (let p = 0; p < numPacks; p++) {
+        const packResult = { common: 0, rare: 0, epic: 0, legendary: 0 };
+
+        for (let i = 0; i < itemsPerPack; i++) {
+          const finalRarity = upgradeRarity(template[i], probs);
+          itemCounts[finalRarity]++;
+          packResult[finalRarity]++;
+        }
+
+        // track pack composition
+        const key = `${packResult.common}C ${packResult.rare}R ${packResult.epic}E ${packResult.legendary}L`;
+        packTypes[key] = (packTypes[key] || 0) + 1;
+
+        if (packResult.epic > 0 || packResult.legendary > 0) packsWithEpicPlus++;
+        if (packResult.legendary > 0) packsWithLegendary++;
+        if (packResult.rare === 0 && packResult.epic === 0 && packResult.legendary === 0) allCommonPacks++;
+      }
+
+      return { itemCounts, totalItems, numPacks, packTypes, packsWithEpicPlus, packsWithLegendary, allCommonPacks };
+    }
+
+    function renderResults() {
+      const result = simulate();
+
+      // item rarity bars
+      const barsEl = document.getElementById('item-bars');
+      barsEl.innerHTML = '';
+      for (const rarity of RARITIES) {
+        const count = result.itemCounts[rarity];
+        const pct = (count / result.totalItems * 100);
+        const div = document.createElement('div');
+        div.className = 'rarity-bar';
+        div.innerHTML = `
+          <div class="rarity-label">
+            <span class="name" style="color:${RARITY_COLORS[rarity]}">${rarity}</span>
+            <span class="pct">${pct.toFixed(2)}% (${count.toLocaleString()})</span>
+          </div>
+          <div class="bar-bg">
+            <div class="bar-fill bar-${rarity}" style="width:${Math.max(pct, 0.5)}%"></div>
+          </div>
+        `;
+        barsEl.appendChild(div);
+      }
+
+      // per-item stats
+      const itemStatsEl = document.getElementById('item-stats');
+      const avgRare = result.numPacks / Math.max(result.itemCounts.rare, 1);
+      const avgEpic = result.numPacks / Math.max(result.itemCounts.epic, 1);
+      const avgLegendary = result.numPacks / Math.max(result.itemCounts.legendary, 1);
+      itemStatsEl.innerHTML = `
+        <div class="stat-row"><span class="stat-label">Avg packs per rare item</span><span class="stat-value">${avgRare.toFixed(1)}</span></div>
+        <div class="stat-row"><span class="stat-label">Avg packs per epic item</span><span class="stat-value">${avgEpic.toFixed(1)}</span></div>
+        <div class="stat-row"><span class="stat-label">Avg packs per legendary item</span><span class="stat-value">${avgLegendary.toFixed(1)}</span></div>
+      `;
+
+      // per-pack stats
+      const packStatsEl = document.getElementById('pack-stats');
+      const epicPlusPct = (result.packsWithEpicPlus / result.numPacks * 100);
+      const legendaryPct = (result.packsWithLegendary / result.numPacks * 100);
+      const allCommonPct = (result.allCommonPacks / result.numPacks * 100);
+      const packsPerEpicPack = result.packsWithEpicPlus > 0 ? (result.numPacks / result.packsWithEpicPlus) : Infinity;
+      const packsPerLegendaryPack = result.packsWithLegendary > 0 ? (result.numPacks / result.packsWithLegendary) : Infinity;
+
+      packStatsEl.innerHTML = `
+        <div class="stat-row"><span class="stat-label">Packs with epic+</span><span class="stat-value">${epicPlusPct.toFixed(1)}%</span></div>
+        <div class="stat-row"><span class="stat-label">Packs with legendary</span><span class="stat-value">${legendaryPct.toFixed(1)}%</span></div>
+        <div class="stat-row"><span class="stat-label">All-common packs</span><span class="stat-value">${allCommonPct.toFixed(1)}%</span></div>
+        <div class="stat-row"><span class="stat-label">Avg packs until epic+ pack</span><span class="stat-value">${packsPerEpicPack === Infinity ? '∞' : packsPerEpicPack.toFixed(1)}</span></div>
+        <div class="stat-row"><span class="stat-label">Avg packs until legendary pack</span><span class="stat-value">${packsPerLegendaryPack === Infinity ? '∞' : packsPerLegendaryPack.toFixed(1)}</span></div>
+      `;
+
+      // pack composition breakdown (top 10)
+      const breakdownEl = document.getElementById('pack-breakdown');
+      const sorted = Object.entries(result.packTypes).sort((a, b) => b[1] - a[1]).slice(0, 10);
+      breakdownEl.innerHTML = sorted.map(([type, count]) => {
+        const pct = (count / result.numPacks * 100).toFixed(1);
+        return `<div class="pack-type-row"><span>${type}</span><span class="count">${pct}% (${count.toLocaleString()})</span></div>`;
+      }).join('');
+    }
+
+    function renderTemplate() {
+      const slotsEl = document.getElementById('template-slots');
+      slotsEl.innerHTML = '';
+      template.forEach((rarity, i) => {
+        const span = document.createElement('span');
+        span.className = `template-slot slot-${rarity}`;
+        span.textContent = rarity[0].toUpperCase();
+        span.title = `${rarity} — click to cycle`;
+        span.addEventListener('click', () => {
+          const idx = RARITIES.indexOf(template[i]);
+          template[i] = RARITIES[(idx + 1) % RARITIES.length];
+          renderTemplate();
+          renderResults();
+        });
+        slotsEl.appendChild(span);
+      });
+    }
+
+    // template buttons
+    document.getElementById('add-common').addEventListener('click', () => { template.push('common'); renderTemplate(); renderResults(); });
+    document.getElementById('add-rare').addEventListener('click', () => { template.push('rare'); renderTemplate(); renderResults(); });
+    document.getElementById('add-epic').addEventListener('click', () => { template.push('epic'); renderTemplate(); renderResults(); });
+    document.getElementById('add-legendary').addEventListener('click', () => { template.push('legendary'); renderTemplate(); renderResults(); });
+    document.getElementById('remove-last').addEventListener('click', () => { if (template.length > 1) { template.pop(); renderTemplate(); renderResults(); } });
+
+    // template presets
+    document.querySelectorAll('[data-template]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        template = [...TEMPLATE_PRESETS[btn.dataset.template]];
+        renderTemplate();
+        renderResults();
+      });
+    });
+
+    // probability presets
+    document.querySelectorAll('[data-preset]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-preset]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const p = PRESETS[btn.dataset.preset];
+        document.getElementById('prob-c2r').value = p.c2r;
+        document.getElementById('prob-r2e').value = p.r2e;
+        document.getElementById('prob-e2l').value = p.e2l;
+        renderResults();
+      });
+    });
+
+    // live update on input change
+    document.querySelectorAll('input').forEach(el => {
+      el.addEventListener('change', renderResults);
+      el.addEventListener('input', renderResults);
+    });
+
+    // initial render
+    renderTemplate();
+    renderResults();
+  </script>
+</body>
+</html>

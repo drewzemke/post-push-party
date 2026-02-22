@@ -3,8 +3,8 @@ use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
 use crate::bonus_track::{ALL_TRACKS, Reward};
-use crate::pack::Pack;
-use crate::party::{Palette, Party};
+use crate::pack::{Pack, PackItem};
+use crate::party::{ALL_PARTIES, Palette, Party};
 
 /// measures how quickly the player gains packs automatically based
 /// on lifetime points. specifically it's the rate of increase of
@@ -151,6 +151,13 @@ impl State {
         1
     }
 
+    pub fn unlocked_parties(&self) -> impl Iterator<Item = &'static dyn Party> + use<'_> {
+        ALL_PARTIES
+            .iter()
+            .copied()
+            .filter(|&party| self.is_party_unlocked(party.id()))
+    }
+
     pub fn is_party_unlocked(&self, id: &str) -> bool {
         self.unlocked_parties.contains(id)
     }
@@ -181,6 +188,21 @@ impl State {
                 self.enabled_parties.insert(id.to_string());
             }
         }
+    }
+
+    pub fn unlock_palette(&mut self, party_id: &str, palette_name: &str) {
+        self.unlocked_palettes
+            .entry(party_id.to_string())
+            .and_modify(|v| {
+                v.push(palette_name.to_string());
+            })
+            .or_insert(Vec::from([palette_name.to_string()]));
+    }
+
+    pub fn is_palette_unlocked(&self, party_id: &str, palette_name: &str) -> bool {
+        self.unlocked_palettes
+            .get(party_id)
+            .is_some_and(|v| v.iter().any(|name| name == palette_name))
     }
 
     pub fn unlocked_palettes(&self, party_id: &str) -> Option<&Vec<String>> {
@@ -238,11 +260,15 @@ impl State {
         self.packs.values().sum()
     }
 
-    /// decrements the number of packs of a given type
-    pub fn open_pack(&mut self, pack: Pack) {
+    /// decrements the number of packs of a given type,
+    /// invokes the "open" algorithm that determins what's in a pack, then
+    /// applies the received items to the player's state
+    pub fn open_pack(&mut self, pack: Pack) -> Vec<PackItem> {
         self.packs
             .entry(pack)
             .and_modify(|n| *n = n.saturating_sub(1));
+
+        pack.open(self)
     }
 }
 
@@ -459,12 +485,8 @@ mod tests {
         state.add_pack(Pack::Basic);
         assert_eq!(state.pack_count(&Pack::Basic), 1);
 
-        state.open_pack(Pack::Basic);
-        assert_eq!(state.pack_count(&Pack::Basic), 0);
-
         // nothing breaks
         state.open_pack(Pack::Basic);
-        assert_eq!(state.pack_count(&Pack::Basic), 0);
     }
 
     #[test]

@@ -91,6 +91,10 @@ impl Palette {
 
     pub const WHITE: Self = Self::new("White", &[ansi!(37)]);
 
+    pub const RED: Self = Self::new("Red", &[ansi!(31)]);
+    pub const GREEN: Self = Self::new("Green", &[ansi!(32)]);
+    pub const BLUE: Self = Self::new("Blue", &[ansi!(34)]);
+
     pub const CYAN: Self = Self::new("Cyan", &[ansi!(36)]);
     pub const YELLOW: Self = Self::new("Yellow", &[ansi!(33)]);
     pub const MAGENTA: Self = Self::new("Magenta", &[ansi!(35)]);
@@ -104,6 +108,9 @@ impl Palette {
 
 pub static ALL_PALETTES: &[&Palette] = &[
     &Palette::WHITE,
+    &Palette::RED,
+    &Palette::GREEN,
+    &Palette::BLUE,
     &Palette::CYAN,
     &Palette::MAGENTA,
     &Palette::YELLOW,

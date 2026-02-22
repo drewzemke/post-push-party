@@ -4,7 +4,7 @@ use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Padding};
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
-use crate::party::{ALL_PARTIES, Party};
+use crate::party::Party;
 use crate::state::State;
 use crate::tui::widgets::{PaletteSelector, ShimmerBlock};
 
@@ -151,19 +151,12 @@ pub struct PartyView {
 }
 
 impl PartyView {
-    fn unlocked_parties(state: &State) -> impl Iterator<Item = &'static dyn Party> + use<'_> {
-        ALL_PARTIES
-            .iter()
-            .copied()
-            .filter(|&party| state.is_party_unlocked(party.id()))
-    }
-
     fn item_count(state: &State) -> usize {
-        Self::unlocked_parties(state).count()
+        state.unlocked_parties().count()
     }
 
     fn selected_party(&self, state: &State) -> Option<&'static dyn Party> {
-        Self::unlocked_parties(state).nth(self.selection)
+        state.unlocked_parties().nth(self.selection)
     }
 
     fn update_scroll(&mut self) {
@@ -202,7 +195,7 @@ impl View for PartyView {
         let mut scroll_view = ScrollView::new(Size::new(content_width, content_height))
             .horizontal_scrollbar_visibility(ScrollbarVisibility::Never);
 
-        for (i, party) in Self::unlocked_parties(state).enumerate() {
+        for (i, party) in state.unlocked_parties().enumerate() {
             let enabled = state.is_party_enabled(party.id());
             let selected = self.selection == i;
 

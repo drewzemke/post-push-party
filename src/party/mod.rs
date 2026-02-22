@@ -45,13 +45,13 @@ pub trait Party: Sync {
 }
 
 // static instances
-static BASE: Base = Base;
+pub static BASE: Base = Base;
 static BIG_TEXT: BigText = BigText;
 static BREAKDOWN: Breakdown = Breakdown;
 static EXCLAMATION: Exclamation = Exclamation;
 static QUOTES: Quotes = Quotes;
 static STATS: Stats = Stats;
-static FIREWORKS: Fireworks = Fireworks;
+pub static FIREWORKS: Fireworks = Fireworks;
 
 // all parties in order
 pub static ALL_PARTIES: &[&'static dyn Party] = &[

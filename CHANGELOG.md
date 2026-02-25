@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4](https://github.com/drewzemke/post-push-party/compare/v0.1.3...v0.1.4) - 2026-02-25
+
+### Added
+
+- *(packs)* update points award by packs
+- *(pack)* add premium pack
+- *(packs)* set prices for basic pack
+- *(pack)* first pass at pack-opening algorithm
+- *(tui)* show number of unopened packs in tab header
+- *(tui)* open packs in the packs panel
+- *(store)* buy packs in the store
+- *(pack)* get packs based on lifetime point accrual
+- *(state)* add packs
+- *(tui)* palette selector UI and code organization improvements
+- *(tui)* select palettes in party config
+
+### Fixed
+
+- *(pack)* points earned through packs don't count for lifetime points
+- *(tui)* fix scrolling in store and party lists
+- *(tui)* shimmer boarder shimmers less frequently, only uses yellow and white
+- *(bonus)* "sniper" bonus track awards 1- or 2-line commits
+- *(party)* use "point"/"points" correctly in base party
+
+### Other
+
+- add another very-vibecoded tool to help tune rarity probabilities
+- *(tui)* extract `PaletteSelector` widget
+- *(tui)* wip of palette selection in party config
+- *(party)* different scheme for colors
+- *(tui)* state management for palette selection UI
+- *(tui)* standardize some key hints
+- *(dev)* add dev command for unlocking all palettes for a party
+- rename "color" -> "palette"
+
 ## [0.1.3](https://github.com/drewzemke/post-push-party/compare/v0.1.2...v0.1.3) - 2026-02-17
 
 ### Added

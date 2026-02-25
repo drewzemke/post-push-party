@@ -8,33 +8,38 @@ use crate::{
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Pack {
-    Basic, // others...
+    Basic,
+    Premium, // others...?
 }
 
-pub const ALL_PACKS: &[Pack] = &[Pack::Basic];
+pub const ALL_PACKS: &[Pack] = &[Pack::Basic, Pack::Premium];
 
 impl Pack {
     pub fn cost(&self) -> u64 {
         match self {
             Pack::Basic => 1_000,
+            Pack::Premium => 10_000,
         }
     }
 
     pub fn name(&self) -> &'static str {
         match self {
             Pack::Basic => "Basic Pack",
+            Pack::Premium => "Premium Pack",
         }
     }
 
     pub fn description(&self) -> &'static str {
         match self {
             Pack::Basic => "A pack with mostly common items and at least one of higher-rarity.",
+            Pack::Premium => "A pack with only three items but of higher-rarity.",
         }
     }
 
     fn template(&self) -> PackTemplate {
         match self {
             Pack::Basic => BASIC_PACK_TEMPLATE,
+            Pack::Premium => PREMIUM_PACK_TEMPLATE,
         }
     }
 
@@ -89,6 +94,9 @@ const BASIC_PACK_TEMPLATE: PackTemplate = PackTemplate(&[
     Rarity::Common,
     Rarity::Rare,
 ]);
+
+const PREMIUM_PACK_TEMPLATE: PackTemplate =
+    PackTemplate(&[Rarity::Common, Rarity::Rare, Rarity::Epic]);
 
 impl PackTemplate {
     /// iteratively upgrades the elements of the template

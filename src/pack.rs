@@ -323,10 +323,15 @@ impl<R: rand::Rng> RngUpgrader<R> {
     }
 }
 
-// FIXME: put real values here based on experiments
-const COMMON_TO_RARE_PROB: f64 = 0.1;
-const RARE_TO_EPIC_PROB: f64 = 0.1;
-const EPIC_TO_LEGENDARY_PROB: f64 = 0.1;
+// for the basic pack template (CCCCR), the probabilities below
+// yield an item distribution of (approx)
+//   72% C, 22% R, 5% E, 1%
+//   epic every 4 packs
+//   legendary every 18 packs
+//   one in four packs contains epic/legendary
+const COMMON_TO_RARE_PROB: f64 = 0.10;
+const RARE_TO_EPIC_PROB: f64 = 0.20;
+const EPIC_TO_LEGENDARY_PROB: f64 = 0.20;
 
 impl<R: rand::Rng> RarityUpgrader for RngUpgrader<R> {
     fn should_upgrade(&mut self, rarity: &Rarity) -> bool {

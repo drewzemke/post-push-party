@@ -310,9 +310,9 @@ impl PackItem {
             } => {
                 state.unlock_palette(party_id, palette_name);
             }
-            PackItem::PointBundle { points, .. } => {
-                state.earn_points(*points);
-            }
+            // directly updating party points here, because we don't
+            // want to trigger the lifetime points mechanism this way
+            PackItem::PointBundle { points, .. } => state.party_points += *points,
         };
     }
 }

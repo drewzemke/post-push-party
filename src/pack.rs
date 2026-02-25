@@ -153,10 +153,10 @@ pub enum PackItem {
     // GameToken (GameType)   // soon(ish)!
 }
 
-const COMMON_POINTS: u64 = 100;
-const RARE_POINTS: u64 = 400;
-const EPIC_POINTS: u64 = 1_000;
-const LEGENDARY_POINTS: u64 = 10_000;
+const COMMON_POINTS: u64 = 25;
+const RARE_POINTS: u64 = 100;
+const EPIC_POINTS: u64 = 400;
+const LEGENDARY_POINTS: u64 = 1600;
 
 const COMMON_PALETTES: &[Palette] = &[Palette::RED, Palette::GREEN, Palette::BLUE];
 

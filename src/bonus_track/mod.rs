@@ -70,7 +70,7 @@ pub trait BonusTrack: Sync {
 
 // static instances for ALL_TRACKS
 static BIG_PUSH: BigPush = BigPush;
-static COMMIT_VALUE: CommitValue = CommitValue;
+pub static COMMIT_VALUE: CommitValue = CommitValue;
 static FIRST_PUSH: FirstPush = FirstPush;
 static FRIDAY_AFTERNOON: FridayAfternoon = FridayAfternoon;
 static MANY_LINES_CHANGED: ManyLinesChanged = ManyLinesChanged;

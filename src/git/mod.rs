@@ -1,8 +1,8 @@
 //! Git operations for detecting pushes and tracking seen commits.
 
 mod commands;
-mod detection;
-mod patch_ids;
+pub mod detection;
+pub mod patch_ids;
 
 pub use detection::{get_pushed_commits, snapshot_refs};
 

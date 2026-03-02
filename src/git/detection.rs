@@ -4,19 +4,19 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::git::{commands, Commit, Push};
+use crate::git::{Commit, Push, commands};
 
 /// Tracks last-known SHA per branch per repo.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-struct BranchRefs {
-    repos: HashMap<String, HashMap<String, String>>,
+pub struct BranchRefs {
+    pub repos: HashMap<String, HashMap<String, String>>,
 }
 
 fn refs_path() -> Option<std::path::PathBuf> {
     crate::state::state_dir().map(|d| d.join("refs.bin"))
 }
 
-fn load_refs() -> BranchRefs {
+pub fn load_refs() -> BranchRefs {
     refs_path()
         .and_then(|p| std::fs::read(&p).ok())
         .and_then(|bytes| bincode::deserialize(&bytes).ok())
@@ -143,18 +143,19 @@ pub fn get_pushed_commits() -> Option<Push> {
         }
 
         if let Some(patch_id) = commands::get_patch_id(&repo_path, &sha)
-            && !seen.contains(&patch_id) {
-                let lines_changed = commands::get_lines_changed(&repo_path, &sha).unwrap_or(0);
-                crate::debug_log!(
-                    "hook: new commit {} ({}) - {} lines",
-                    sha,
-                    patch_id,
-                    lines_changed
-                );
-                seen.insert(patch_id.clone());
-                new_patch_ids.push(patch_id);
-                new_commits.push(Commit::new(sha, lines_changed, now));
-            }
+            && !seen.contains(&patch_id)
+        {
+            let lines_changed = commands::get_lines_changed(&repo_path, &sha).unwrap_or(0);
+            crate::debug_log!(
+                "hook: new commit {} ({}) - {} lines",
+                sha,
+                patch_id,
+                lines_changed
+            );
+            seen.insert(patch_id.clone());
+            new_patch_ids.push(patch_id);
+            new_commits.push(Commit::new(sha, lines_changed, now));
+        }
     }
 
     // update stored refs

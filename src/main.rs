@@ -12,12 +12,13 @@ mod pack;
 mod party;
 mod scoring;
 mod state;
+mod storage;
 mod tui;
 
 use clap::Parser;
 use cli::{Cli, Command};
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
@@ -26,7 +27,7 @@ fn main() {
         Some(Command::Points) => state::points(),
         Some(Command::Stats) => state::stats(),
         Some(Command::Hook) => hook::post_push(),
-        Some(Command::Dump) => state::dump(),
+        Some(Command::Dump) => state::dump()?,
         Some(Command::Snapshot) => hook::pre_push(),
 
         None => tui::run().unwrap_or_else(|e| {
@@ -47,4 +48,6 @@ fn main() {
         #[cfg(feature = "dev")]
         Some(Command::Palette { id }) => dev::palette(&id),
     }
+
+    Ok(())
 }

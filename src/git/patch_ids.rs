@@ -9,7 +9,7 @@ const MAX_PATCH_IDS: usize = 500;
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PatchIdStore {
     // repo_url -> ordered list of patch-ids (newest first)
-    repos: HashMap<String, VecDeque<String>>,
+    pub repos: HashMap<String, VecDeque<String>>,
 }
 
 fn store_path() -> Option<std::path::PathBuf> {

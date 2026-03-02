@@ -1,3 +1,4 @@
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
@@ -5,6 +6,7 @@ use std::path::PathBuf;
 use crate::bonus_track::{ALL_TRACKS, Reward};
 use crate::pack::{Pack, PackItem};
 use crate::party::{ALL_PARTIES, Palette, Party};
+use crate::storage::DbConnection;
 
 /// measures how quickly the player gains packs automatically based
 /// on lifetime points. specifically it's the rate of increase of
@@ -27,17 +29,17 @@ pub struct State {
 
     /// refers to bonus tracks by their identifier string
     #[serde(default)]
-    bonus_levels: HashMap<String, u32>,
+    pub bonus_levels: HashMap<String, u32>,
 
     /// which parties the player has unlocked via the store.
     /// refers to parties by their identifier string
     #[serde(default)]
-    unlocked_parties: HashSet<String>,
+    pub unlocked_parties: HashSet<String>,
 
     /// which parties have been enabled by the player.
     /// refers to parties by their identifier string
     #[serde(default)]
-    enabled_parties: HashSet<String>,
+    pub enabled_parties: HashSet<String>,
 
     /// which palettes the player has unlocked for each party.
     /// refers to parties by their identifier string, and to palettes by their names
@@ -47,7 +49,7 @@ pub struct State {
     /// which palette is currently configured for each party.
     /// refers to parties by their identifier string, palettes by their name
     #[serde(default)]
-    active_palettes: HashMap<String, PaletteSelection>,
+    pub active_palettes: HashMap<String, PaletteSelection>,
     // FIXME: temporarily disabling to gracefully migrate storage to sqlite
     // /// how many packs of each time the player has
     // #[serde(default)]
@@ -340,8 +342,10 @@ pub fn stats() {
     crate::party::stats::Stats.render(&ctx, &crate::party::Palette::WHITE);
 }
 
-pub fn dump() {
+pub fn dump() -> Result<()> {
     let state = load();
+    let conn = DbConnection::create()?;
+
     println!("party_points: {}", state.party_points);
     println!("lifetime_points_earned: {}", state.lifetime_points_earned);
     // FIXME: uncomment after sqlite migration
@@ -350,6 +354,8 @@ pub fn dump() {
     println!("bonus_levels: {:?}", state.bonus_levels);
     println!("unlocked_parties: {:?}", state.unlocked_parties);
     println!("enabled_parties: {:?}", state.enabled_parties);
+
+    Ok(())
 }
 
 pub fn load_from_path(path: &std::path::Path) -> State {

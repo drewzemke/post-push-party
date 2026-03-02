@@ -15,6 +15,7 @@ use crate::party::{ALL_PARTIES, Palette, Party};
 ///     25 + 2 * 25 = 75
 ///     75 + 3 * 25 = 150
 ///     ... etc
+#[expect(unused)]
 const PACK_ACCRUAL_RATE: u64 = 25;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -47,14 +48,15 @@ pub struct State {
     /// refers to parties by their identifier string, palettes by their name
     #[serde(default)]
     active_palettes: HashMap<String, PaletteSelection>,
+    // FIXME: temporarily disabling to gracefully migrate storage to sqlite
+    // /// how many packs of each time the player has
+    // #[serde(default)]
+    // pub packs: HashMap<Pack, u32>,
 
-    /// how many packs of each time the player has
-    #[serde(default)]
-    pub packs: HashMap<Pack, u32>,
-
-    /// how many packs have been earned though the points accrual mechanism
-    #[serde(default)]
-    pub lifetime_packs_earned: u64,
+    // FIXME: temporarily disabling to gracefully migrate storage to sqlite
+    // /// how many packs have been earned though the points accrual mechanism
+    // #[serde(default)]
+    // pub lifetime_packs_earned: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -90,8 +92,8 @@ impl Default for State {
                 "base".to_string(),
                 PaletteSelection::Specific(white),
             )]),
-            packs: HashMap::new(),
-            lifetime_packs_earned: 0,
+            // packs: HashMap::new(),
+            // lifetime_packs_earned: 0,
         }
     }
 }
@@ -104,27 +106,29 @@ impl State {
         self.party_points += amount;
         self.lifetime_points_earned += amount;
 
-        let mut thresholds = Vec::new();
+        // FIXME: uncomment after sqlite migration
+        // let mut thresholds = Vec::new();
 
-        // check if we've crossed a threshold for which we should
-        // grant packs. the thresholds values are
-        //   PACK_ACCRUAL_RATE * (n+1) * (n+2) / 2
-        // where n is the number of packs earned in this way so far
-        let mut threshold =
-            PACK_ACCRUAL_RATE * (self.lifetime_packs_earned + 1) * (self.lifetime_packs_earned + 2)
-                / 2;
-        while threshold <= self.lifetime_points_earned {
-            self.lifetime_packs_earned += 1;
-            self.add_pack(Pack::Basic);
-            thresholds.push(threshold);
+        // // check if we've crossed a threshold for which we should
+        // // grant packs. the thresholds values are
+        // //   PACK_ACCRUAL_RATE * (n+1) * (n+2) / 2
+        // // where n is the number of packs earned in this way so far
+        // let mut threshold =
+        //     PACK_ACCRUAL_RATE * (self.lifetime_packs_earned + 1) * (self.lifetime_packs_earned + 2)
+        //         / 2;
+        // while threshold <= self.lifetime_points_earned {
+        //     self.lifetime_packs_earned += 1;
+        //     self.add_pack(Pack::Basic);
+        //     thresholds.push(threshold);
 
-            threshold = PACK_ACCRUAL_RATE
-                * (self.lifetime_packs_earned + 1)
-                * (self.lifetime_packs_earned + 2)
-                / 2
-        }
+        //     threshold = PACK_ACCRUAL_RATE
+        //         * (self.lifetime_packs_earned + 1)
+        //         * (self.lifetime_packs_earned + 2)
+        //         / 2
+        // }
 
-        thresholds
+        // thresholds
+        Vec::new()
     }
 
     pub fn bonus_level(&self, id: &str) -> u32 {
@@ -246,29 +250,40 @@ impl State {
     }
 
     /// adds a pack to the player's inventory
+    #[expect(unused_variables)]
     pub fn add_pack(&mut self, pack: Pack) {
-        self.packs.entry(pack).and_modify(|n| *n += 1).or_insert(1);
+        // FIXME: uncomment after sqlite migration
+        // self.packs.entry(pack).and_modify(|n| *n += 1).or_insert(1);
     }
 
     /// how many packs of the given type the player has
+    #[expect(unused_variables)]
     pub fn pack_count(&self, pack: &Pack) -> u32 {
-        self.packs.get(pack).copied().unwrap_or_default()
+        // FIXME: uncomment after sqlite migration
+        // self.packs.get(pack).copied().unwrap_or_default()
+        0
     }
 
     /// how many packs of all types the player has
     pub fn pack_total(&self) -> u32 {
-        self.packs.values().sum()
+        // FIXME: uncomment after sqlite migration
+        // self.packs.values().sum()
+        0
     }
 
     /// decrements the number of packs of a given type,
     /// invokes the "open" algorithm that determins what's in a pack, then
     /// applies the received items to the player's state
+    #[expect(unused_variables)]
     pub fn open_pack(&mut self, pack: Pack) -> Vec<PackItem> {
-        self.packs
-            .entry(pack)
-            .and_modify(|n| *n = n.saturating_sub(1));
+        // FIXME: uncomment after sqlite migration
+        // self.packs
+        //     .entry(pack)
+        //     .and_modify(|n| *n = n.saturating_sub(1));
 
-        pack.open(self)
+        // pack.open(self)
+
+        Vec::new()
     }
 }
 
@@ -329,7 +344,8 @@ pub fn dump() {
     let state = load();
     println!("party_points: {}", state.party_points);
     println!("lifetime_points_earned: {}", state.lifetime_points_earned);
-    println!("lifetime_packs_earned: {}", state.lifetime_packs_earned);
+    // FIXME: uncomment after sqlite migration
+    // println!("lifetime_packs_earned: {}", state.lifetime_packs_earned);
     println!("points_per_commit: {}", state.points_per_commit());
     println!("bonus_levels: {:?}", state.bonus_levels);
     println!("unlocked_parties: {:?}", state.unlocked_parties);
@@ -361,7 +377,8 @@ mod tests {
         let state = State::default();
         assert_eq!(state.party_points, 0);
         assert_eq!(state.lifetime_points_earned, 0);
-        assert_eq!(state.packs.values().count(), 0)
+        // FIXME: uncomment after sqlite migration
+        // assert_eq!(state.packs.values().count(), 0)
     }
 
     #[test]
@@ -477,40 +494,42 @@ mod tests {
         assert_eq!(loaded, State::default());
     }
 
-    #[test]
-    fn test_add_and_open_pack() {
-        let mut state = State::default();
-        assert_eq!(state.pack_count(&Pack::Basic), 0);
+    // FIXME: uncomment after sqlite migration
+    // #[test]
+    // fn test_add_and_open_pack() {
+    //     let mut state = State::default();
+    //     assert_eq!(state.pack_count(&Pack::Basic), 0);
 
-        state.add_pack(Pack::Basic);
-        assert_eq!(state.pack_count(&Pack::Basic), 1);
+    //     state.add_pack(Pack::Basic);
+    //     assert_eq!(state.pack_count(&Pack::Basic), 1);
 
-        // nothing breaks
-        state.open_pack(Pack::Basic);
-    }
+    //     // nothing breaks
+    //     state.open_pack(Pack::Basic);
+    // }
 
-    #[test]
-    fn get_packs_based_on_lifetime_points() {
-        let mut state = State::default();
+    // FIXME: uncomment after sqlite migration
+    // #[test]
+    // fn get_packs_based_on_lifetime_points() {
+    //     let mut state = State::default();
 
-        assert_eq!(state.lifetime_packs_earned, 0);
-        assert_eq!(state.pack_count(&Pack::Basic), 0);
+    //     assert_eq!(state.lifetime_packs_earned, 0);
+    //     assert_eq!(state.pack_count(&Pack::Basic), 0);
 
-        // should earn 1 pack
-        let thresholds = state.earn_points(PACK_ACCRUAL_RATE);
+    //     // should earn 1 pack
+    //     let thresholds = state.earn_points(PACK_ACCRUAL_RATE);
 
-        assert_eq!(thresholds, vec![PACK_ACCRUAL_RATE]);
-        assert_eq!(state.lifetime_packs_earned, 1);
-        assert_eq!(state.pack_count(&Pack::Basic), 1);
+    //     assert_eq!(thresholds, vec![PACK_ACCRUAL_RATE]);
+    //     assert_eq!(state.lifetime_packs_earned, 1);
+    //     assert_eq!(state.pack_count(&Pack::Basic), 1);
 
-        // should earn 2 packs at once
-        let thresholds = state.earn_points(5 * PACK_ACCRUAL_RATE);
+    //     // should earn 2 packs at once
+    //     let thresholds = state.earn_points(5 * PACK_ACCRUAL_RATE);
 
-        assert_eq!(
-            thresholds,
-            vec![3 * PACK_ACCRUAL_RATE, 6 * PACK_ACCRUAL_RATE]
-        );
-        assert_eq!(state.lifetime_packs_earned, 3);
-        assert_eq!(state.pack_count(&Pack::Basic), 3);
-    }
+    //     assert_eq!(
+    //         thresholds,
+    //         vec![3 * PACK_ACCRUAL_RATE, 6 * PACK_ACCRUAL_RATE]
+    //     );
+    //     assert_eq!(state.lifetime_packs_earned, 3);
+    //     assert_eq!(state.pack_count(&Pack::Basic), 3);
+    // }
 }

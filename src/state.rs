@@ -1,4 +1,6 @@
 use anyhow::Result;
+use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSqlOutput, Value, ValueRef};
+use rusqlite::{Result as RusqliteResult, ToSql};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
@@ -67,6 +69,29 @@ pub enum PaletteSelection {
     Random,
 }
 
+impl ToSql for PaletteSelection {
+    fn to_sql(&self) -> RusqliteResult<ToSqlOutput<'_>> {
+        match self {
+            PaletteSelection::Specific(s) => Ok(ToSqlOutput::from(s.as_str())),
+            PaletteSelection::Random => Ok(ToSqlOutput::Owned(Value::Null)),
+        }
+    }
+}
+
+impl FromSql for PaletteSelection {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
+        match value {
+            ValueRef::Null => Ok(Self::Random),
+            ValueRef::Text(items) => {
+                let str = String::from_utf8(items.to_vec())
+                    .map_err(|_| FromSqlError::Other("Unparsable string".into()))?;
+                Ok(Self::Specific(str))
+            }
+            _ => Err(FromSqlError::InvalidType),
+        }
+    }
+}
+
 impl Default for PaletteSelection {
     fn default() -> Self {
         Self::Specific(Palette::WHITE.name().to_string())
@@ -101,6 +126,117 @@ impl Default for State {
 }
 
 impl State {
+    pub fn load(conn: &DbConnection) -> RusqliteResult<Self> {
+        // player
+        let (party_points, points_earned, _packs_earned): (i64, i64, i64) = conn.query_one(
+            "
+            SELECT party_points, points_earned, packs_earned from player WHERE id = 1;
+        ",
+            (),
+            |x| Ok((x.get(0)?, x.get(1)?, x.get(2)?)),
+        )?;
+
+        // bonus tracks
+        let mut stmt = conn.prepare("SELECT id, level FROM bonus_tracks")?;
+        let bonus_tracks = stmt
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
+            .collect::<RusqliteResult<HashMap<String, u32>>>()?;
+
+        // parties
+        let mut stmt = conn.prepare("SELECT id, enabled, active_palette FROM parties")?;
+        let parties = stmt
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?
+            .collect::<RusqliteResult<Vec<(String, bool, PaletteSelection)>>>()?;
+
+        let unlocked_parties = parties.iter().map(|(id, _, _)| id.clone()).collect();
+        let enabled_parties = parties
+            .iter()
+            .filter_map(|(id, enabled, _)| enabled.then_some(id.clone()))
+            .collect();
+        let active_palettes = parties
+            .into_iter()
+            .map(|(id, _, palette)| (id, palette))
+            .collect();
+
+        // unlocked palettes
+        let mut stmt = conn.prepare("SELECT party_id, palette_name FROM unlocked_palettes")?;
+        let unlocked_palette_pairs = stmt
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
+            .collect::<RusqliteResult<Vec<(String, String)>>>()?;
+        let mut unlocked_palettes: HashMap<String, Vec<String>> = HashMap::new();
+        for (party_id, palette_name) in unlocked_palette_pairs {
+            unlocked_palettes
+                .entry(party_id)
+                .and_modify(|v| v.push(palette_name.clone()))
+                .or_insert(Vec::from([palette_name]));
+        }
+
+        let state = Self {
+            party_points: party_points as u64,
+            lifetime_points_earned: points_earned as u64,
+            bonus_levels: bonus_tracks,
+            unlocked_parties,
+            active_palettes,
+            enabled_parties,
+            unlocked_palettes,
+            // FIXME: add packs earned
+        };
+        Ok(state)
+    }
+
+    pub fn save(&self, conn: &DbConnection) -> Result<()> {
+        let tx = conn.unchecked_transaction()?;
+
+        // player
+        conn.execute(
+            "
+                 UPDATE player SET
+                     party_points = ?1,
+                     points_earned = ?2,
+                     packs_earned = ?3
+                     WHERE id = 1;
+    
+            ",
+            (
+                self.party_points as i64,
+                self.lifetime_points_earned as i64,
+                // FIXME: restore this to `packs_earned`
+                0,
+            ),
+        )?;
+
+        // bonus_tracks
+        let mut stmt =
+            conn.prepare("INSERT OR REPLACE INTO bonus_tracks (id, level) VALUES (?1, ?2)")?;
+        for (track_id, level) in &self.bonus_levels {
+            stmt.execute((track_id, level))?;
+        }
+
+        // parties
+        let mut stmt = conn.prepare(
+            "INSERT OR REPLACE INTO parties (id, enabled, active_palette ) VALUES (?1, ?2, ?3)",
+        )?;
+        for party_id in &self.unlocked_parties {
+            let enabled = self.is_party_enabled(party_id);
+            let selected_palette = self.selected_palette(party_id).cloned().unwrap_or_default();
+            stmt.execute((party_id, enabled, selected_palette))?;
+        }
+
+        // unlocked_palettes
+        let mut stmt = conn.prepare(
+            "INSERT OR REPLACE INTO unlocked_palettes (party_id, palette_name) VALUES (?1, ?2)",
+        )?;
+        for (party_id, palettes) in &self.unlocked_palettes {
+            for palette in palettes {
+                stmt.execute((party_id, palette))?;
+            }
+        }
+
+        tx.commit()?;
+
+        Ok(())
+    }
+
     /// if packs were earned as a result of earning these points,
     /// this returns the list of point thresholds that were
     /// crossed. otherwise an empty list
@@ -289,39 +425,22 @@ impl State {
     }
 }
 
-pub fn state_dir() -> Option<PathBuf> {
+pub fn old_state_dir() -> Option<PathBuf> {
     if let Ok(dir) = std::env::var("PARTY_STATE_DIR") {
         return Some(PathBuf::from(dir));
     }
     dirs::home_dir().map(|h| h.join(".post-push-party"))
 }
 
-pub fn state_path() -> Option<PathBuf> {
-    state_dir().map(|d| d.join("state.bin"))
+pub fn old_state_path() -> Option<PathBuf> {
+    old_state_dir().map(|d| d.join("state.bin"))
 }
 
-pub fn load() -> State {
-    state_path().map(|p| load_from_path(&p)).unwrap_or_default()
-}
-
-pub fn save(state: &State) -> std::io::Result<()> {
-    let path = state_path().ok_or_else(|| {
-        std::io::Error::new(
-            std::io::ErrorKind::NotFound,
-            "could not determine home directory",
-        )
-    })?;
-    save_to_path(state, &path)
-}
-
-pub fn points() {
-    let state = load();
+pub fn points(state: &State) {
     println!("You have {} party points.", state.party_points);
 }
 
-pub fn stats() {
-    let state = load();
-
+pub fn stats(state: &State) {
     if !state.is_party_unlocked("stats") {
         println!("You haven't unlocked the Stats party yet.");
         return;
@@ -338,14 +457,11 @@ pub fn stats() {
     };
 
     let ctx =
-        crate::party::RenderContext::new(&push, &history, &breakdown, &state, &clock, Vec::new());
+        crate::party::RenderContext::new(&push, &history, &breakdown, state, &clock, Vec::new());
     crate::party::stats::Stats.render(&ctx, &crate::party::Palette::WHITE);
 }
 
-pub fn dump() -> Result<()> {
-    let state = load();
-    let conn = DbConnection::create()?;
-
+pub fn dump(state: &State) {
     println!("party_points: {}", state.party_points);
     println!("lifetime_points_earned: {}", state.lifetime_points_earned);
     // FIXME: uncomment after sqlite migration
@@ -354,10 +470,9 @@ pub fn dump() -> Result<()> {
     println!("bonus_levels: {:?}", state.bonus_levels);
     println!("unlocked_parties: {:?}", state.unlocked_parties);
     println!("enabled_parties: {:?}", state.enabled_parties);
-
-    Ok(())
 }
 
+// TODO: remove
 pub fn load_from_path(path: &std::path::Path) -> State {
     match std::fs::read(path) {
         Ok(bytes) => bincode::deserialize(&bytes).unwrap_or_default(),
@@ -365,18 +480,9 @@ pub fn load_from_path(path: &std::path::Path) -> State {
     }
 }
 
-pub fn save_to_path(state: &State, path: &std::path::Path) -> std::io::Result<()> {
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-    let encoded = bincode::serialize(state).map_err(std::io::Error::other)?;
-    std::fs::write(path, encoded)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::tempdir;
 
     #[test]
     fn default_state_has_zero_points_or_packs() {
@@ -473,31 +579,25 @@ mod tests {
     }
 
     #[test]
-    fn save_and_load_roundtrips() {
-        let dir = tempdir().unwrap();
-        let path = dir.path().join("state.bin");
+    fn save_and_load_roundtrip() {
+        let conn = DbConnection::create_in_memory().unwrap();
 
         let mut state = State {
+            lifetime_points_earned: 12,
             party_points: 42,
             ..State::default()
         };
         state.set_bonus_level("commit_value", 3);
         state.set_bonus_level("first_push", 2);
         state.unlock_party("exclamations");
+        state.unlock_palette("base", "Rainbow");
+        state.set_selected_palette("base", 1);
+        state.set_selected_palette("exclamations", 3);
 
-        save_to_path(&state, &path).unwrap();
-        let loaded = load_from_path(&path);
+        state.save(&conn).unwrap();
+        let loaded = State::load(&conn).unwrap();
 
         assert_eq!(loaded, state);
-    }
-
-    #[test]
-    fn load_returns_default_when_file_missing() {
-        let dir = tempdir().unwrap();
-        let path = dir.path().join("nonexistent.bin");
-
-        let loaded = load_from_path(&path);
-        assert_eq!(loaded, State::default());
     }
 
     // FIXME: uncomment after sqlite migration

@@ -13,7 +13,7 @@ pub struct PatchIdStore {
 }
 
 fn store_path() -> Option<std::path::PathBuf> {
-    crate::state::state_dir().map(|d| d.join("patch_ids.bin"))
+    crate::state::old_state_dir().map(|d| d.join("patch_ids.bin"))
 }
 
 pub fn load() -> PatchIdStore {

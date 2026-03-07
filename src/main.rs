@@ -18,36 +18,41 @@ mod tui;
 use clap::Parser;
 use cli::{Cli, Command};
 
+use crate::{state::State, storage::DbConnection};
+
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
+    // load state from sqlite db
+    let conn = DbConnection::create()?;
+    let mut state = State::load(&conn)?;
+
     match cli.command {
-        Some(Command::Init) => init::run(),
+        Some(Command::Init) => init::run(&mut state),
         Some(Command::Uninit) => init::run_uninit(),
-        Some(Command::Points) => state::points(),
-        Some(Command::Stats) => state::stats(),
-        Some(Command::Hook) => hook::post_push(),
-        Some(Command::Dump) => state::dump()?,
+        Some(Command::Points) => state::points(&state),
+        Some(Command::Stats) => state::stats(&state),
+        Some(Command::Hook) => hook::post_push(&mut state),
+        Some(Command::Dump) => state::dump(&state),
         Some(Command::Snapshot) => hook::pre_push(),
 
-        None => tui::run().unwrap_or_else(|e| {
-            eprintln!("error running TUI: {e}");
-            std::process::exit(1);
-        }),
+        None => tui::run(&mut state, &conn)?,
 
         #[cfg(feature = "dev")]
-        Some(Command::Cheat { amount }) => dev::cheat(amount),
+        Some(Command::Cheat { amount }) => dev::cheat(amount, &mut state),
         #[cfg(feature = "dev")]
-        Some(Command::Push { commits, lines }) => dev::push(commits, lines),
+        Some(Command::Push { commits, lines }) => dev::push(commits, lines, &mut state),
         #[cfg(feature = "dev")]
-        Some(Command::Reset) => dev::reset(),
+        Some(Command::Reset) => dev::reset(&mut state),
         #[cfg(feature = "dev")]
-        Some(Command::Bonus { track, level }) => dev::bonus(&track, level),
+        Some(Command::Bonus { track, level }) => dev::bonus(&track, level, &mut state),
         #[cfg(feature = "dev")]
-        Some(Command::Party { id }) => dev::party(&id),
+        Some(Command::Party { id }) => dev::party(&id, &mut state),
         #[cfg(feature = "dev")]
-        Some(Command::Palette { id }) => dev::palette(&id),
+        Some(Command::Palette { id }) => dev::palette(&id, &mut state),
     }
+
+    state.save(&conn)?;
 
     Ok(())
 }

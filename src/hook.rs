@@ -2,21 +2,17 @@ use crate::{
     clock::Clock,
     git, history,
     party::{self, RenderContext},
-    scoring, state,
+    scoring,
+    state::State,
 };
 
-pub fn post_push() {
+pub fn post_push(state: &mut State) {
     if let Some(push) = git::get_pushed_commits() {
-        let mut state = state::load();
         let mut history = history::load();
         let clock = Clock::from_now();
 
-        let breakdown = scoring::calculate_points(&push, &state, &history, &clock);
+        let breakdown = scoring::calculate_points(&push, state, &history, &clock);
         let packs_earned = state.earn_points(breakdown.total);
-
-        if let Err(e) = state::save(&state) {
-            eprintln!("warning: could not save state: {e}");
-        }
 
         // record push to history AFTER scoring so first_push_of_day
         // bonus can correctly detect if this is the first push today.
@@ -33,7 +29,7 @@ pub fn post_push() {
             );
         }
 
-        let ctx = RenderContext::new(&push, &history, &breakdown, &state, &clock, packs_earned);
+        let ctx = RenderContext::new(&push, &history, &breakdown, state, &clock, packs_earned);
         party::display(&ctx);
     }
 }

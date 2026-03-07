@@ -1,7 +1,7 @@
 use crate::{
     git::{detection, patch_ids},
     history,
-    state::{self, state_dir},
+    state::{load_from_path, old_state_dir, old_state_path},
     storage::DbConnection,
 };
 use anyhow::Result;
@@ -82,13 +82,16 @@ fn migrate_v1(conn: &DbConnection) -> Result<()> {
     // don't do this if the db is in-memory
     let in_memory = conn.path().is_some_and(|s| s.is_empty());
 
-    let state_dir = state_dir();
+    let state_dir = old_state_dir();
     if let Some(dir) = state_dir
         && !in_memory
         && std::fs::exists(dir)?
     {
         debug("- found old state directory");
-        let state = state::load();
+        // load state the old way
+        let state = old_state_path()
+            .map(|p| load_from_path(&p))
+            .unwrap_or_default();
 
         debug("-- writing old state into db");
 

@@ -111,7 +111,7 @@ impl PushHistory {
 }
 
 fn path() -> Option<std::path::PathBuf> {
-    crate::state::state_dir().map(|d| d.join("history.json"))
+    crate::state::old_state_dir().map(|d| d.join("history.json"))
 }
 
 pub fn load() -> PushHistory {

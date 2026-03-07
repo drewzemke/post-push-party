@@ -1,26 +1,24 @@
-use crate::clock::Clock;
-use crate::git::{Commit, Push};
-use crate::party::RenderContext;
-use crate::{history, party, scoring, state};
+use crate::{
+    clock::Clock,
+    git::{Commit, Push},
+    history,
+    party::{self, RenderContext},
+    scoring,
+    state::{self, State},
+};
 
-pub fn cheat(amount: i64) {
-    let mut s = state::load();
-    let old = s.party_points;
+pub fn cheat(amount: i64, state: &mut State) {
+    let old = state.party_points;
     if amount < 0 {
-        s.party_points = s.party_points.saturating_sub(amount.unsigned_abs());
+        state.party_points = state.party_points.saturating_sub(amount.unsigned_abs());
     } else {
-        s.party_points = s.party_points.saturating_add(amount as u64);
+        state.party_points = state.party_points.saturating_add(amount as u64);
     }
-    if let Err(e) = state::save(&s) {
-        eprintln!("error saving state: {e}");
-        std::process::exit(1);
-    }
-    println!("{} → {} party points", old, s.party_points);
+    println!("{} → {} party points", old, state.party_points);
 }
 
-pub fn push(num_commits: u64, lines: Option<Vec<u64>>) {
+pub fn push(num_commits: u64, lines: Option<Vec<u64>>, state: &mut State) {
     // mirror the actual hook flow as closely as possible
-    let mut state = state::load();
     let mut history = history::load();
     let clock = Clock::from_now();
 
@@ -37,12 +35,8 @@ pub fn push(num_commits: u64, lines: Option<Vec<u64>>) {
 
     let push = Push::with_repo(commits, "dev://fake");
 
-    let breakdown = scoring::calculate_points(&push, &state, &history, &clock);
+    let breakdown = scoring::calculate_points(&push, state, &history, &clock);
     let packs_earned = state.earn_points(breakdown.total);
-
-    if let Err(e) = state::save(&state) {
-        eprintln!("warning: could not save state: {e}");
-    }
 
     // record this push in history (like the real hook does)
     let lines_changed: u64 = push.commits().iter().map(|c| c.lines_changed()).sum();
@@ -54,16 +48,12 @@ pub fn push(num_commits: u64, lines: Option<Vec<u64>>) {
         breakdown.total,
     );
 
-    let ctx = RenderContext::new(&push, &history, &breakdown, &state, &clock, packs_earned);
+    let ctx = RenderContext::new(&push, &history, &breakdown, state, &clock, packs_earned);
     party::display(&ctx);
 }
 
-pub fn reset() {
-    let state = state::State::default();
-    if let Err(e) = state::save(&state) {
-        eprintln!("error saving state: {e}");
-        std::process::exit(1);
-    }
+pub fn reset(state: &mut State) {
+    *state = state::State::default();
 
     let history = history::PushHistory::default();
     if let Err(e) = history::save(&history) {
@@ -74,7 +64,7 @@ pub fn reset() {
     println!("state and history reset to defaults");
 }
 
-pub fn bonus(track_id: &str, level: u32) {
+pub fn bonus(track_id: &str, level: u32, state: &mut State) {
     use crate::bonus_track::ALL_TRACKS;
 
     // verify track exists
@@ -88,16 +78,11 @@ pub fn bonus(track_id: &str, level: u32) {
         std::process::exit(1);
     }
 
-    let mut s = state::load();
-    s.set_bonus_level(track_id, level);
-    if let Err(e) = state::save(&s) {
-        eprintln!("error saving state: {e}");
-        std::process::exit(1);
-    }
+    state.set_bonus_level(track_id, level);
     println!("{} set to level {}", track_id, level);
 }
 
-pub fn palette(party_id: &str) {
+pub fn palette(party_id: &str, state: &mut State) {
     use crate::party::{ALL_PARTIES, palette::ALL_PALETTES};
 
     let ids: Vec<&str> = if party_id == "all" {
@@ -116,19 +101,15 @@ pub fn palette(party_id: &str) {
 
     let palette_names: Vec<String> = ALL_PALETTES.iter().map(|p| p.name().to_string()).collect();
 
-    let mut s = state::load();
     for id in &ids {
-        s.unlocked_palettes
+        state
+            .unlocked_palettes
             .insert(id.to_string(), palette_names.clone());
-    }
-    if let Err(e) = state::save(&s) {
-        eprintln!("error saving state: {e}");
-        std::process::exit(1);
     }
     println!("unlocked all palettes for: {}", ids.join(", "));
 }
 
-pub fn party(party_id: &str) {
+pub fn party(party_id: &str, state: &mut State) {
     use crate::party::ALL_PARTIES;
 
     // verify party exists
@@ -142,11 +123,6 @@ pub fn party(party_id: &str) {
         std::process::exit(1);
     }
 
-    let mut s = state::load();
-    s.unlock_party(party_id);
-    if let Err(e) = state::save(&s) {
-        eprintln!("error saving state: {e}");
-        std::process::exit(1);
-    }
+    state.unlock_party(party_id);
     println!("{} unlocked and enabled", party_id);
 }

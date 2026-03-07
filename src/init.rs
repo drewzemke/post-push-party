@@ -1,6 +1,9 @@
 use std::path::Path;
 
-use crate::{git, state};
+use crate::{
+    git,
+    state::{self, State},
+};
 
 const STARTER_POINTS: u64 = 10;
 
@@ -41,7 +44,7 @@ pub fn jj_config_path(repo_path: &Path) -> std::path::PathBuf {
     repo_path.join(".jj/repo/config.toml")
 }
 
-pub fn run() {
+pub fn run(state: &mut State) {
     let cwd = std::env::current_dir().expect("could not get current directory");
 
     match detect_repo_type(&cwd) {
@@ -55,7 +58,9 @@ pub fn run() {
                 Ok(InitResult::ManualInstallRequired) => {
                     let path = jj_config_path(&cwd);
                     eprintln!("error: config file already exists at {}", path.display());
-                    eprintln!("  to install party in this repo, please add the following to your existing config:\n\n{JJ_ALIAS}");
+                    eprintln!(
+                        "  to install party in this repo, please add the following to your existing config:\n\n{JJ_ALIAS}"
+                    );
 
                     std::process::exit(1);
                 }
@@ -73,7 +78,9 @@ pub fn run() {
             Ok(InitResult::ManualInstallRequired) => {
                 let path = git_hook_path(&cwd);
                 eprintln!("error: git hook already exists at {}", path.display());
-                eprintln!("  to install party in this repo, please add the following to your existing hook:\n\n{GIT_HOOK_SCRIPT}");
+                eprintln!(
+                    "  to install party in this repo, please add the following to your existing hook:\n\n{GIT_HOOK_SCRIPT}"
+                );
 
                 std::process::exit(1);
             }
@@ -92,10 +99,8 @@ pub fn run() {
     git::snapshot_refs(&cwd);
 
     // give starter points on first init
-    let mut s = state::load();
-    if s == state::State::default() {
-        s.party_points = STARTER_POINTS;
-        let _ = state::save(&s);
+    if *state == state::State::default() {
+        state.party_points = STARTER_POINTS;
         println!();
         println!("🎁 You got {} starter party points!", STARTER_POINTS);
         println!("Run `party` to spend them!");

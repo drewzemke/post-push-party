@@ -13,7 +13,7 @@ pub struct BranchRefs {
 }
 
 fn refs_path() -> Option<std::path::PathBuf> {
-    crate::state::state_dir().map(|d| d.join("refs.bin"))
+    crate::state::old_state_dir().map(|d| d.join("refs.bin"))
 }
 
 pub fn load_refs() -> BranchRefs {

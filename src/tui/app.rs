@@ -1,6 +1,7 @@
 use ratatui::prelude::*;
 
-use crate::state::{self, State};
+use crate::state::State;
+use crate::storage::DbConnection;
 use crate::tui::views::MessageType;
 
 use super::action::{Action, Route};
@@ -11,29 +12,32 @@ use super::views::store::StoreView;
 use super::views::{View, ViewResult};
 use super::widgets::{render_footer, render_header};
 
-pub struct App {
+pub struct App<'a> {
     route: Route,
     message: Option<(MessageType, String)>,
-    state: State,
     tick: u32,
 
     store: StoreView,
     party: PartyView,
     packs: PacksView,
     games: GamesView,
+
+    state: &'a mut State,
+    conn: &'a DbConnection,
 }
 
-impl App {
-    pub fn new() -> Self {
+impl<'a> App<'a> {
+    pub fn new(state: &'a mut State, conn: &'a DbConnection) -> Self {
         Self {
             route: Route::default(),
             message: None,
-            state: state::load(),
+            state,
             tick: 0,
             store: StoreView::default(),
             party: PartyView::default(),
             packs: PacksView::default(),
             games: GamesView,
+            conn,
         }
     }
 
@@ -42,7 +46,7 @@ impl App {
     }
 
     pub fn save(&self) {
-        let _ = state::save(&self.state);
+        let _ = self.state.save(self.conn);
     }
 
     pub fn handle(&mut self, action: Action) -> bool {
@@ -50,10 +54,10 @@ impl App {
         self.message = None;
 
         let result = match &mut self.route {
-            Route::Store(_) => self.store.handle(action, &mut self.state),
-            Route::Party => self.party.handle(action, &mut self.state),
-            Route::Packs => self.packs.handle(action, &mut self.state),
-            Route::Games => self.games.handle(action, &mut self.state),
+            Route::Store(_) => self.store.handle(action, self.state),
+            Route::Party => self.party.handle(action, self.state),
+            Route::Packs => self.packs.handle(action, self.state),
+            Route::Games => self.games.handle(action, self.state),
         };
 
         match result {
@@ -69,7 +73,7 @@ impl App {
 
             ViewResult::Message(ty, msg) => {
                 self.message = Some((ty, msg));
-                let _ = state::save(&self.state);
+                self.save();
             }
 
             ViewResult::Exit => return false,
@@ -97,15 +101,15 @@ impl App {
             frame,
             chunks[0].inner(Margin::new(1, 0)),
             &self.route,
-            &self.state,
+            self.state,
         );
 
         // content
         match &self.route {
-            Route::Store(_) => self.store.render(frame, chunks[1], &self.state, self.tick),
-            Route::Party => self.party.render(frame, chunks[1], &self.state, self.tick),
-            Route::Packs => self.packs.render(frame, chunks[1], &self.state, self.tick),
-            Route::Games => self.games.render(frame, chunks[1], &self.state, self.tick),
+            Route::Store(_) => self.store.render(frame, chunks[1], self.state, self.tick),
+            Route::Party => self.party.render(frame, chunks[1], self.state, self.tick),
+            Route::Packs => self.packs.render(frame, chunks[1], self.state, self.tick),
+            Route::Games => self.games.render(frame, chunks[1], self.state, self.tick),
         }
 
         // footer
@@ -122,11 +126,5 @@ impl App {
             self.state.party_points,
             &self.message,
         );
-    }
-}
-
-impl Default for App {
-    fn default() -> Self {
-        Self::new()
     }
 }

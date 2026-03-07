@@ -1,13 +1,13 @@
 use std::fs::OpenOptions;
 use std::io::Write;
 
-use crate::state::state_dir;
+use crate::state::old_state_dir;
 
 pub const LOG_FILE_NAME: &str = "party.log";
 
 // FIXME: write to new location
 pub fn log_path() -> Option<std::path::PathBuf> {
-    state_dir().map(|d| d.join("debug.log"))
+    old_state_dir().map(|d| d.join("debug.log"))
 }
 
 pub fn log(message: &str) {

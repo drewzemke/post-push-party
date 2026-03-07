@@ -72,7 +72,8 @@ impl DbConnection {
 
                 // HACK: delete after we don't need to handle old state anymore
                 // logs
-                if version == 1 {
+                let in_memory = self.path().is_some_and(|s| s.is_empty());
+                if version == 1 && !in_memory {
                     if let Some(from_path) = log::log_path()
                         && from_path.exists()
                         && let Ok(dir) = storage_dir()
@@ -83,7 +84,7 @@ impl DbConnection {
                     }
 
                     // delete old state
-                    if let Some(dir) = state::state_dir() {
+                    if let Some(dir) = state::old_state_dir() {
                         println!("- deleting old state directory");
                         fs::remove_dir_all(dir)?
                     }

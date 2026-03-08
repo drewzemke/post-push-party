@@ -1,10 +1,12 @@
 use anyhow::{Result, anyhow};
 use std::path::PathBuf;
 
+mod branch_refs;
 mod connection;
 mod migrations;
 mod state;
 
+pub use branch_refs::BranchRefsStore;
 pub use connection::DbConnection;
 
 const APP_DIR_NAME: &str = "post-push-party";
@@ -12,7 +14,9 @@ const APP_DIR_NAME: &str = "post-push-party";
 fn storage_dir() -> Result<PathBuf> {
     // allow overriding with env var (mostly for e2e tests)
     if let Ok(dir) = std::env::var("PARTY_STATE_DIR") {
-        return Ok(PathBuf::from(dir));
+        let path = PathBuf::from(dir);
+        std::fs::create_dir_all(&path)?;
+        return Ok(path);
     }
 
     let mut path = if cfg!(target_os = "macos") {

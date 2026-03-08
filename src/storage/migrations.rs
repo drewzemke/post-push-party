@@ -1,7 +1,7 @@
 use crate::{
     git::{detection, patch_ids},
     history,
-    state::{load_from_path, old_state_dir, old_state_path},
+    state::{load_from_path, old_state_dir_no_override, old_state_path},
     storage::DbConnection,
 };
 use anyhow::Result;
@@ -82,7 +82,7 @@ fn migrate_v1(conn: &DbConnection) -> Result<()> {
     // don't do this if the db is in-memory
     let in_memory = conn.path().is_some_and(|s| s.is_empty());
 
-    let state_dir = old_state_dir();
+    let state_dir = old_state_dir_no_override();
     if let Some(dir) = state_dir
         && !in_memory
         && std::fs::exists(dir)?
@@ -173,7 +173,7 @@ fn migrate_v1(conn: &DbConnection) -> Result<()> {
 
         // branch_refs
         conn.execute("DELETE FROM branch_refs", ())?;
-        let branch_refs = detection::load_refs();
+        let branch_refs = detection::load_old_refs();
         let mut stmt =
             conn.prepare("INSERT INTO branch_refs (remote_url, branch, sha) VALUES (?1, ?2, ?3)")?;
         for (repo, ref_map) in &branch_refs.repos {

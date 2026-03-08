@@ -1,8 +1,11 @@
 use std::path::Path;
 
+use anyhow::Result;
+
 use crate::{
     git,
     state::{self, State},
+    storage::BranchRefsStore,
 };
 
 const STARTER_POINTS: u64 = 10;
@@ -44,7 +47,7 @@ pub fn jj_config_path(repo_path: &Path) -> std::path::PathBuf {
     repo_path.join(".jj/repo/config.toml")
 }
 
-pub fn run(state: &mut State) {
+pub fn run(state: &mut State, branch_refs: &BranchRefsStore<'_>) -> Result<()> {
     let cwd = std::env::current_dir().expect("could not get current directory");
 
     match detect_repo_type(&cwd) {
@@ -96,7 +99,7 @@ pub fn run(state: &mut State) {
     }
 
     // snapshot current refs so we don't credit pre-existing commits
-    git::snapshot_refs(&cwd);
+    git::snapshot_refs(&cwd, branch_refs)?;
 
     // give starter points on first init
     if *state == state::State::default() {
@@ -105,6 +108,8 @@ pub fn run(state: &mut State) {
         println!("🎁 You got {} starter party points!", STARTER_POINTS);
         println!("Run `party` to spend them!");
     }
+
+    Ok(())
 }
 
 pub fn run_uninit() {

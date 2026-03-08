@@ -1,13 +1,16 @@
+use anyhow::Result;
+
 use crate::{
     clock::Clock,
     git, history,
     party::{self, RenderContext},
     scoring,
     state::State,
+    storage::BranchRefsStore,
 };
 
-pub fn post_push(state: &mut State) {
-    if let Some(push) = git::get_pushed_commits() {
+pub fn post_push(state: &mut State, branch_refs: &BranchRefsStore) {
+    if let Some(push) = git::get_pushed_commits(branch_refs) {
         let mut history = history::load();
         let clock = Clock::from_now();
 
@@ -35,7 +38,9 @@ pub fn post_push(state: &mut State) {
 }
 
 /// stores ref start before pushing commits (only used in jj integration)
-pub fn pre_push() {
+pub fn pre_push(branch_refs: &BranchRefsStore) -> Result<()> {
     let cwd = std::env::current_dir().expect("could not get current directory");
-    git::snapshot_refs(&cwd);
+    git::snapshot_refs(&cwd, branch_refs)?;
+
+    Ok(())
 }

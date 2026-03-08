@@ -84,7 +84,9 @@ impl DbConnection {
                     }
 
                     // delete old state
-                    if let Some(dir) = state::old_state_dir() {
+                    if let Some(dir) = state::old_state_dir_no_override()
+                        && dir.exists()
+                    {
                         println!("- deleting old state directory");
                         fs::remove_dir_all(dir)?
                     }

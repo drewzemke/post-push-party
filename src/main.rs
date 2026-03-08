@@ -18,7 +18,10 @@ mod tui;
 use clap::Parser;
 use cli::{Cli, Command};
 
-use crate::{state::State, storage::DbConnection};
+use crate::{
+    state::State,
+    storage::{BranchRefsStore, DbConnection},
+};
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
@@ -26,15 +29,16 @@ fn main() -> anyhow::Result<()> {
     // load state from sqlite db
     let conn = DbConnection::create()?;
     let mut state = State::load(&conn)?;
+    let branch_refs = BranchRefsStore::new(&conn);
 
     match cli.command {
-        Some(Command::Init) => init::run(&mut state),
+        Some(Command::Init) => init::run(&mut state, &branch_refs)?,
         Some(Command::Uninit) => init::run_uninit(),
         Some(Command::Points) => state::points(&state),
         Some(Command::Stats) => state::stats(&state),
-        Some(Command::Hook) => hook::post_push(&mut state),
+        Some(Command::Hook) => hook::post_push(&mut state, &branch_refs),
         Some(Command::Dump) => state::dump(&state),
-        Some(Command::Snapshot) => hook::pre_push(),
+        Some(Command::Snapshot) => hook::pre_push(&branch_refs)?,
 
         None => tui::run(&mut state, &conn)?,
 

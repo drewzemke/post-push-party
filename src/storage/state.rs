@@ -91,29 +91,35 @@ impl State {
         )?;
 
         // bonus_tracks
-        let mut stmt =
-            conn.prepare("INSERT OR REPLACE INTO bonus_tracks (id, level) VALUES (?1, ?2)")?;
-        for (track_id, level) in &self.bonus_tracks {
-            stmt.execute((track_id, level))?;
+        {
+            let mut stmt =
+                tx.prepare("INSERT OR REPLACE INTO bonus_tracks (id, level) VALUES (?1, ?2)")?;
+            for (track_id, level) in &self.bonus_tracks {
+                stmt.execute((track_id, level))?;
+            }
         }
 
         // parties
-        let mut stmt = conn.prepare(
-            "INSERT OR REPLACE INTO parties (id, enabled, active_palette ) VALUES (?1, ?2, ?3)",
-        )?;
-        for party_id in &self.unlocked_parties {
-            let enabled = self.is_party_enabled(party_id);
-            let selected_palette = self.selected_palette(party_id).cloned().unwrap_or_default();
-            stmt.execute((party_id, enabled, selected_palette))?;
+        {
+            let mut stmt = tx.prepare(
+                "INSERT OR REPLACE INTO parties (id, enabled, active_palette ) VALUES (?1, ?2, ?3)",
+            )?;
+            for party_id in &self.unlocked_parties {
+                let enabled = self.is_party_enabled(party_id);
+                let selected_palette = self.selected_palette(party_id).cloned().unwrap_or_default();
+                stmt.execute((party_id, enabled, selected_palette))?;
+            }
         }
 
         // unlocked_palettes
-        let mut stmt = conn.prepare(
-            "INSERT OR REPLACE INTO unlocked_palettes (party_id, palette_name) VALUES (?1, ?2)",
-        )?;
-        for (party_id, palettes) in &self.unlocked_palettes {
-            for palette in palettes {
-                stmt.execute((party_id, palette))?;
+        {
+            let mut stmt = tx.prepare(
+                "INSERT OR REPLACE INTO unlocked_palettes (party_id, palette_name) VALUES (?1, ?2)",
+            )?;
+            for (party_id, palettes) in &self.unlocked_palettes {
+                for palette in palettes {
+                    stmt.execute((party_id, palette))?;
+                }
             }
         }
 

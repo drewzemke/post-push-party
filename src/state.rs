@@ -1,6 +1,3 @@
-use anyhow::Result;
-use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSqlOutput, Value, ValueRef};
-use rusqlite::{Result as RusqliteResult, ToSql};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
@@ -8,7 +5,6 @@ use std::path::PathBuf;
 use crate::bonus_track::{ALL_TRACKS, Reward};
 use crate::pack::{Pack, PackItem};
 use crate::party::{ALL_PARTIES, Palette, Party};
-use crate::storage::DbConnection;
 
 /// measures how quickly the player gains packs automatically based
 /// on lifetime points. specifically it's the rate of increase of
@@ -31,7 +27,7 @@ pub struct State {
 
     /// refers to bonus tracks by their identifier string
     #[serde(default)]
-    pub bonus_levels: HashMap<String, u32>,
+    pub bonus_tracks: HashMap<String, u32>,
 
     /// which parties the player has unlocked via the store.
     /// refers to parties by their identifier string
@@ -69,29 +65,6 @@ pub enum PaletteSelection {
     Random,
 }
 
-impl ToSql for PaletteSelection {
-    fn to_sql(&self) -> RusqliteResult<ToSqlOutput<'_>> {
-        match self {
-            PaletteSelection::Specific(s) => Ok(ToSqlOutput::from(s.as_str())),
-            PaletteSelection::Random => Ok(ToSqlOutput::Owned(Value::Null)),
-        }
-    }
-}
-
-impl FromSql for PaletteSelection {
-    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
-        match value {
-            ValueRef::Null => Ok(Self::Random),
-            ValueRef::Text(items) => {
-                let str = String::from_utf8(items.to_vec())
-                    .map_err(|_| FromSqlError::Other("Unparsable string".into()))?;
-                Ok(Self::Specific(str))
-            }
-            _ => Err(FromSqlError::InvalidType),
-        }
-    }
-}
-
 impl Default for PaletteSelection {
     fn default() -> Self {
         Self::Specific(Palette::WHITE.name().to_string())
@@ -100,8 +73,8 @@ impl Default for PaletteSelection {
 
 impl Default for State {
     fn default() -> Self {
-        let mut bonus_levels = HashMap::new();
-        bonus_levels.insert("commit_value".to_string(), 1);
+        let mut bonus_tracks = HashMap::new();
+        bonus_tracks.insert("commit_value".to_string(), 1);
 
         let mut unlocked_parties = HashSet::new();
         unlocked_parties.insert("base".to_string());
@@ -111,7 +84,7 @@ impl Default for State {
         Self {
             party_points: 0,
             lifetime_points_earned: 0,
-            bonus_levels,
+            bonus_tracks,
             enabled_parties: unlocked_parties.clone(),
             unlocked_parties,
             unlocked_palettes: HashMap::from([("base".to_string(), vec![white.clone()])]),
@@ -126,115 +99,24 @@ impl Default for State {
 }
 
 impl State {
-    pub fn load(conn: &DbConnection) -> RusqliteResult<Self> {
-        // player
-        let (party_points, points_earned, _packs_earned): (i64, i64, i64) = conn.query_one(
-            "
-            SELECT party_points, points_earned, packs_earned from player WHERE id = 1;
-        ",
-            (),
-            |x| Ok((x.get(0)?, x.get(1)?, x.get(2)?)),
-        )?;
-
-        // bonus tracks
-        let mut stmt = conn.prepare("SELECT id, level FROM bonus_tracks")?;
-        let bonus_tracks = stmt
-            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
-            .collect::<RusqliteResult<HashMap<String, u32>>>()?;
-
-        // parties
-        let mut stmt = conn.prepare("SELECT id, enabled, active_palette FROM parties")?;
-        let parties = stmt
-            .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?
-            .collect::<RusqliteResult<Vec<(String, bool, PaletteSelection)>>>()?;
-
-        let unlocked_parties = parties.iter().map(|(id, _, _)| id.clone()).collect();
-        let enabled_parties = parties
-            .iter()
-            .filter_map(|(id, enabled, _)| enabled.then_some(id.clone()))
-            .collect();
-        let active_palettes = parties
-            .into_iter()
-            .map(|(id, _, palette)| (id, palette))
-            .collect();
-
-        // unlocked palettes
-        let mut stmt = conn.prepare("SELECT party_id, palette_name FROM unlocked_palettes")?;
-        let unlocked_palette_pairs = stmt
-            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
-            .collect::<RusqliteResult<Vec<(String, String)>>>()?;
-        let mut unlocked_palettes: HashMap<String, Vec<String>> = HashMap::new();
-        for (party_id, palette_name) in unlocked_palette_pairs {
-            unlocked_palettes
-                .entry(party_id)
-                .and_modify(|v| v.push(palette_name.clone()))
-                .or_insert(Vec::from([palette_name]));
-        }
-
-        let state = Self {
-            party_points: party_points as u64,
-            lifetime_points_earned: points_earned as u64,
-            bonus_levels: bonus_tracks,
+    pub fn new(
+        party_points: u64,
+        lifetime_points_earned: u64,
+        bonus_tracks: HashMap<String, u32>,
+        unlocked_parties: HashSet<String>,
+        enabled_parties: HashSet<String>,
+        unlocked_palettes: HashMap<String, Vec<String>>,
+        active_palettes: HashMap<String, PaletteSelection>,
+    ) -> Self {
+        Self {
+            party_points,
+            lifetime_points_earned,
+            bonus_tracks,
             unlocked_parties,
-            active_palettes,
             enabled_parties,
             unlocked_palettes,
-            // FIXME: add packs earned
-        };
-        Ok(state)
-    }
-
-    pub fn save(&self, conn: &DbConnection) -> Result<()> {
-        let tx = conn.unchecked_transaction()?;
-
-        // player
-        conn.execute(
-            "
-                 UPDATE player SET
-                     party_points = ?1,
-                     points_earned = ?2,
-                     packs_earned = ?3
-                     WHERE id = 1;
-    
-            ",
-            (
-                self.party_points as i64,
-                self.lifetime_points_earned as i64,
-                // FIXME: restore this to `packs_earned`
-                0,
-            ),
-        )?;
-
-        // bonus_tracks
-        let mut stmt =
-            conn.prepare("INSERT OR REPLACE INTO bonus_tracks (id, level) VALUES (?1, ?2)")?;
-        for (track_id, level) in &self.bonus_levels {
-            stmt.execute((track_id, level))?;
+            active_palettes,
         }
-
-        // parties
-        let mut stmt = conn.prepare(
-            "INSERT OR REPLACE INTO parties (id, enabled, active_palette ) VALUES (?1, ?2, ?3)",
-        )?;
-        for party_id in &self.unlocked_parties {
-            let enabled = self.is_party_enabled(party_id);
-            let selected_palette = self.selected_palette(party_id).cloned().unwrap_or_default();
-            stmt.execute((party_id, enabled, selected_palette))?;
-        }
-
-        // unlocked_palettes
-        let mut stmt = conn.prepare(
-            "INSERT OR REPLACE INTO unlocked_palettes (party_id, palette_name) VALUES (?1, ?2)",
-        )?;
-        for (party_id, palettes) in &self.unlocked_palettes {
-            for palette in palettes {
-                stmt.execute((party_id, palette))?;
-            }
-        }
-
-        tx.commit()?;
-
-        Ok(())
     }
 
     /// if packs were earned as a result of earning these points,
@@ -270,11 +152,11 @@ impl State {
     }
 
     pub fn bonus_level(&self, id: &str) -> u32 {
-        self.bonus_levels.get(id).copied().unwrap_or(0)
+        self.bonus_tracks.get(id).copied().unwrap_or(0)
     }
 
     pub fn set_bonus_level(&mut self, id: &str, level: u32) {
-        self.bonus_levels.insert(id.to_string(), level);
+        self.bonus_tracks.insert(id.to_string(), level);
     }
 
     pub fn points_per_commit(&self) -> u64 {
@@ -467,7 +349,7 @@ pub fn dump(state: &State) {
     // FIXME: uncomment after sqlite migration
     // println!("lifetime_packs_earned: {}", state.lifetime_packs_earned);
     println!("points_per_commit: {}", state.points_per_commit());
-    println!("bonus_levels: {:?}", state.bonus_levels);
+    println!("bonus_levels: {:?}", state.bonus_tracks);
     println!("unlocked_parties: {:?}", state.unlocked_parties);
     println!("enabled_parties: {:?}", state.enabled_parties);
 }
@@ -482,6 +364,8 @@ pub fn load_from_path(path: &std::path::Path) -> State {
 
 #[cfg(test)]
 mod tests {
+    use crate::storage::DbConnection;
+
     use super::*;
 
     #[test]

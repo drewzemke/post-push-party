@@ -114,7 +114,7 @@ fn migrate_v1(conn: &DbConnection) -> Result<()> {
         // bonus_tracks
         conn.execute("DELETE FROM bonus_tracks", ())?;
         let mut stmt = conn.prepare("INSERT INTO bonus_tracks (id, level) VALUES (?1, ?2)")?;
-        for (track_id, level) in &state.bonus_levels {
+        for (track_id, level) in &state.bonus_tracks {
             stmt.execute((track_id, level))?;
         }
 

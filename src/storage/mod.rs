@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 mod connection;
 mod migrations;
+mod state;
 
 pub use connection::DbConnection;
 

@@ -52,32 +52,33 @@ impl BonusTrack for RapidFire {
         }
 
         let cutoff = ctx.clock.now().saturating_sub(RAPID_FIRE_WINDOW_SECS);
-        let has_recent_push = ctx
+        let has_recent_push = !ctx
             .history
-            .entries()
-            .iter()
-            .any(|e| e.timestamp() >= cutoff);
+            // FIXME: call history.count_since
+            .entries_since(cutoff)
+            .is_empty();
 
-        if has_recent_push {
-            1
-        } else {
-            0
-        }
+        if has_recent_push { 1 } else { 0 }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bonus_track::Clock;
-    use crate::git::{Commit, Push};
-    use crate::history::{PushEntry, PushHistory};
+    use crate::{
+        bonus_track::Clock,
+        git::{Commit, Push},
+        history::PushEntry,
+        storage::{DbConnection, PushHistory},
+    };
 
     #[test]
     fn applies_when_pushed_within_window() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let bonus = RapidFire;
         let push = Push::new(vec![Commit::default()]);
-        let history = PushHistory::from_entries([PushEntry::at(1000)]);
+        let history = PushHistory::new(&conn).with_entries([PushEntry::at(1000)]);
         let clock = Clock::at(1000 + 5 * 60);
 
         let ctx = PushContext {
@@ -91,9 +92,11 @@ mod tests {
 
     #[test]
     fn applies_at_exact_boundary() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let bonus = RapidFire;
         let push = Push::new(vec![Commit::default()]);
-        let history = PushHistory::from_entries([PushEntry::at(1000)]);
+        let history = PushHistory::new(&conn).with_entries([PushEntry::at(1000)]);
         let clock = Clock::at(1000 + RAPID_FIRE_WINDOW_SECS);
 
         let ctx = PushContext {
@@ -107,9 +110,11 @@ mod tests {
 
     #[test]
     fn does_not_apply_outside_window() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let bonus = RapidFire;
         let push = Push::new(vec![Commit::default()]);
-        let history = PushHistory::from_entries([PushEntry::at(1000)]);
+        let history = PushHistory::new(&conn).with_entries([PushEntry::at(1000)]);
         let clock = Clock::at(1000 + RAPID_FIRE_WINDOW_SECS + 60);
 
         let ctx = PushContext {
@@ -123,9 +128,11 @@ mod tests {
 
     #[test]
     fn does_not_apply_with_no_history() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let bonus = RapidFire;
         let push = Push::new(vec![Commit::default()]);
-        let history = PushHistory::default();
+        let history = PushHistory::new(&conn);
         let clock = Clock::at(1000);
 
         let ctx = PushContext {
@@ -139,9 +146,11 @@ mod tests {
 
     #[test]
     fn does_not_apply_to_empty_pushes() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let bonus = RapidFire;
         let push = Push::new(vec![]);
-        let history = PushHistory::from_entries([PushEntry::at(1000)]);
+        let history = PushHistory::new(&conn).with_entries([PushEntry::at(1000)]);
         let clock = Clock::at(1000 + 5 * 60);
 
         let ctx = PushContext {

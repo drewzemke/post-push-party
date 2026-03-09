@@ -15,6 +15,7 @@ pub struct BranchRefs {
     pub repos: HashMap<String, HashMap<String, String>>,
 }
 
+// TODO: remove, used only for migration
 fn refs_path() -> Option<std::path::PathBuf> {
     crate::state::old_state_dir().map(|d| d.join("refs.bin"))
 }

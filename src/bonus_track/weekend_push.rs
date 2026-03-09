@@ -56,9 +56,11 @@ impl BonusTrack for WeekendPush {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bonus_track::Clock;
-    use crate::git::{Commit, Push};
-    use crate::history::PushHistory;
+    use crate::{
+        bonus_track::Clock,
+        git::{Commit, Push},
+        storage::{DbConnection, PushHistory},
+    };
 
     const FRI_2AM_LOCAL: u64 = 1769842800;
     const SAT_2AM_LOCAL: u64 = 1769853600;
@@ -68,9 +70,10 @@ mod tests {
 
     #[test]
     fn applies_on_saturday_and_sunday() {
+        let conn = DbConnection::create_in_memory().unwrap();
+        let history = PushHistory::new(&conn);
         let bonus = WeekendPush;
         let push = Push::new(vec![Commit::default()]);
-        let history = PushHistory::default();
 
         // saturday
         let clock = Clock::with_offset(SAT_2AM_LOCAL, UTC_MINUS_8);
@@ -93,9 +96,10 @@ mod tests {
 
     #[test]
     fn does_not_apply_on_friday_or_monday() {
+        let conn = DbConnection::create_in_memory().unwrap();
+        let history = PushHistory::new(&conn);
         let bonus = WeekendPush;
         let push = Push::new(vec![Commit::default()]);
-        let history = PushHistory::default();
 
         // friday
         let clock = Clock::with_offset(FRI_2AM_LOCAL, UTC_MINUS_8);
@@ -118,9 +122,10 @@ mod tests {
 
     #[test]
     fn does_not_apply_to_empty_pushes() {
+        let conn = DbConnection::create_in_memory().unwrap();
+        let history = PushHistory::new(&conn);
         let bonus = WeekendPush;
         let push = Push::new(vec![]);
-        let history = PushHistory::default();
         let clock = Clock::with_offset(SUN_11PM_LOCAL, UTC_MINUS_8);
 
         let ctx = PushContext {

@@ -1,6 +1,4 @@
-use std::collections::HashSet;
-
-use crate::history::PushHistory;
+use crate::storage::PushHistory;
 
 use super::{BonusTrack, Clock, PushContext, Reward, Tier};
 
@@ -9,21 +7,32 @@ pub struct Streak;
 
 /// count consecutive days with at least one push, ending today
 fn consecutive_push_days(history: &PushHistory, clock: &Clock) -> u32 {
-    let days_with_pushes: HashSet<i64> = history
-        .entries()
-        .iter()
-        .map(|e| clock.day_of(e.timestamp()))
-        .collect();
+    let mut day_id = clock.today_id();
+    // FIXME: call history.count_since
+    let mut entries = history.entries_since(clock.today_start()).len();
 
-    let mut count = 0;
-    let mut day = clock.today();
-
-    while days_with_pushes.contains(&day) {
-        count += 1;
-        day -= 1;
+    if entries == 0 {
+        return 0;
     }
 
-    count
+    // count today automatically
+    let mut consec_days = 1;
+
+    loop {
+        day_id -= 1;
+        let day_start = clock.day_start(day_id);
+        // FIXME: call history.count_since
+        let new_entries = history.entries_since(day_start).len();
+
+        if new_entries > entries {
+            consec_days += 1;
+            entries = new_entries;
+        } else {
+            break;
+        }
+    }
+
+    consec_days
 }
 
 /// minimum consecutive days to trigger the bonus
@@ -85,8 +94,11 @@ impl BonusTrack for Streak {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::git::{Commit, Push};
-    use crate::history::PushEntry;
+    use crate::{
+        git::{Commit, Push},
+        history::PushEntry,
+        storage::DbConnection,
+    };
 
     const SECONDS_PER_DAY: u64 = 86400;
 
@@ -100,10 +112,15 @@ mod tests {
 
     #[test]
     fn applies_with_3_day_streak() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let bonus = Streak;
         let push = Push::new(vec![Commit::default()]);
-        let history =
-            PushHistory::from_entries([entry_on_day(100), entry_on_day(101), entry_on_day(102)]);
+        let history = PushHistory::new(&conn).with_entries([
+            entry_on_day(100),
+            entry_on_day(101),
+            entry_on_day(102),
+        ]);
 
         let clock = clock_at_day(102);
         let ctx = PushContext {
@@ -116,9 +133,11 @@ mod tests {
 
     #[test]
     fn applies_with_longer_streak() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let bonus = Streak;
         let push = Push::new(vec![Commit::default()]);
-        let history = PushHistory::from_entries((95..=102).map(entry_on_day));
+        let history = PushHistory::new(&conn).with_entries((95..=102).map(entry_on_day));
 
         let clock = clock_at_day(102);
         let ctx = PushContext {
@@ -131,9 +150,11 @@ mod tests {
 
     #[test]
     fn does_not_apply_with_2_day_streak() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let bonus = Streak;
         let push = Push::new(vec![Commit::default()]);
-        let history = PushHistory::from_entries([entry_on_day(101), entry_on_day(102)]);
+        let history = PushHistory::new(&conn).with_entries([entry_on_day(101), entry_on_day(102)]);
 
         let clock = clock_at_day(102);
         let ctx = PushContext {
@@ -146,9 +167,11 @@ mod tests {
 
     #[test]
     fn does_not_apply_with_gap() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let bonus = Streak;
         let push = Push::new(vec![Commit::default()]);
-        let history = PushHistory::from_entries([
+        let history = PushHistory::new(&conn).with_entries([
             entry_on_day(99),
             entry_on_day(100),
             // gap on day 101
@@ -166,10 +189,15 @@ mod tests {
 
     #[test]
     fn does_not_apply_if_no_push_today() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let bonus = Streak;
         let push = Push::new(vec![Commit::default()]);
-        let history =
-            PushHistory::from_entries([entry_on_day(99), entry_on_day(100), entry_on_day(101)]);
+        let history = PushHistory::new(&conn).with_entries([
+            entry_on_day(99),
+            entry_on_day(100),
+            entry_on_day(101),
+        ]);
 
         // clock is on day 102, but no push today
         let clock = clock_at_day(102);
@@ -183,10 +211,15 @@ mod tests {
 
     #[test]
     fn does_not_apply_to_empty_pushes() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let bonus = Streak;
         let push = Push::new(vec![]);
-        let history =
-            PushHistory::from_entries([entry_on_day(100), entry_on_day(101), entry_on_day(102)]);
+        let history = PushHistory::new(&conn).with_entries([
+            entry_on_day(100),
+            entry_on_day(101),
+            entry_on_day(102),
+        ]);
 
         let clock = clock_at_day(102);
         let ctx = PushContext {

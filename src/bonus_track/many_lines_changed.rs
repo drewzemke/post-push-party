@@ -58,13 +58,16 @@ impl BonusTrack for ManyLinesChanged {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bonus_track::Clock;
-    use crate::git::{Commit, Push};
-    use crate::history::PushHistory;
+    use crate::{
+        bonus_track::Clock,
+        git::{Commit, Push},
+        storage::{DbConnection, PushHistory},
+    };
 
     #[test]
     fn applies_to_multiple_commits() {
-        let history = PushHistory::default();
+        let conn = DbConnection::create_in_memory().unwrap();
+        let history = PushHistory::new(&conn);
         let clock = Clock::default();
         let push = Push::new(vec![
             Commit::with_lines(MANY_LINES_COUNT + 1),
@@ -83,7 +86,8 @@ mod tests {
 
     #[test]
     fn applies_to_big_commits() {
-        let history = PushHistory::default();
+        let conn = DbConnection::create_in_memory().unwrap();
+        let history = PushHistory::new(&conn);
         let clock = Clock::default();
 
         let push = Push::new(vec![Commit::with_lines(MANY_LINES_COUNT)]);
@@ -105,7 +109,8 @@ mod tests {
 
     #[test]
     fn does_not_apply_to_small_commits() {
-        let history = PushHistory::default();
+        let conn = DbConnection::create_in_memory().unwrap();
+        let history = PushHistory::new(&conn);
         let clock = Clock::default();
 
         let push = Push::new(vec![Commit::with_lines(0)]);

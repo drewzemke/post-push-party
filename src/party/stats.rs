@@ -46,9 +46,10 @@ impl Party for Stats {
         // today
         let today_pushes = ctx
             .history
-            .entries()
-            .iter()
+            .entries_since(clock.today_start())
+            .into_iter()
             .filter(|push| clock.is_today(push.timestamp()));
+
         let mut today_commit_count = 0;
         let mut today_lines = 0;
         let mut today_points = 0;
@@ -60,7 +61,8 @@ impl Party for Stats {
         }
 
         // all time
-        let all_pushes = ctx.history.entries().iter();
+        // FIXME: refactor to use more effiecient queries
+        let all_pushes = ctx.history.entries_since(0);
 
         let mut days: HashSet<i64> = HashSet::new();
         let mut all_time_commit_count = 0;
@@ -68,7 +70,7 @@ impl Party for Stats {
         let mut all_time_points = 0;
 
         for push in all_pushes {
-            let day = clock.day_of(push.timestamp());
+            let day = clock.day_id_of(push.timestamp());
             days.insert(day);
 
             all_time_commit_count += push.commits();

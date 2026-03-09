@@ -61,9 +61,11 @@ impl BonusTrack for FridayAfternoon {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bonus_track::Clock;
-    use crate::git::{Commit, Push};
-    use crate::history::PushHistory;
+    use crate::{
+        bonus_track::Clock,
+        git::{Commit, Push},
+        storage::{DbConnection, PushHistory},
+    };
 
     const UTC_MINUS_8: i32 = -8 * 3600; // PST
 
@@ -78,8 +80,10 @@ mod tests {
 
     #[test]
     fn applies_on_friday_after_3pm() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let bonus = FridayAfternoon;
-        let history = PushHistory::default();
+        let history = PushHistory::new(&conn);
 
         // exactly 3pm
         let push = Push::new(vec![Commit::default()]);
@@ -112,9 +116,11 @@ mod tests {
 
     #[test]
     fn does_not_apply_before_3pm() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let bonus = FridayAfternoon;
         let push = Push::new(vec![Commit::default()]);
-        let history = PushHistory::default();
+        let history = PushHistory::new(&conn);
 
         // midnight
         let clock = clock_at_hour(0);
@@ -137,9 +143,11 @@ mod tests {
 
     #[test]
     fn does_not_apply_on_other_days() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let bonus = FridayAfternoon;
         let push = Push::new(vec![Commit::default()]);
-        let history = PushHistory::default();
+        let history = PushHistory::new(&conn);
 
         // Saturday 4pm (day after)
         let saturday_4pm = Clock::with_offset(
@@ -168,9 +176,11 @@ mod tests {
 
     #[test]
     fn does_not_apply_to_empty_pushes() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let bonus = FridayAfternoon;
         let push = Push::new(vec![]);
-        let history = PushHistory::default();
+        let history = PushHistory::new(&conn);
         let clock = clock_at_hour(16);
         let ctx = PushContext {
             push: &push,

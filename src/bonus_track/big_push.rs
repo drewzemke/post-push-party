@@ -59,14 +59,18 @@ impl BonusTrack for BigPush {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bonus_track::Clock;
-    use crate::git::{Commit, Push};
-    use crate::history::PushHistory;
+    use crate::{
+        bonus_track::Clock,
+        git::{Commit, Push},
+        storage::{DbConnection, PushHistory},
+    };
 
     #[test]
     fn applies_to_big_pushes() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let bonus = BigPush;
-        let history = PushHistory::default();
+        let history = PushHistory::new(&conn);
         let clock = Clock::default();
 
         let push = Push::new(vec![Commit::default(); BIG_PUSH_COMMIT_COUNT]);
@@ -88,8 +92,10 @@ mod tests {
 
     #[test]
     fn does_not_apply_to_small_pushes() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let bonus = BigPush;
-        let history = PushHistory::default();
+        let history = PushHistory::new(&conn);
         let clock = Clock::default();
 
         let push = Push::new(vec![Commit::default(); BIG_PUSH_COMMIT_COUNT - 1]);

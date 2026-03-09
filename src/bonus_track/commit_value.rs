@@ -51,9 +51,11 @@ impl BonusTrack for CommitValue {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bonus_track::Clock;
-    use crate::git::Push;
-    use crate::history::PushHistory;
+    use crate::{
+        bonus_track::Clock,
+        git::Push,
+        storage::{DbConnection, PushHistory},
+    };
 
     #[test]
     fn tiers_start_free() {
@@ -64,10 +66,12 @@ mod tests {
 
     #[test]
     fn always_applies() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let push = Push::new(vec![]);
         let ctx = PushContext {
             push: &push,
-            history: &PushHistory::default(),
+            history: &PushHistory::new(&conn),
             clock: &Clock::default(),
         };
         assert_eq!(CommitValue.applies(&ctx), 1);

@@ -1,9 +1,11 @@
 //! Point calculation for pushes, applying all bonus tracks.
 
-use crate::bonus_track::{Clock, PushContext, Reward, ALL_TRACKS};
-use crate::git::Push;
-use crate::history::PushHistory;
-use crate::state::State;
+use crate::{
+    bonus_track::{ALL_TRACKS, Clock, PushContext, Reward},
+    git::Push,
+    state::State,
+    storage::PushHistory,
+};
 
 /// A bonus that was applied to this push.
 #[derive(Debug, Clone)]
@@ -99,7 +101,7 @@ pub fn calculate_points(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::git::Commit;
+    use crate::{git::Commit, storage::DbConnection};
 
     fn get_multiplier(id: &str, level: u32) -> u64 {
         ALL_TRACKS
@@ -127,6 +129,8 @@ mod tests {
 
     #[test]
     fn base_points_without_bonuses() {
+        let conn = DbConnection::create_in_memory().unwrap();
+        let history = PushHistory::new(&conn);
         let state = State::default();
         let push = Push::new(vec![
             Commit::with_lines(10),
@@ -134,13 +138,16 @@ mod tests {
             Commit::with_lines(30),
         ]);
 
-        let result = calculate_points(&push, &state, &PushHistory::default(), &Clock::at(1000));
+        let result = calculate_points(&push, &state, &history, &Clock::at(1000));
 
         assert_eq!(result.total, 3); // 3 commits × 1 point
     }
 
     #[test]
     fn formula_applies_flat_before_multiplier() {
+        let conn = DbConnection::create_in_memory().unwrap();
+        let history = PushHistory::new(&conn);
+
         let mut state = State::default();
         state.set_bonus_level("first_push", 1);
         state.set_bonus_level("one_line_change", 1);
@@ -148,7 +155,7 @@ mod tests {
         // 2 commits, 1 qualifies for sniper
         let push = Push::new(vec![Commit::with_lines(1), Commit::with_lines(10)]);
 
-        let result = calculate_points(&push, &state, &PushHistory::default(), &Clock::at(1000));
+        let result = calculate_points(&push, &state, &history, &Clock::at(1000));
 
         let mult = get_multiplier("first_push", 1);
         let flat = get_flat("one_line_change", 1);
@@ -157,6 +164,8 @@ mod tests {
 
     #[test]
     fn flat_bonus_scales_with_qualifying_commits() {
+        let conn = DbConnection::create_in_memory().unwrap();
+        let history = PushHistory::new(&conn);
         let mut state = State::default();
         state.set_bonus_level("one_line_change", 1);
 
@@ -168,7 +177,7 @@ mod tests {
             Commit::with_lines(50),
         ]);
 
-        let result = calculate_points(&push, &state, &PushHistory::default(), &Clock::at(1000));
+        let result = calculate_points(&push, &state, &history, &Clock::at(1000));
 
         let flat_per = get_flat("one_line_change", 1);
         // 4 base points + (3 sniper commits × flat_per)

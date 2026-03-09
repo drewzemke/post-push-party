@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use crate::bonus_track::{ALL_TRACKS, Reward};
 use crate::pack::{Pack, PackItem};
 use crate::party::{ALL_PARTIES, Palette, Party};
+use crate::storage::PushHistory;
 
 /// measures how quickly the player gains packs automatically based
 /// on lifetime points. specifically it's the rate of increase of
@@ -326,13 +327,12 @@ pub fn points(state: &State) {
     println!("You have {} party points.", state.party_points);
 }
 
-pub fn stats(state: &State) {
+pub fn stats(state: &State, history: &PushHistory) {
     if !state.is_party_unlocked("stats") {
         println!("You haven't unlocked the Stats party yet.");
         return;
     }
 
-    let history = crate::history::load();
     let clock = crate::clock::Clock::from_now();
     let push = crate::git::Push::default();
     let breakdown = crate::scoring::PointsBreakdown {
@@ -343,7 +343,7 @@ pub fn stats(state: &State) {
     };
 
     let ctx =
-        crate::party::RenderContext::new(&push, &history, &breakdown, state, &clock, Vec::new());
+        crate::party::RenderContext::new(&push, history, &breakdown, state, &clock, Vec::new());
     crate::party::stats::Stats.render(&ctx, &crate::party::Palette::WHITE);
 }
 

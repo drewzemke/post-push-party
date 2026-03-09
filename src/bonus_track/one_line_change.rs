@@ -55,13 +55,16 @@ impl BonusTrack for OneLineChange {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bonus_track::Clock;
-    use crate::git::{Commit, Push};
-    use crate::history::PushHistory;
+    use crate::{
+        bonus_track::Clock,
+        git::{Commit, Push},
+        storage::{DbConnection, PushHistory},
+    };
 
     #[test]
     fn applies_to_1_and_2_line_commits() {
-        let history = PushHistory::default();
+        let conn = DbConnection::create_in_memory().unwrap();
+        let history = PushHistory::new(&conn);
         let clock = Clock::default();
         let push = Push::new(vec![
             Commit::with_lines(1),
@@ -80,7 +83,8 @@ mod tests {
 
     #[test]
     fn does_not_apply_to_zero_line_commits() {
-        let history = PushHistory::default();
+        let conn = DbConnection::create_in_memory().unwrap();
+        let history = PushHistory::new(&conn);
         let clock = Clock::default();
         let push = Push::new(vec![Commit::with_lines(0)]);
         let ctx = PushContext {
@@ -93,7 +97,8 @@ mod tests {
 
     #[test]
     fn does_not_apply_to_multi_line_commits() {
-        let history = PushHistory::default();
+        let conn = DbConnection::create_in_memory().unwrap();
+        let history = PushHistory::new(&conn);
         let clock = Clock::default();
         let push = Push::new(vec![Commit::with_lines(5), Commit::with_lines(100)]);
         let ctx = PushContext {

@@ -11,7 +11,7 @@ pub type Migration = fn(&DbConnection) -> Result<()>;
 pub const MIGRATIONS: &[Migration] = &[migrate_v1];
 
 // FIXME: turn this off before shipping
-pub const PRINT_DEBUG: bool = true;
+pub const PRINT_DEBUG: bool = false;
 fn debug(s: &str) {
     if PRINT_DEBUG {
         println!("{s}");

@@ -50,13 +50,13 @@ impl BonusTrack for MultipleRepos {
             return 0;
         }
 
-        let today = ctx.clock.today();
-        let repos_pushed_today: HashSet<&str> = ctx
+        let today = ctx.clock.today_id();
+        let repos_pushed_today: HashSet<String> = ctx
             .history
-            .entries()
-            .iter()
-            .filter(|e| ctx.clock.day_of(e.timestamp()) == today)
-            .map(|e| e.remote_url())
+            .entries_since(ctx.clock.today_start())
+            .into_iter()
+            .filter(|e| ctx.clock.day_id_of(e.timestamp()) == today)
+            .map(|e| e.remote_url().to_string())
             .collect();
 
         // bonus applies if:
@@ -76,9 +76,12 @@ impl BonusTrack for MultipleRepos {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bonus_track::Clock;
-    use crate::git::{Commit, Push};
-    use crate::history::{PushEntry, PushHistory};
+    use crate::{
+        bonus_track::Clock,
+        git::{Commit, Push},
+        history::PushEntry,
+        storage::{DbConnection, PushHistory},
+    };
 
     const SECONDS_PER_DAY: u64 = 86400;
 
@@ -92,11 +95,13 @@ mod tests {
 
     #[test]
     fn applies_on_second_repo() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let bonus = MultipleRepos;
         let clock = clock_at_day(100);
 
         // already pushed to repo1 today
-        let history = PushHistory::from_entries([PushEntry::with_repo(
+        let history = PushHistory::new(&conn).with_entries([PushEntry::with_repo(
             timestamp_on_day(100),
             "git@github.com:user/repo1.git",
         )]);
@@ -114,10 +119,12 @@ mod tests {
 
     #[test]
     fn applies_on_third_repo() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let bonus = MultipleRepos;
         let clock = clock_at_day(100);
 
-        let history = PushHistory::from_entries([
+        let history = PushHistory::new(&conn).with_entries([
             PushEntry::with_repo(timestamp_on_day(100), "git@github.com:user/repo1.git"),
             PushEntry::with_repo(timestamp_on_day(100), "git@github.com:user/repo2.git"),
         ]);
@@ -135,11 +142,13 @@ mod tests {
 
     #[test]
     fn does_not_apply_on_first_repo() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let bonus = MultipleRepos;
         let clock = clock_at_day(100);
 
         // no pushes today yet
-        let history = PushHistory::default();
+        let history = PushHistory::new(&conn);
 
         let push = Push::with_repo(vec![Commit::default()], "git@github.com:user/repo1.git");
         let ctx = PushContext {
@@ -153,11 +162,13 @@ mod tests {
 
     #[test]
     fn does_not_apply_on_repeat_push_to_same_repo() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let bonus = MultipleRepos;
         let clock = clock_at_day(100);
 
         // already pushed to repo1 today
-        let history = PushHistory::from_entries([PushEntry::with_repo(
+        let history = PushHistory::new(&conn).with_entries([PushEntry::with_repo(
             timestamp_on_day(100),
             "git@github.com:user/repo1.git",
         )]);
@@ -175,11 +186,13 @@ mod tests {
 
     #[test]
     fn does_not_count_repos_from_other_days() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let bonus = MultipleRepos;
         let clock = clock_at_day(100);
 
         // pushed to repos yesterday, not today
-        let history = PushHistory::from_entries([
+        let history = PushHistory::new(&conn).with_entries([
             PushEntry::with_repo(timestamp_on_day(99), "git@github.com:user/repo1.git"),
             PushEntry::with_repo(timestamp_on_day(99), "git@github.com:user/repo2.git"),
         ]);
@@ -197,10 +210,12 @@ mod tests {
 
     #[test]
     fn does_not_apply_to_empty_pushes() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let bonus = MultipleRepos;
         let clock = clock_at_day(100);
 
-        let history = PushHistory::from_entries([PushEntry::with_repo(
+        let history = PushHistory::new(&conn).with_entries([PushEntry::with_repo(
             timestamp_on_day(100),
             "git@github.com:user/repo1.git",
         )]);

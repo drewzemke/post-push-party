@@ -20,7 +20,7 @@ use cli::{Cli, Command};
 
 use crate::{
     state::State,
-    storage::{BranchRefsStore, DbConnection},
+    storage::{BranchRefsStore, DbConnection, PushHistory},
 };
 
 fn main() -> anyhow::Result<()> {
@@ -30,13 +30,14 @@ fn main() -> anyhow::Result<()> {
     let conn = DbConnection::create()?;
     let mut state = State::load(&conn)?;
     let branch_refs = BranchRefsStore::new(&conn);
+    let history = PushHistory::new(&conn);
 
     match cli.command {
         Some(Command::Init) => init::run(&mut state, &branch_refs)?,
         Some(Command::Uninit) => init::run_uninit(),
         Some(Command::Points) => state::points(&state),
-        Some(Command::Stats) => state::stats(&state),
-        Some(Command::Hook) => hook::post_push(&mut state, &branch_refs),
+        Some(Command::Stats) => state::stats(&state, &history),
+        Some(Command::Hook) => hook::post_push(&mut state, &branch_refs, &history)?,
         Some(Command::Dump) => state::dump(&state),
         Some(Command::Snapshot) => hook::pre_push(&branch_refs)?,
 
@@ -45,9 +46,9 @@ fn main() -> anyhow::Result<()> {
         #[cfg(feature = "dev")]
         Some(Command::Cheat { amount }) => dev::cheat(amount, &mut state),
         #[cfg(feature = "dev")]
-        Some(Command::Push { commits, lines }) => dev::push(commits, lines, &mut state),
+        Some(Command::Push { commits, lines }) => dev::push(commits, lines, &mut state, &history)?,
         #[cfg(feature = "dev")]
-        Some(Command::Reset) => dev::reset(&mut state),
+        Some(Command::Reset) => dev::reset(&mut state, &history)?,
         #[cfg(feature = "dev")]
         Some(Command::Bonus { track, level }) => dev::bonus(&track, level, &mut state),
         #[cfg(feature = "dev")]

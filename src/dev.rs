@@ -1,10 +1,12 @@
+use anyhow::Result;
+
 use crate::{
     clock::Clock,
     git::{Commit, Push},
-    history,
     party::{self, RenderContext},
     scoring,
     state::{self, State},
+    storage::PushHistory,
 };
 
 pub fn cheat(amount: i64, state: &mut State) {
@@ -17,9 +19,13 @@ pub fn cheat(amount: i64, state: &mut State) {
     println!("{} → {} party points", old, state.party_points);
 }
 
-pub fn push(num_commits: u64, lines: Option<Vec<u64>>, state: &mut State) {
+pub fn push(
+    num_commits: u64,
+    lines: Option<Vec<u64>>,
+    state: &mut State,
+    history: &PushHistory,
+) -> Result<()> {
     // mirror the actual hook flow as closely as possible
-    let mut history = history::load();
     let clock = Clock::from_now();
 
     // build fake commits with specified or default line counts
@@ -35,33 +41,32 @@ pub fn push(num_commits: u64, lines: Option<Vec<u64>>, state: &mut State) {
 
     let push = Push::with_repo(commits, "dev://fake");
 
-    let breakdown = scoring::calculate_points(&push, state, &history, &clock);
+    let breakdown = scoring::calculate_points(&push, state, history, &clock);
     let packs_earned = state.earn_points(breakdown.total);
 
     // record this push in history (like the real hook does)
     let lines_changed: u64 = push.commits().iter().map(|c| c.lines_changed()).sum();
-    history = history::record(
+    history.record(
         "dev://fake",
         "main",
         num_commits,
         lines_changed,
         breakdown.total,
-    );
+    )?;
 
-    let ctx = RenderContext::new(&push, &history, &breakdown, state, &clock, packs_earned);
+    let ctx = RenderContext::new(&push, history, &breakdown, state, &clock, packs_earned);
     party::display(&ctx);
+
+    Ok(())
 }
 
-pub fn reset(state: &mut State) {
+pub fn reset(state: &mut State, pushes: &PushHistory) -> Result<()> {
     *state = state::State::default();
 
-    let history = history::PushHistory::default();
-    if let Err(e) = history::save(&history) {
-        eprintln!("error saving history: {e}");
-        std::process::exit(1);
-    }
+    pushes.reset()?;
 
     println!("state and history reset to defaults");
+    Ok(())
 }
 
 pub fn bonus(track_id: &str, level: u32, state: &mut State) {

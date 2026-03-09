@@ -44,26 +44,21 @@ impl BonusTrack for FirstPush {
     }
 
     fn applies(&self, ctx: &PushContext) -> u32 {
-        let pushed_today = ctx
-            .history
-            .entries()
-            .iter()
-            .any(|e| ctx.clock.day_of(e.timestamp()) == ctx.clock.today());
+        let pushed_today = ctx.history.entries_since(ctx.clock.today_start());
 
-        if pushed_today {
-            0
-        } else {
-            1
-        }
+        if pushed_today.is_empty() { 1 } else { 0 }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bonus_track::Clock;
-    use crate::git::{Commit, Push};
-    use crate::history::{PushEntry, PushHistory};
+    use crate::{
+        bonus_track::Clock,
+        git::{Commit, Push},
+        history::PushEntry,
+        storage::{DbConnection, PushHistory},
+    };
 
     // timestamps for testing (2026-01-28 in UTC)
     const TODAY_9AM: u64 = 1769594400; // 2026-01-28 09:00 UTC
@@ -78,11 +73,13 @@ mod tests {
 
     #[test]
     fn respects_local_timezone() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         // push at 11pm local time - in UTC this is already Jan 29,
         // but in local time it's still Jan 28
         let bonus = FirstPush;
         let push = Push::new(vec![Commit::default()]);
-        let history = PushHistory::from_entries([PushEntry::at(JAN28_9AM_LOCAL)]);
+        let history = PushHistory::new(&conn).with_entries([PushEntry::at(JAN28_9AM_LOCAL)]);
         let clock = Clock::with_offset(JAN28_11PM_LOCAL, UTC_MINUS_5);
 
         let ctx = PushContext {
@@ -97,9 +94,11 @@ mod tests {
 
     #[test]
     fn applies_when_no_pushes_today() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let bonus = FirstPush;
         let push = Push::new(vec![Commit::default()]);
-        let history = PushHistory::from_entries([PushEntry::at(YESTERDAY_9AM)]);
+        let history = PushHistory::new(&conn).with_entries([PushEntry::at(YESTERDAY_9AM)]);
         let clock = Clock::at(TODAY_9AM);
 
         let ctx = PushContext {
@@ -113,9 +112,11 @@ mod tests {
 
     #[test]
     fn does_not_apply_when_already_pushed_today() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let bonus = FirstPush;
         let push = Push::new(vec![Commit::default()]);
-        let history = PushHistory::from_entries([PushEntry::at(TODAY_9AM)]);
+        let history = PushHistory::new(&conn).with_entries([PushEntry::at(TODAY_9AM)]);
         let clock = Clock::at(TODAY_3PM);
 
         let ctx = PushContext {
@@ -129,9 +130,11 @@ mod tests {
 
     #[test]
     fn applies_on_first_push_ever() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
         let bonus = FirstPush;
         let push = Push::new(vec![Commit::default()]);
-        let history = PushHistory::default();
+        let history = PushHistory::new(&conn);
         let clock = Clock::at(TODAY_9AM);
 
         let ctx = PushContext {

@@ -1,3 +1,5 @@
+const SECONDS_PER_DAY: i64 = 86400;
+
 /// time context for bonus calculations
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Clock {
@@ -26,20 +28,30 @@ impl Clock {
     }
 
     /// convert a utc timestamp to local day number
-    pub fn day_of(&self, timestamp: u64) -> i64 {
-        const SECONDS_PER_DAY: i64 = 86400;
+    pub fn day_id_of(&self, timestamp: u64) -> i64 {
         (timestamp as i64 + self.tz_offset_secs as i64) / SECONDS_PER_DAY
     }
 
     /// local day number for `now`
-    pub fn today(&self) -> i64 {
-        self.day_of(self.now)
+    pub fn today_id(&self) -> i64 {
+        self.day_id_of(self.now)
+    }
+
+    /// the timestamp at the start of the current day
+    pub fn day_start(self, day_id: i64) -> u64 {
+        (SECONDS_PER_DAY * day_id) as u64
+    }
+
+    /// the timestamp at the start of the current day
+    pub fn today_start(self) -> u64 {
+        let today_id = (self.now as i64 + self.tz_offset_secs as i64) / SECONDS_PER_DAY;
+        self.day_start(today_id)
     }
 
     /// day of the week for `now`
     /// Thursday is 0, Friday is 1, etc
     pub fn day_of_week(&self) -> i64 {
-        self.day_of(self.now).rem_euclid(7)
+        self.day_id_of(self.now).rem_euclid(7)
     }
 
     /// seconds elapsed since midnight in local time
@@ -64,6 +76,6 @@ impl Clock {
     }
 
     pub fn is_today(&self, timestamp: u64) -> bool {
-        self.day_of(timestamp) == self.today()
+        self.day_id_of(timestamp) == self.today_id()
     }
 }

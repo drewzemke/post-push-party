@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     git::{self, Commit, Push},
-    storage::BranchRefsStore,
+    storage::{BranchRefsStore, PatchIdStore},
 };
 
 // TODO: remove
@@ -49,7 +49,7 @@ pub fn snapshot_refs(repo_path: &std::path::Path, branch_refs: &BranchRefsStore)
 }
 
 /// Detect commits from recent push. Loads/saves refs and patch-id state as side effects.
-pub fn get_pushed_commits(branch_refs: &BranchRefsStore) -> Option<Push> {
+pub fn get_pushed_commits(branch_refs: &BranchRefsStore, patch_ids: &PatchIdStore) -> Option<Push> {
     let repo_path = std::env::current_dir().expect("could not get current directory");
 
     let remote_url = git::commands::get_remote_url(&repo_path)?;
@@ -59,9 +59,6 @@ pub fn get_pushed_commits(branch_refs: &BranchRefsStore) -> Option<Push> {
     crate::debug_log!("hook: current_refs = {:?}", current_refs);
 
     let stored = branch_refs.get_refs_for_repo(&remote_url).ok()?;
-
-    let mut patch_store = super::patch_ids::load();
-    let mut seen = patch_store.get_set(&remote_url);
 
     // collect commits from pushed branches
     let mut commits = Vec::new();
@@ -122,7 +119,6 @@ pub fn get_pushed_commits(branch_refs: &BranchRefsStore) -> Option<Push> {
         .unwrap()
         .as_secs();
 
-    let mut new_patch_ids = Vec::new();
     let mut new_commits = Vec::new();
 
     // build list of branches to exclude from filtering (all branches we're pushing)
@@ -138,7 +134,7 @@ pub fn get_pushed_commits(branch_refs: &BranchRefsStore) -> Option<Push> {
         }
 
         if let Some(patch_id) = git::commands::get_patch_id(&repo_path, &sha)
-            && !seen.contains(&patch_id)
+            && !patch_ids.contains(&remote_url, &patch_id).ok()?
         {
             let lines_changed = git::commands::get_lines_changed(&repo_path, &sha).unwrap_or(0);
             crate::debug_log!(
@@ -147,8 +143,7 @@ pub fn get_pushed_commits(branch_refs: &BranchRefsStore) -> Option<Push> {
                 patch_id,
                 lines_changed
             );
-            seen.insert(patch_id.clone());
-            new_patch_ids.push(patch_id);
+            patch_ids.record(&remote_url, &patch_id).ok()?;
             new_commits.push(Commit::new(sha, lines_changed, now));
         }
     }
@@ -156,12 +151,6 @@ pub fn get_pushed_commits(branch_refs: &BranchRefsStore) -> Option<Push> {
     // update stored refs
     for (branch, sha) in current_refs {
         branch_refs.update_ref(&remote_url, &branch, &sha).ok()?;
-    }
-
-    // persist new patch-ids (if any)
-    if !new_patch_ids.is_empty() {
-        patch_store.record(&remote_url, &new_patch_ids);
-        let _ = super::patch_ids::save(&patch_store);
     }
 
     crate::debug_log!("hook: {} new commits", new_commits.len());

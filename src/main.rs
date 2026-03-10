@@ -20,7 +20,7 @@ use cli::{Cli, Command};
 
 use crate::{
     state::State,
-    storage::{BranchRefsStore, DbConnection, PushHistory},
+    storage::{BranchRefsStore, DbConnection, PatchIdStore, PushHistory},
 };
 
 fn main() -> anyhow::Result<()> {
@@ -31,13 +31,14 @@ fn main() -> anyhow::Result<()> {
     let mut state = State::load(&conn)?;
     let branch_refs = BranchRefsStore::new(&conn);
     let history = PushHistory::new(&conn);
+    let patch_ids = PatchIdStore::new(&conn);
 
     match cli.command {
         Some(Command::Init) => init::run(&mut state, &branch_refs)?,
         Some(Command::Uninit) => init::run_uninit(),
         Some(Command::Points) => state::points(&state),
         Some(Command::Stats) => state::stats(&state, &history),
-        Some(Command::Hook) => hook::post_push(&mut state, &branch_refs, &history)?,
+        Some(Command::Hook) => hook::post_push(&mut state, &branch_refs, &history, &patch_ids)?,
         Some(Command::Dump) => state::dump(&state),
         Some(Command::Snapshot) => hook::pre_push(&branch_refs)?,
 

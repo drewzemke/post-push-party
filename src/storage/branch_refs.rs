@@ -22,6 +22,8 @@ impl<'a> BranchRefsStore<'a> {
         Ok(())
     }
 
+    // FIXME: turn this into a "get ref for some branch of some repo"
+    // that just queries and returns a string, rather than constructing the map
     pub fn get_refs_for_repo(&self, repo: &str) -> Result<HashMap<String, String>> {
         let mut stmt = self
             .conn

@@ -4,11 +4,13 @@ use std::path::PathBuf;
 mod branch_refs;
 mod connection;
 mod migrations;
+mod patch_ids;
 mod pushes;
 mod state;
 
 pub use branch_refs::BranchRefsStore;
 pub use connection::DbConnection;
+pub use patch_ids::PatchIdStore;
 pub use pushes::PushHistory;
 
 const APP_DIR_NAME: &str = "post-push-party";

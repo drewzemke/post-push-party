@@ -6,16 +6,17 @@ use crate::{
     party::{self, RenderContext},
     scoring,
     state::State,
-    storage::{BranchRefsStore, PushHistory},
+    storage::{BranchRefsStore, PatchIdStore, PushHistory},
 };
 
 pub fn post_push(
     state: &mut State,
     branch_refs: &BranchRefsStore,
     history: &PushHistory,
+    patch_ids: &PatchIdStore,
 ) -> Result<()> {
     // HACK: should we do something else if this fails?
-    let Some(push) = git::get_pushed_commits(branch_refs) else {
+    let Some(push) = git::get_pushed_commits(branch_refs, patch_ids) else {
         return Ok(());
     };
 

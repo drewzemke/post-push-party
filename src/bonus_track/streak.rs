@@ -96,8 +96,7 @@ mod tests {
     use super::*;
     use crate::{
         git::{Commit, Push},
-        history::PushEntry,
-        storage::DbConnection,
+        storage::{DbConnection, PushEntry},
     };
 
     const SECONDS_PER_DAY: u64 = 86400;

@@ -56,8 +56,7 @@ mod tests {
     use crate::{
         bonus_track::Clock,
         git::{Commit, Push},
-        history::PushEntry,
-        storage::{DbConnection, PushHistory},
+        storage::{DbConnection, PushEntry, PushHistory},
     };
 
     // timestamps for testing (2026-01-28 in UTC)

@@ -11,7 +11,7 @@ mod state;
 pub use branch_refs::BranchRefsStore;
 pub use connection::DbConnection;
 pub use patch_ids::PatchIdStore;
-pub use pushes::PushHistory;
+pub use pushes::{PushEntry, PushHistory};
 
 const APP_DIR_NAME: &str = "post-push-party";
 

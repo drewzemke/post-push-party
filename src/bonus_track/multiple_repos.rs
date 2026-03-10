@@ -79,8 +79,7 @@ mod tests {
     use crate::{
         bonus_track::Clock,
         git::{Commit, Push},
-        history::PushEntry,
-        storage::{DbConnection, PushHistory},
+        storage::{DbConnection, PushEntry, PushHistory},
     };
 
     const SECONDS_PER_DAY: u64 = 86400;

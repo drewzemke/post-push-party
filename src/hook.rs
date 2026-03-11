@@ -45,11 +45,3 @@ pub fn post_push(
 
     Ok(())
 }
-
-/// stores ref start before pushing commits (only used in jj integration)
-pub fn pre_push(branch_refs: &BranchRefsStore) -> Result<()> {
-    let cwd = std::env::current_dir().expect("could not get current directory");
-    git::snapshot_refs(&cwd, branch_refs)?;
-
-    Ok(())
-}

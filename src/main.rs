@@ -40,7 +40,6 @@ fn main() -> anyhow::Result<()> {
         Some(Command::Stats) => state::stats(&state, &history),
         Some(Command::Hook) => hook::post_push(&mut state, &branch_refs, &history, &patch_ids)?,
         Some(Command::Dump) => state::dump(&state),
-        Some(Command::Snapshot) => hook::pre_push(&branch_refs)?,
 
         None => tui::run(&mut state, &conn)?,
 

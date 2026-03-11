@@ -7,7 +7,7 @@ Throw a little party every time you push code! Earn points when you do! Spend po
 
 1. [Install](#Installation) the app 
 
-2. In your git/jj repo of choice, run `party init` to install either a git hook or a local `jj push` alias. 
+2. In your git/jj repo of choice, run `party init` to install a git hook in that repo. (*Note*: Version 0.37.0 or later is required if you're using `jj`.) 
 
 3. Push code! You'll automatically start earning points based on how many commits you push.
 

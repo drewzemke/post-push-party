@@ -184,17 +184,21 @@ fn install_jj_push_config(cwd: &Path) -> Result<()> {
     let push_cmd = get_jj_push_config(cwd);
 
     // only set the config if something is unset or is set to "git push"
-    let not_set = match push_cmd {
+    let not_set = match &push_cmd {
         Some(s) => s == "['git', 'push']" || s == "[\"git\", \"push\"]",
         None => true,
     };
 
+    let already_installed = push_cmd.is_some_and(|s| s == JJ_PUSH_CMD);
+
     if not_set {
         set_jj_push_config(cwd, JJ_PUSH_CMD)?;
         Ok(())
+    } else if already_installed {
+        Err(anyhow!("the party jj alias is already installed!"))
     } else {
         Err(anyhow!(
-            "a jj alias already exists for `jj push`.\nto install party in this repo, please run `jj config set --repo aliases.push {JJ_PUSH_CMD}` or set the alias manually in your configuration",
+            "a jj alias already exists for `jj push`.\nto install party in this repo, please run\n  jj config set --repo aliases.push {JJ_PUSH_CMD}\nor set the alias manually in your configuration",
         ))
     }
 }

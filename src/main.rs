@@ -35,7 +35,7 @@ fn main() -> anyhow::Result<()> {
 
     match cli.command {
         Some(Command::Init) => init::run(&mut state, &branch_refs)?,
-        Some(Command::Uninit) => init::run_uninit(),
+        Some(Command::Uninit) => init::run_uninit()?,
         Some(Command::Points) => state::points(&state),
         Some(Command::Stats) => state::stats(&state, &history),
         Some(Command::Hook) => hook::post_push(&mut state, &branch_refs, &history, &patch_ids)?,

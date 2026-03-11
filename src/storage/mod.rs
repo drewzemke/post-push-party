@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 mod branch_refs;
 mod connection;
+mod logs;
 mod migrations;
 mod patch_ids;
 mod pushes;
@@ -10,6 +11,7 @@ mod state;
 
 pub use branch_refs::BranchRefsStore;
 pub use connection::DbConnection;
+pub use logs::log;
 pub use patch_ids::PatchIdStore;
 pub use pushes::{PushEntry, PushHistory};
 

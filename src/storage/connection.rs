@@ -3,7 +3,7 @@ use rusqlite::Connection;
 use std::{fs, path::PathBuf};
 
 use crate::{
-    log::{self, LOG_FILE_NAME},
+    log::{self},
     state,
     storage::{migrations::MIGRATIONS, storage_dir},
 };
@@ -74,12 +74,11 @@ impl DbConnection {
                 // logs
                 let in_memory = self.path().is_some_and(|s| s.is_empty());
                 if version == 1 && !in_memory {
-                    if let Some(from_path) = log::log_path()
+                    if let Some(from_path) = log::old_log_path()
                         && from_path.exists()
                         && let Ok(dir) = storage_dir()
                     {
-                        println!("- copying existing logs file into new storage dir");
-                        let dest_path = dir.join(LOG_FILE_NAME);
+                        let dest_path = dir.join("party.log");
                         fs::copy(from_path, dest_path)?;
                     }
 
@@ -87,7 +86,6 @@ impl DbConnection {
                     if let Some(dir) = state::old_state_dir_no_override()
                         && dir.exists()
                     {
-                        println!("- deleting old state directory");
                         fs::remove_dir_all(dir)?
                     }
                 }

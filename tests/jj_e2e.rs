@@ -227,13 +227,13 @@ fn rebase_force_push_still_shows_party() {
     env.party(&["init"]);
 
     // allow rewriting pushed commits for this test
-    let config_path = env.vcs.repo_dir.join(".jj/repo/config.toml");
-    let config = std::fs::read_to_string(&config_path).unwrap_or_default();
-    let new_config = format!(
-        "{}\n[revset-aliases]\n\"immutable_heads()\" = \"none()\"\n",
-        config
-    );
-    std::fs::write(&config_path, new_config).expect("failed to write config");
+    env.vcs.cmd(&[
+        "config",
+        "set",
+        "--repo",
+        "revset-aliases.'immutable_heads()'",
+        "none()",
+    ]);
 
     // create initial commit on main
     env.vcs.commit_file("README.md", "# Test", "initial commit");

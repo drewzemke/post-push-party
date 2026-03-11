@@ -98,6 +98,7 @@ impl<'a> PushHistory<'a> {
         Self { conn }
     }
 
+    #[cfg(any(feature = "dev", test))]
     pub fn reset(&self) -> Result<()> {
         let _ = self.conn.execute("DELETE FROM pushes", ())?;
         Ok(())

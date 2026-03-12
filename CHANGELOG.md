@@ -7,6 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4](https://github.com/drewzemke/post-push-party/compare/v0.1.3...v0.1.4) - 2026-03-12
+
+### Added
+
+- *(init)* specific error message when alias is already installed
+- *(init)* drop custom jj hook impl and use ref-transaction git hook for jj :)
+- *(storage)* patch ids are store/retrieved from sqlite
+- *(storage)* push history reads/writes to/from sql instead of file
+- *(storage)* store/access branch refs in sqlite db
+- *(storage)* implement save and load to sqlite for State
+- *(storage)* add storage module with sqlite connection and initial migration
+- *(packs)* update points award by packs
+- *(pack)* add premium pack
+- *(packs)* set prices for basic pack
+- *(pack)* first pass at pack-opening algorithm
+- *(tui)* show number of unopened packs in tab header
+- *(tui)* open packs in the packs panel
+- *(store)* buy packs in the store
+- *(pack)* get packs based on lifetime point accrual
+- *(state)* add packs
+- *(tui)* palette selector UI and code organization improvements
+- *(tui)* select palettes in party config
+
+### Fixed
+
+- clippy warning for dev-only function
+- *(storage)* use transaction handle when saving state
+- *(pack)* points earned through packs don't count for lifetime points
+- *(tui)* fix scrolling in store and party lists
+- *(tui)* shimmer boarder shimmers less frequently, only uses yellow and white
+- *(bonus)* "sniper" bonus track awards 1- or 2-line commits
+- *(party)* use "point"/"points" correctly in base party
+
+### Other
+
+- some extra cleanup comments
+- revert most of the last three commits but improve jj config management
+- update readme to reflect jj hook changes
+- *(cli)* remove `snapshot` functionality
+- *(storage)* write logs to new location
+- *(storage)* move `PushEntry` into same module as `PushHistory`
+- *(storage)* extract state storage code to module
+- *(deps)* add `rusqlite`
+- *(state)* comment out stuff to get state to be bincode-compatible with v0.1.3
+- add another very-vibecoded tool to help tune rarity probabilities
+- *(tui)* extract `PaletteSelector` widget
+- *(tui)* wip of palette selection in party config
+- *(party)* different scheme for colors
+- *(tui)* state management for palette selection UI
+- *(tui)* standardize some key hints
+- *(dev)* add dev command for unlocking all palettes for a party
+- rename "color" -> "palette"
+
 ## [0.1.3](https://github.com/drewzemke/post-push-party/compare/v0.1.2...v0.1.3) - 2026-02-17
 
 ### Added

@@ -56,12 +56,11 @@ fn palette_preview(palette: &Palette, faded: bool) -> Line<'_> {
 
 impl<'a> Widget for PaletteSelector<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let palette_chunks = Layout::vertical([
+        let [top_line, mid_line, btm_line] = area.layout(&Layout::vertical([
             Constraint::Length(1),
             Constraint::Length(1),
             Constraint::Length(1),
-        ])
-        .split(area);
+        ]));
 
         let center_palette = self.get_palette(self.idx);
 
@@ -73,19 +72,19 @@ impl<'a> Widget for PaletteSelector<'a> {
 
         let layout = Layout::horizontal([
             Constraint::Fill(1),   // text
-            Constraint::Length(1), // space
+            Constraint::Length(1), // spacer
             Constraint::Length(6), // swatch
         ]);
 
-        let center_split = layout.split(palette_chunks[1]);
+        let [mid_left, _, mid_right] = mid_line.layout(&layout);
 
-        Text::from(palette_swatch).render(center_split[2], buf);
+        Text::from(palette_swatch).render(mid_right, buf);
 
         if self.active {
             // show name of the palette
             Text::from(palette_name)
                 .alignment(Alignment::Right)
-                .render(center_split[0], buf);
+                .render(mid_left, buf);
 
             // top/previous palette
             let top_palette =
@@ -96,13 +95,13 @@ impl<'a> Widget for PaletteSelector<'a> {
                 "••••••".dim().into()
             };
 
-            let top_split = layout.split(palette_chunks[0]);
+            let [top_left, _, top_right] = top_line.layout(&layout);
 
-            Text::from(top_swatch).render(top_split[2], buf);
+            Text::from(top_swatch).render(top_right, buf);
 
             Text::from("▲")
                 .alignment(Alignment::Right)
-                .render(top_split[0], buf);
+                .render(top_left, buf);
 
             // bottom/next palette
             let btm_palette = self.get_palette((self.idx + 1) % (self.palettes.len() + 1));
@@ -112,13 +111,13 @@ impl<'a> Widget for PaletteSelector<'a> {
                 "••••••".dim().into()
             };
 
-            let btm_split = layout.split(palette_chunks[2]);
+            let [btm_left, _, btm_right] = btm_line.layout(&layout);
 
-            Text::from(btm_swatch).render(btm_split[2], buf);
+            Text::from(btm_swatch).render(btm_right, buf);
 
             Text::from("▼")
                 .alignment(Alignment::Right)
-                .render(btm_split[0], buf);
+                .render(btm_left, buf);
         }
     }
 }

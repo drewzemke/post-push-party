@@ -77,21 +77,19 @@ impl<'a> Widget for PartyItem<'a> {
         };
 
         // split horizontally: details on the left and palette selection on the right
-        let split = Layout::horizontal([
+        let [left, right] = inner.layout(&Layout::horizontal([
             Constraint::Fill(1),
             Constraint::Length(PALETTE_SELECTOR_WIDTH),
-        ])
-        .split(inner);
+        ]));
 
         //
         // details
         //
 
-        let details_split = Layout::vertical([
+        let [top, bottom] = left.layout(&Layout::vertical([
             Constraint::Length(1), // name & status
             Constraint::Length(2), // description
-        ])
-        .split(split[0]);
+        ]));
 
         // name
         // enabled status
@@ -109,11 +107,11 @@ impl<'a> Widget for PartyItem<'a> {
             ")".dark_gray().dim(),
         ]);
 
-        title_and_status.render(details_split[0], buf);
+        title_and_status.render(top, buf);
 
         // description
         let desc = Paragraph::new(self.party.description().reset().dim()).wrap(Wrap { trim: true });
-        desc.render(details_split[1], buf);
+        desc.render(bottom, buf);
 
         //
         // palette selection
@@ -126,7 +124,7 @@ impl<'a> Widget for PartyItem<'a> {
         }
 
         let widget = PaletteSelector::new(palettes, self.palette_idx, self.selecting_palette);
-        widget.render(split[1], buf);
+        widget.render(right, buf);
     }
 }
 

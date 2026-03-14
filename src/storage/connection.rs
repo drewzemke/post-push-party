@@ -1,12 +1,8 @@
 use anyhow::Result;
 use rusqlite::Connection;
-use std::{fs, path::PathBuf};
+use std::path::PathBuf;
 
-use crate::{
-    log::{self},
-    state,
-    storage::{migrations::MIGRATIONS, storage_dir},
-};
+use crate::storage::migrations::MIGRATIONS;
 
 #[derive(Debug)]
 pub struct DbConnection(Connection);
@@ -69,26 +65,6 @@ impl DbConnection {
                 tx.execute(&format!("PRAGMA user_version = {version}"), [])?;
 
                 tx.commit()?;
-
-                // HACK: delete after we don't need to handle old state anymore
-                // logs
-                let in_memory = self.path().is_some_and(|s| s.is_empty());
-                if version == 1 && !in_memory {
-                    if let Some(from_path) = log::old_log_path()
-                        && from_path.exists()
-                        && let Ok(dir) = storage_dir()
-                    {
-                        let dest_path = dir.join("party.log");
-                        fs::copy(from_path, dest_path)?;
-                    }
-
-                    // delete old state
-                    if let Some(dir) = state::old_state_dir_no_override()
-                        && dir.exists()
-                    {
-                        fs::remove_dir_all(dir)?
-                    }
-                }
             }
         }
 

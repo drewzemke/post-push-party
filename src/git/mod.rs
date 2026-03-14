@@ -2,7 +2,6 @@
 
 mod commands;
 pub mod detection;
-pub mod patch_ids;
 
 pub use detection::{get_pushed_commits, snapshot_refs};
 

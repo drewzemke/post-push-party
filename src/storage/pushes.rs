@@ -72,6 +72,7 @@ impl PushEntry {
         &self.remote_url
     }
 
+    #[cfg(test)]
     pub fn branch(&self) -> &str {
         &self.branch
     }

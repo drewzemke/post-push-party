@@ -1,12 +1,10 @@
 use anyhow::Result;
-use std::fs::OpenOptions;
-use std::io::Write;
+use std::{fs::OpenOptions, io::Write};
 
 use crate::storage::storage_dir;
 
 pub const LOG_FILE_NAME: &str = "party.log";
 
-// FIXME: remove, only used for migration
 fn log_path() -> Result<std::path::PathBuf> {
     storage_dir().map(|d| d.join(LOG_FILE_NAME))
 }

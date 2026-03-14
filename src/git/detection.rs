@@ -1,32 +1,9 @@
-use std::collections::HashMap;
-
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
 
 use crate::{
     git::{self, Commit, Push},
     storage::{BranchRefsStore, PatchIdStore},
 };
-
-// TODO: remove
-/// Tracks last-known SHA per branch per repo.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct BranchRefs {
-    pub repos: HashMap<String, HashMap<String, String>>,
-}
-
-// TODO: remove, used only for migration
-fn refs_path() -> Option<std::path::PathBuf> {
-    crate::state::old_state_dir().map(|d| d.join("refs.bin"))
-}
-
-// TODO: remove, used only for migration
-pub fn load_old_refs() -> BranchRefs {
-    refs_path()
-        .and_then(|p| std::fs::read(&p).ok())
-        .and_then(|bytes| bincode::deserialize(&bytes).ok())
-        .unwrap_or_default()
-}
 
 /// Snapshot current remote refs so future pushes are calculated correctly.
 /// Called during init to avoid crediting pre-existing commits.

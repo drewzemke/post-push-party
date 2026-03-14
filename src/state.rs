@@ -1,11 +1,12 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
 
-use crate::bonus_track::{ALL_TRACKS, Reward};
-use crate::pack::{Pack, PackItem};
-use crate::party::{ALL_PARTIES, Palette, Party};
-use crate::storage::PushHistory;
+use crate::{
+    bonus_track::{ALL_TRACKS, Reward},
+    pack::{Pack, PackItem},
+    party::{ALL_PARTIES, Palette, Party},
+    storage::PushHistory,
+};
 
 /// measures how quickly the player gains packs automatically based
 /// on lifetime points. specifically it's the rate of increase of
@@ -298,24 +299,6 @@ impl State {
     }
 }
 
-// FIXME: delete after migration
-pub fn old_state_dir() -> Option<PathBuf> {
-    if let Ok(dir) = std::env::var("PARTY_STATE_DIR") {
-        return Some(PathBuf::from(dir));
-    }
-    dirs::home_dir().map(|h| h.join(".post-push-party"))
-}
-
-// FIXME: delete after migration
-pub fn old_state_dir_no_override() -> Option<PathBuf> {
-    dirs::home_dir().map(|h| h.join(".post-push-party"))
-}
-
-// FIXME: delete after migration
-pub fn old_state_path() -> Option<PathBuf> {
-    old_state_dir().map(|d| d.join("state.bin"))
-}
-
 pub fn points(state: &State) {
     println!("You have {} party points.", state.party_points);
 }
@@ -348,14 +331,6 @@ pub fn dump(state: &State) {
     println!("bonus_levels: {:?}", state.bonus_tracks);
     println!("unlocked_parties: {:?}", state.unlocked_parties);
     println!("enabled_parties: {:?}", state.enabled_parties);
-}
-
-// TODO: remove
-pub fn load_from_path(path: &std::path::Path) -> State {
-    match std::fs::read(path) {
-        Ok(bytes) => bincode::deserialize(&bytes).unwrap_or_default(),
-        Err(_) => State::default(),
-    }
 }
 
 #[cfg(test)]

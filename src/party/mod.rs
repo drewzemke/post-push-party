@@ -36,7 +36,6 @@ pub trait Party: Sync {
     fn cost(&self) -> u64;
 
     /// whether or not the color palette of the output of this party is configurable
-    #[expect(dead_code)]
     fn supports_color(&self) -> bool;
 
     /// prints the output of this party to stdout

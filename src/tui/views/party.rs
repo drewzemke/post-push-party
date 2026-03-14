@@ -118,6 +118,9 @@ impl<'a> Widget for PartyItem<'a> {
         let Some(palettes) = self.palettes else {
             return;
         };
+        if !self.party.supports_color() || palettes.len() == 1 {
+            return;
+        }
 
         let widget = PaletteSelector::new(palettes, self.palette_idx, self.selecting_palette);
         widget.render(split[1], buf);
@@ -272,7 +275,11 @@ impl View for PartyView {
                 ViewResult::Redraw
             }
             (Action::Palette, Mode::SelectingParty) => {
-                if let Some(party) = self.selected_party(state) {
+                if let Some(party) = self.selected_party(state)
+                    && party.supports_color()
+                    && let Some(palettes) = state.unlocked_palettes(party.id())
+                    && palettes.len() > 1
+                {
                     let palette_idx = state.selected_palette_idx(party.id());
                     self.mode = Mode::SelectingPalette { palette_idx };
                 }

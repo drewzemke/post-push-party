@@ -8,13 +8,9 @@ pub struct Streak;
 /// count consecutive days with at least one push, ending today
 fn consecutive_push_days(history: &PushHistory, clock: &Clock) -> u32 {
     let mut day_id = clock.today_id();
-    // FIXME: call history.count_since
-    let mut entries = history
-        .entries_since(clock.today_start())
-        .unwrap_or_default()
-        .len();
+    let mut count = history.count_since(clock.today_start()).unwrap_or_default();
 
-    if entries == 0 {
+    if count == 0 {
         return 0;
     }
 
@@ -24,12 +20,11 @@ fn consecutive_push_days(history: &PushHistory, clock: &Clock) -> u32 {
     loop {
         day_id -= 1;
         let day_start = clock.day_start(day_id);
-        // FIXME: call history.count_since
-        let new_entries = history.entries_since(day_start).unwrap_or_default().len();
+        let new_count = history.count_since(day_start).unwrap_or_default();
 
-        if new_entries > entries {
+        if new_count > count {
             consec_days += 1;
-            entries = new_entries;
+            count = new_count;
         } else {
             break;
         }

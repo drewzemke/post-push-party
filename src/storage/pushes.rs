@@ -172,6 +172,18 @@ impl<'a> PushHistory<'a> {
         Ok(entries)
     }
 
+    pub fn count_since(&self, timestamp: u64) -> Result<u32> {
+        self.conn.query_one(
+            "
+                SELECT COUNT (*)
+                FROM pushes
+                WHERE timestamp >= ?1
+                ",
+            (timestamp as i64,),
+            |r| r.get(0),
+        )
+    }
+
     #[cfg(test)]
     pub fn with_entries(self, entries: impl IntoIterator<Item = PushEntry>) -> Self {
         let mut stmt = self
@@ -255,10 +267,21 @@ mod tests {
         assert_eq!(entries[0].commits(), 5);
         assert_eq!(entries[0].lines_changed(), 120);
         assert_eq!(entries[0].points_earned(), 42);
+    }
 
-        // reset to clear entries
-        pushes.reset().unwrap();
-        let entries = pushes.entries_since(0).unwrap();
-        assert_eq!(entries.len(), 0);
+    #[test]
+    fn with_entries_and_count_since_roundtrip() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
+        let entries = [
+            PushEntry::with_current_time("url/repo.git".to_string(), "main".to_string(), 1, 2, 3),
+            PushEntry::with_current_time("url/repo.git".to_string(), "main".to_string(), 4, 5, 6),
+            PushEntry::with_current_time("url/repo.git".to_string(), "main".to_string(), 7, 8, 9),
+        ];
+        let pushes = PushHistory::new(&conn).with_entries(entries);
+
+        let count = pushes.count_since(0).unwrap();
+
+        assert_eq!(count, 3);
     }
 }

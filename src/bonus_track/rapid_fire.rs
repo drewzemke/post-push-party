@@ -52,13 +52,7 @@ impl BonusTrack for RapidFire {
         }
 
         let cutoff = ctx.clock.now().saturating_sub(RAPID_FIRE_WINDOW_SECS);
-        let has_recent_push = !ctx
-            .history
-            // FIXME: call history.count_since
-            .entries_since(cutoff)
-            .unwrap_or_default()
-            .is_empty();
-
+        let has_recent_push = ctx.history.count_since(cutoff).unwrap_or_default() != 0;
         if has_recent_push { 1 } else { 0 }
     }
 }

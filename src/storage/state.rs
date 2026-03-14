@@ -130,9 +130,46 @@ impl State {
             }
         }
 
+        // packs
+        {
+            let mut stmt =
+                tx.prepare("INSERT OR REPLACE INTO packs (pack_type, count) VALUES (?1, ?2)")?;
+            for (pack, count) in &self.packs {
+                stmt.execute((pack, count))?;
+            }
+        }
+
         tx.commit()?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod state_storage_tests {
+    use super::*;
+
+    #[test]
+    fn save_and_load_roundtrip() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
+        let mut state = State {
+            lifetime_points_earned: 12,
+            party_points: 42,
+            ..State::default()
+        };
+        state.set_bonus_level("commit_value", 3);
+        state.set_bonus_level("first_push", 2);
+        state.unlock_party("exclamations");
+        state.unlock_palette("base", "Rainbow");
+        state.set_selected_palette("base", 1);
+        state.set_selected_palette("exclamations", 3);
+        state.add_pack(Pack::Basic);
+
+        state.save(&conn).unwrap();
+        let loaded = State::load(&conn).unwrap();
+
+        assert_eq!(loaded, state);
     }
 }
 

@@ -45,7 +45,6 @@ impl Pack {
 
     /// performs the pack opening algorithm, adding the obtained items to user's state.
     /// returns the opened items
-    #[expect(dead_code)]
     pub fn open(&self, state: &mut State) -> Vec<PackItem> {
         self.open_with_upgrader(state, &mut RngUpgrader::new(rand::rng()))
     }

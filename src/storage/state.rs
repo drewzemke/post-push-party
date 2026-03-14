@@ -6,6 +6,7 @@ use rusqlite::{
 };
 
 use crate::{
+    pack::Pack,
     state::{PaletteSelection, State},
     storage::DbConnection,
 };
@@ -13,7 +14,7 @@ use crate::{
 impl State {
     pub fn load(conn: &DbConnection) -> RusqliteResult<Self> {
         // player
-        let (party_points, points_earned, _packs_earned): (i64, i64, i64) = conn.query_one(
+        let (party_points, points_earned, packs_earned): (i64, i64, i64) = conn.query_one(
             "
             SELECT party_points, points_earned, packs_earned from player WHERE id = 1;
         ",
@@ -56,15 +57,22 @@ impl State {
                 .or_insert(Vec::from([palette_name]));
         }
 
+        // packs
+        let mut stmt = conn.prepare("SELECT pack_type, count FROM packs")?;
+        let packs = stmt
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
+            .collect::<RusqliteResult<HashMap<Pack, u32>>>()?;
+
         let state = Self::new(
             party_points as u64,
             points_earned as u64,
+            packs_earned as u64,
             bonus_tracks,
             unlocked_parties,
             enabled_parties,
             unlocked_palettes,
             active_palettes,
-            // FIXME: add packs earned
+            packs,
         );
         Ok(state)
     }
@@ -85,8 +93,7 @@ impl State {
             (
                 self.party_points as i64,
                 self.lifetime_points_earned as i64,
-                // FIXME: restore this to `packs_earned`
-                0,
+                self.lifetime_packs_earned as i64,
             ),
         )?;
 
@@ -148,6 +155,51 @@ impl FromSql for PaletteSelection {
                 Ok(Self::Specific(str))
             }
             _ => Err(FromSqlError::InvalidType),
+        }
+    }
+}
+
+impl ToSql for Pack {
+    fn to_sql(&self) -> RusqliteResult<ToSqlOutput<'_>> {
+        match self {
+            Pack::Basic => Ok(ToSqlOutput::from("basic")),
+            Pack::Premium => Ok(ToSqlOutput::from("premium")),
+        }
+    }
+}
+
+impl FromSql for Pack {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
+        match value {
+            ValueRef::Text(items) => {
+                let str = String::from_utf8(items.to_vec())
+                    .map_err(|_| FromSqlError::Other("Unparsable string".into()))?;
+                match str.as_str() {
+                    "basic" => Ok(Pack::Basic),
+                    "premium" => Ok(Pack::Premium),
+                    _ => Err(FromSqlError::InvalidType),
+                }
+            }
+            _ => Err(FromSqlError::InvalidType),
+        }
+    }
+}
+
+#[cfg(test)]
+mod pack_sql_conversion_tests {
+    use crate::pack::ALL_PACKS;
+
+    use super::*;
+
+    #[test]
+    fn all_variants_covered() {
+        for pack in ALL_PACKS {
+            let sql = pack.to_sql().unwrap();
+            let ToSqlOutput::Borrowed(sql) = sql else {
+                panic!();
+            };
+            let pack_after = Pack::column_result(sql).unwrap();
+            assert_eq!(*pack, pack_after);
         }
     }
 }

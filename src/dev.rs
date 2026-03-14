@@ -6,7 +6,7 @@ use crate::{
     party::{self, RenderContext},
     scoring,
     state::{self, State},
-    storage::PushHistory,
+    storage::{PushEntry, PushHistory},
 };
 
 pub fn cheat(amount: i64, state: &mut State) {
@@ -46,13 +46,14 @@ pub fn push(
 
     // record this push in history (like the real hook does)
     let lines_changed: u64 = push.commits().iter().map(|c| c.lines_changed()).sum();
-    history.record(
-        "dev://fake",
-        "main",
+    let entry = PushEntry::with_current_time(
+        "dev://fake".to_string(),
+        "main".to_string(),
         num_commits,
         lines_changed,
         breakdown.total,
-    )?;
+    );
+    history.record(&entry)?;
 
     let ctx = RenderContext::new(&push, history, &breakdown, state, &clock, packs_earned);
     party::display(&ctx);

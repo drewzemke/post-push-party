@@ -44,7 +44,10 @@ impl BonusTrack for FirstPush {
     }
 
     fn applies(&self, ctx: &PushContext) -> u32 {
-        let pushed_today = ctx.history.entries_since(ctx.clock.today_start());
+        let pushed_today = ctx
+            .history
+            .entries_since(ctx.clock.today_start())
+            .unwrap_or_default();
 
         if pushed_today.is_empty() { 1 } else { 0 }
     }

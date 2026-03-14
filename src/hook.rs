@@ -6,7 +6,7 @@ use crate::{
     party::{self, RenderContext},
     scoring,
     state::State,
-    storage::{BranchRefsStore, PatchIdStore, PushHistory},
+    storage::{BranchRefsStore, PatchIdStore, PushEntry, PushHistory},
 };
 
 pub fn post_push(
@@ -31,13 +31,14 @@ pub fn post_push(
     // affect bonus track calculations like first_push_of_day
     if !push.branch().is_empty() && !push.commits().is_empty() {
         let lines_changed: u64 = push.commits().iter().map(|c| c.lines_changed()).sum();
-        history.record(
-            push.remote_url(),
-            push.branch(),
+        let entry = PushEntry::with_current_time(
+            push.remote_url().to_string(),
+            push.branch().to_string(),
             push.commits().len() as u64,
             lines_changed,
             breakdown.total,
-        )?;
+        );
+        history.record(&entry)?;
     }
 
     let ctx = RenderContext::new(&push, history, &breakdown, state, &clock, packs_earned);

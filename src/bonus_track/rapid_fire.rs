@@ -56,6 +56,7 @@ impl BonusTrack for RapidFire {
             .history
             // FIXME: call history.count_since
             .entries_since(cutoff)
+            .unwrap_or_default()
             .is_empty();
 
         if has_recent_push { 1 } else { 0 }

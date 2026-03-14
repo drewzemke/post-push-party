@@ -9,7 +9,10 @@ pub struct Streak;
 fn consecutive_push_days(history: &PushHistory, clock: &Clock) -> u32 {
     let mut day_id = clock.today_id();
     // FIXME: call history.count_since
-    let mut entries = history.entries_since(clock.today_start()).len();
+    let mut entries = history
+        .entries_since(clock.today_start())
+        .unwrap_or_default()
+        .len();
 
     if entries == 0 {
         return 0;
@@ -22,7 +25,7 @@ fn consecutive_push_days(history: &PushHistory, clock: &Clock) -> u32 {
         day_id -= 1;
         let day_start = clock.day_start(day_id);
         // FIXME: call history.count_since
-        let new_entries = history.entries_since(day_start).len();
+        let new_entries = history.entries_since(day_start).unwrap_or_default().len();
 
         if new_entries > entries {
             consec_days += 1;

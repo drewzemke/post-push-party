@@ -13,10 +13,7 @@ pub use branch_refs::BranchRefsStore;
 pub use connection::DbConnection;
 pub use logs::log;
 pub use patch_ids::PatchIdStore;
-pub use pushes::PushHistory;
-
-#[cfg(test)]
-pub use pushes::PushEntry;
+pub use pushes::{PushEntry, PushHistory};
 
 const APP_DIR_NAME: &str = "post-push-party";
 

@@ -54,6 +54,7 @@ impl BonusTrack for MultipleRepos {
         let repos_pushed_today: HashSet<String> = ctx
             .history
             .entries_since(ctx.clock.today_start())
+            .unwrap_or_default()
             .into_iter()
             .filter(|e| ctx.clock.day_id_of(e.timestamp()) == today)
             .map(|e| e.remote_url().to_string())

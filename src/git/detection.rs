@@ -35,8 +35,6 @@ pub fn get_pushed_commits(branch_refs: &BranchRefsStore, patch_ids: &PatchIdStor
     let current_refs = git::commands::get_all_remote_refs(&repo_path);
     crate::debug_log!("hook: current_refs = {:?}", current_refs);
 
-    let stored = branch_refs.get_refs_for_repo(&remote_url).ok()?;
-
     // collect commits from pushed branches
     let mut commits = Vec::new();
     let mut first_time_branches = Vec::new();
@@ -47,8 +45,8 @@ pub fn get_pushed_commits(branch_refs: &BranchRefsStore, patch_ids: &PatchIdStor
         if local_sha.as_ref() != Some(new_sha) {
             continue; // fetch, not push
         }
-        let old_sha = stored.get(branch);
-        if old_sha == Some(new_sha) {
+        let old_sha = branch_refs.get_ref(&remote_url, branch).ok()?;
+        if old_sha.as_ref() == Some(new_sha) {
             continue; // no change
         }
 
@@ -64,7 +62,7 @@ pub fn get_pushed_commits(branch_refs: &BranchRefsStore, patch_ids: &PatchIdStor
             Some(old) => {
                 // update: get exact range (fast)
                 commits.extend(git::commands::list_commits_in_range(
-                    &repo_path, old, new_sha,
+                    &repo_path, &old, new_sha,
                 ));
             }
             None => {

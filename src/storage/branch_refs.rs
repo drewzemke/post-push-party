@@ -1,6 +1,4 @@
-use std::collections::HashMap;
-
-use rusqlite::Result;
+use rusqlite::{OptionalExtension, Result};
 
 use crate::storage::DbConnection;
 
@@ -22,14 +20,14 @@ impl<'a> BranchRefsStore<'a> {
         Ok(())
     }
 
-    // FIXME: turn this into a "get ref for some branch of some repo"
-    // that just queries and returns a string, rather than constructing the map
-    pub fn get_refs_for_repo(&self, repo: &str) -> Result<HashMap<String, String>> {
-        let mut stmt = self
-            .conn
-            .prepare("SELECT branch, sha FROM branch_refs WHERE remote_url = ?1")?;
-        stmt.query_map((repo,), |row| Ok((row.get(0)?, row.get(1)?)))?
-            .collect()
+    pub fn get_ref(&self, repo: &str, branch: &str) -> Result<Option<String>> {
+        self.conn
+            .query_one(
+                "SELECT sha FROM branch_refs WHERE remote_url = ?1 AND branch = ?2",
+                (repo, branch),
+                |row| row.get(0),
+            )
+            .optional()
     }
 }
 
@@ -54,14 +52,12 @@ mod tests {
             .update_ref("repo-url", "branch-2", "sha-3")
             .unwrap();
 
-        let refs = branch_refs.get_refs_for_repo("repo-url").unwrap();
+        let ref1 = branch_refs.get_ref("repo-url", "branch-1").unwrap();
+        let ref2 = branch_refs.get_ref("repo-url", "branch-2").unwrap();
+        let ref3 = branch_refs.get_ref("repo-url", "branch-3").unwrap();
 
-        assert_eq!(
-            refs,
-            HashMap::from([
-                ("branch-1".to_string(), "sha-1".to_string()),
-                ("branch-2".to_string(), "sha-3".to_string())
-            ])
-        )
+        assert_eq!(ref1, Some("sha-1".to_string()));
+        assert_eq!(ref2, Some("sha-3".to_string()));
+        assert_eq!(ref3, None);
     }
 }

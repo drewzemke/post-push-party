@@ -1,7 +1,7 @@
 use std::cell::Cell;
 
 use ratatui::prelude::*;
-use ratatui::widgets::{Block, Borders, Padding};
+use ratatui::widgets::{Block, Borders, Padding, Paragraph, Wrap};
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
 use crate::party::Party;
@@ -88,29 +88,32 @@ impl<'a> Widget for PartyItem<'a> {
         //
 
         let details_split = Layout::vertical([
-            Constraint::Length(1), // name
-            Constraint::Length(1), // description
-            Constraint::Length(1), // status
+            Constraint::Length(1), // name & status
+            Constraint::Length(2), // description
         ])
         .split(split[0]);
 
         // name
-        let title = Text::from(self.party.name()).reset().bold();
-        title.render(details_split[0], buf);
+        // enabled status
+        let (status_symbol, status_text) = if self.enabled {
+            ("✓".fg(Color::Green).dim(), "Enabled".dark_gray())
+        } else {
+            ("✗".fg(Color::Red).dim(), "Disabled".dark_gray())
+        };
+        let title_and_status = Line::from(vec![
+            self.party.name().reset().bold(),
+            " (".dark_gray().dim(),
+            status_symbol,
+            " ".into(),
+            status_text,
+            ")".dark_gray().dim(),
+        ]);
+
+        title_and_status.render(details_split[0], buf);
 
         // description
-        let desc = Text::from(self.party.description()).dark_gray();
+        let desc = Paragraph::new(self.party.description().reset().dim()).wrap(Wrap { trim: true });
         desc.render(details_split[1], buf);
-
-        // enabled status
-        let (status_text, status_style) = if self.enabled {
-            ("✓ Enabled", Style::default().fg(Color::Green))
-        } else {
-            ("✗ Disabled", Style::default().fg(Color::Red))
-        };
-
-        let status = Text::from(status_text).style(status_style);
-        status.render(details_split[2], buf);
 
         //
         // palette selection

@@ -142,7 +142,7 @@ impl Rarity {
 pub enum PackItem {
     PaletteUnlock {
         party_id: &'static str,
-        palette_name: &'static str,
+        palette_id: &'static str,
         rarity: Rarity,
     },
     PointBundle {
@@ -191,10 +191,10 @@ impl PackItem {
             .flat_map(|party| {
                 COMMON_PALETTES
                     .iter()
-                    .filter(|palette| !state.is_palette_unlocked(party.id(), palette.name()))
+                    .filter(|palette| !state.is_palette_unlocked(party.id(), palette.id()))
                     .map(|palette| Self::PaletteUnlock {
                         party_id: party.id(),
-                        palette_name: palette.name(),
+                        palette_id: palette.id(),
                         rarity: Rarity::Common,
                     })
             })
@@ -212,10 +212,10 @@ impl PackItem {
             .flat_map(|party| {
                 RARE_PALETTES
                     .iter()
-                    .filter(|palette| !state.is_palette_unlocked(party.id(), palette.name()))
+                    .filter(|palette| !state.is_palette_unlocked(party.id(), palette.id()))
                     .map(|palette| Self::PaletteUnlock {
                         party_id: party.id(),
-                        palette_name: palette.name(),
+                        palette_id: palette.id(),
                         rarity: Rarity::Rare,
                     })
             })
@@ -228,10 +228,10 @@ impl PackItem {
             iter.chain(
                 COMMON_PALETTES
                     .iter()
-                    .filter(|palette| !state.is_palette_unlocked(FIREWORKS.id(), palette.name()))
+                    .filter(|palette| !state.is_palette_unlocked(FIREWORKS.id(), palette.id()))
                     .map(|palette| Self::PaletteUnlock {
                         party_id: FIREWORKS.id(),
-                        palette_name: palette.name(),
+                        palette_id: palette.id(),
                         rarity: Rarity::Rare,
                     }),
             )
@@ -248,10 +248,10 @@ impl PackItem {
             .flat_map(|party| {
                 EPIC_PALETTES
                     .iter()
-                    .filter(|palette| !state.is_palette_unlocked(party.id(), palette.name()))
+                    .filter(|palette| !state.is_palette_unlocked(party.id(), palette.id()))
                     .map(|palette| Self::PaletteUnlock {
                         party_id: party.id(),
-                        palette_name: palette.name(),
+                        palette_id: palette.id(),
                         rarity: Rarity::Epic,
                     })
             })
@@ -264,10 +264,10 @@ impl PackItem {
             iter.chain(
                 RARE_PALETTES
                     .iter()
-                    .filter(|palette| !state.is_palette_unlocked(FIREWORKS.id(), palette.name()))
+                    .filter(|palette| !state.is_palette_unlocked(FIREWORKS.id(), palette.id()))
                     .map(|palette| Self::PaletteUnlock {
                         party_id: FIREWORKS.id(),
-                        palette_name: palette.name(),
+                        palette_id: palette.id(),
                         rarity: Rarity::Epic,
                     }),
             )
@@ -281,10 +281,10 @@ impl PackItem {
         if state.is_party_unlocked(FIREWORKS.id()) {
             EPIC_PALETTES
                 .iter()
-                .filter(|palette| !state.is_palette_unlocked(FIREWORKS.id(), palette.name()))
+                .filter(|palette| !state.is_palette_unlocked(FIREWORKS.id(), palette.id()))
                 .map(|palette| Self::PaletteUnlock {
                     party_id: FIREWORKS.id(),
-                    palette_name: palette.name(),
+                    palette_id: palette.id(),
                     rarity: Rarity::Legendary,
                 })
                 .chain([Self::PointBundle {
@@ -304,10 +304,10 @@ impl PackItem {
         match self {
             PackItem::PaletteUnlock {
                 party_id,
-                palette_name,
+                palette_id,
                 ..
             } => {
-                state.unlock_palette(party_id, palette_name);
+                state.unlock_palette(party_id, palette_id);
             }
             // directly updating party points here, because we don't
             // want to trigger the lifetime points mechanism this way
@@ -478,7 +478,7 @@ mod tests {
 
         let target = PackItem::PaletteUnlock {
             party_id: BASE.id(),
-            palette_name: Palette::MAGENTA.name(),
+            palette_id: Palette::MAGENTA.id(),
             rarity: Rarity::Common,
         };
         let commons = PackItem::common_items(&state);

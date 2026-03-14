@@ -12,7 +12,7 @@ use super::{Action, Route, View, ViewResult};
 
 const ITEM_HEIGHT: u16 = 5;
 const SCROLL_PADDING: u16 = ITEM_HEIGHT;
-const PALETTE_SELECTOR_WIDTH: u16 = 20;
+const PALETTE_SELECTOR_WIDTH: u16 = 22;
 
 struct PartyItem<'a> {
     /// the party being detailed

@@ -36,11 +36,11 @@ pub struct State {
     pub enabled_parties: HashSet<String>,
 
     /// which palettes the player has unlocked for each party.
-    /// refers to parties by their identifier string, and to palettes by their names
+    /// refers to parties and palettes by their id strings
     pub unlocked_palettes: HashMap<String, Vec<String>>,
 
     /// which palette is currently configured for each party.
-    /// refers to parties by their identifier string, palettes by their name
+    /// refers to parties and palettes by their id strings
     pub active_palettes: HashMap<String, PaletteSelection>,
 
     /// how many packs of each time the player has
@@ -58,7 +58,7 @@ pub enum PaletteSelection {
 
 impl Default for PaletteSelection {
     fn default() -> Self {
-        Self::Specific(Palette::WHITE.name().to_string())
+        Self::Specific(Palette::WHITE.id().to_string())
     }
 }
 
@@ -70,7 +70,7 @@ impl Default for State {
         let mut unlocked_parties = HashSet::new();
         unlocked_parties.insert("base".to_string());
 
-        let white = Palette::WHITE.name().to_string();
+        let white = Palette::WHITE.id().to_string();
 
         Self {
             party_points: 0,
@@ -190,7 +190,7 @@ impl State {
 
         // seed with white palette if no palettes unlocked yet
         if !self.unlocked_palettes.contains_key(id) {
-            let white = Palette::WHITE.name().to_string();
+            let white = Palette::WHITE.id().to_string();
             self.unlocked_palettes
                 .insert(id.to_string(), vec![white.clone()]);
             self.active_palettes

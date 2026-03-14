@@ -53,13 +53,18 @@ impl Color {
 }
 
 pub struct Palette {
+    id: &'static str,
     name: &'static str,
     colors: &'static [Color],
 }
 
 impl Palette {
-    const fn new(name: &'static str, colors: &'static [Color]) -> Self {
-        Self { name, colors }
+    const fn new(id: &'static str, name: &'static str, colors: &'static [Color]) -> Self {
+        Self { id, name, colors }
+    }
+
+    pub fn id(&self) -> &'static str {
+        self.id
     }
 
     pub fn name(&self) -> &'static str {
@@ -89,18 +94,18 @@ impl Palette {
         self.colors.iter().map(Color::to_ratatui).collect()
     }
 
-    pub const WHITE: Self = Self::new("White", &[ansi!(37)]);
+    pub const WHITE: Self = Self::new("white-ansi", "White (ANSI)", &[ansi!(37)]);
 
-    pub const RED: Self = Self::new("Red", &[ansi!(31)]);
-    pub const GREEN: Self = Self::new("Green", &[ansi!(32)]);
-    pub const BLUE: Self = Self::new("Blue", &[ansi!(34)]);
+    pub const RED: Self = Self::new("red-ansi", "Red (ANSI)", &[ansi!(31)]);
+    pub const GREEN: Self = Self::new("green-ansi", "Green (ANSI)", &[ansi!(32)]);
+    pub const BLUE: Self = Self::new("blue-ansi", "Blue (ANSI)", &[ansi!(34)]);
 
-    pub const CYAN: Self = Self::new("Cyan", &[ansi!(36)]);
-    pub const YELLOW: Self = Self::new("Yellow", &[ansi!(33)]);
-    pub const MAGENTA: Self = Self::new("Magenta", &[ansi!(35)]);
+    pub const CYAN: Self = Self::new("cyan-ansi", "Cyan (ANSI)", &[ansi!(36)]);
+    pub const YELLOW: Self = Self::new("yellow-ansi", "Yellow (ANSI)", &[ansi!(33)]);
+    pub const MAGENTA: Self = Self::new("magenta-ansi", "Magenta (ANSI)", &[ansi!(35)]);
 
-    // FIXME: these colors don't look good together
     pub const SYNTHWAVE: Self = Self::new(
+        "synthwave",
         "Synthwave",
         &[rgb!(255, 100, 200), rgb!(100, 200, 255), rgb!(80, 70, 110)],
     );

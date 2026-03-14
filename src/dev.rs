@@ -105,12 +105,12 @@ pub fn palette(party_id: &str, state: &mut State) {
         vec![party_id]
     };
 
-    let palette_names: Vec<String> = ALL_PALETTES.iter().map(|p| p.name().to_string()).collect();
+    let palette_ids: Vec<String> = ALL_PALETTES.iter().map(|p| p.id().to_string()).collect();
 
     for id in &ids {
         state
             .unlocked_palettes
-            .insert(id.to_string(), palette_names.clone());
+            .insert(id.to_string(), palette_ids.clone());
     }
     println!("unlocked all palettes for: {}", ids.join(", "));
 }

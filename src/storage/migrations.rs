@@ -3,8 +3,9 @@ use anyhow::Result;
 
 pub type Migration = fn(&DbConnection) -> Result<()>;
 
-pub const MIGRATIONS: &[Migration] = &[migrate_v1];
+pub const MIGRATIONS: &[Migration] = &[migrate_v1, migrate_v2];
 
+/// initial table construction and state population
 fn migrate_v1(conn: &DbConnection) -> Result<()> {
     // create tables
     conn.execute_batch(
@@ -24,6 +25,7 @@ fn migrate_v1(conn: &DbConnection) -> Result<()> {
         CREATE TABLE IF NOT EXISTS parties (
             id              TEXT PRIMARY KEY,
             enabled         BOOLEAN NOT NULL DEFAULT true,
+            -- NOTE: default has changed and is now handled in the code
             active_palette  TEXT NULL DEFAULT 'White'
         );
 
@@ -102,6 +104,57 @@ fn migrate_v1(conn: &DbConnection) -> Result<()> {
     
             ",
         ("base", "White"),
+    )?;
+
+    Ok(())
+}
+
+/// update palette refs to be by id rather than name
+fn migrate_v2(conn: &DbConnection) -> Result<()> {
+    // convert `active_palette` in `parties` values from their old White/Red/Cyan to ansi-white, ansi-red, ansi-cyan
+    conn.execute(
+        "
+        UPDATE parties SET active_palette = CASE active_palette
+            WHEN 'White'     THEN 'white-ansi'
+            WHEN 'Red'       THEN 'red-ansi' 
+            WHEN 'Green'     THEN 'green-ansi' 
+            WHEN 'Blue'      THEN 'blue-ansi' 
+            WHEN 'Cyan'      THEN 'cyan-ansi' 
+            WHEN 'Yellow'    THEN 'yellow-ansi' 
+            WHEN 'Magenta'   THEN 'magenta-ansi' 
+            WHEN 'Synthwave' THEN 'synthwave' 
+            ELSE 'white-ansi'
+        END;
+        ",
+        [],
+    )?;
+
+    // add a column `palette_id` to `unlocked_palettes` with converted values,
+    // remove `palette_name` column and update the primary key in that table
+    conn.execute_batch(
+        "
+        CREATE TABLE IF NOT EXISTS palettes (
+            party_id      TEXT NOT NULL,
+            palette_id  TEXT NOT NULL,
+            PRIMARY KEY (party_id, palette_id)
+        );
+       
+        INSERT INTO palettes (palette_id, party_id)
+        SELECT CASE palette_name
+            WHEN 'White'     THEN 'white-ansi'
+            WHEN 'Red'       THEN 'red-ansi' 
+            WHEN 'Green'     THEN 'green-ansi' 
+            WHEN 'Blue'      THEN 'blue-ansi' 
+            WHEN 'Cyan'      THEN 'cyan-ansi' 
+            WHEN 'Yellow'    THEN 'yellow-ansi' 
+            WHEN 'Magenta'   THEN 'magenta-ansi' 
+            WHEN 'Synthwave' THEN 'synthwave' 
+            ELSE 'white-ansi'
+        END, party_id
+        FROM unlocked_palettes;
+
+        DROP TABLE unlocked_palettes;
+        ",
     )?;
 
     Ok(())

@@ -45,7 +45,7 @@ impl State {
             .collect();
 
         // unlocked palettes
-        let mut stmt = conn.prepare("SELECT party_id, palette_name FROM unlocked_palettes")?;
+        let mut stmt = conn.prepare("SELECT party_id, palette_id FROM palettes")?;
         let unlocked_palette_pairs = stmt
             .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
             .collect::<RusqliteResult<Vec<(String, String)>>>()?;
@@ -118,14 +118,14 @@ impl State {
             }
         }
 
-        // unlocked_palettes
+        // palettes
         {
             let mut stmt = tx.prepare(
-                "INSERT OR REPLACE INTO unlocked_palettes (party_id, palette_name) VALUES (?1, ?2)",
+                "INSERT OR REPLACE INTO palettes (party_id, palette_id) VALUES (?1, ?2)",
             )?;
-            for (party_id, palettes) in &self.unlocked_palettes {
-                for palette in palettes {
-                    stmt.execute((party_id, palette))?;
+            for (party_id, palette_ids) in &self.unlocked_palettes {
+                for palette_id in palette_ids {
+                    stmt.execute((party_id, palette_id))?;
                 }
             }
         }

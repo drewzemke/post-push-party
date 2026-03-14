@@ -85,7 +85,7 @@ pub fn display(ctx: &RenderContext) {
         // resolve a color for this party based on the user's configuration
         let palette_selection = ctx.state.selected_palette(party.id());
 
-        let palette_name = match palette_selection {
+        let palette_id = match palette_selection {
             // if the user wants a random palette, pick one from the list of available palettes for this party
             Some(PaletteSelection::Random) => {
                 let unlocked_palettes = ctx
@@ -95,7 +95,7 @@ pub fn display(ctx: &RenderContext) {
                     .unwrap_or_default();
 
                 if unlocked_palettes.is_empty() {
-                    Palette::WHITE.name().to_string()
+                    Palette::WHITE.id().to_string()
                 } else {
                     random_pick(&unlocked_palettes).to_string()
                 }
@@ -104,14 +104,14 @@ pub fn display(ctx: &RenderContext) {
             Some(PaletteSelection::Specific(color_name)) => color_name.to_string(),
 
             // if nothing has been chosen, go with white
-            None => Palette::WHITE.name().to_string(),
+            None => Palette::WHITE.id().to_string(),
         };
 
         // look it up the resolved palette name in the list of palettes,
         // falling back to white if not found (which shouldn't happen... right?)
         let palette = ALL_PALETTES
             .iter()
-            .find(|&&c| c.name() == palette_name)
+            .find(|&&c| c.id() == palette_id)
             .unwrap_or(&&Palette::WHITE);
 
         let printed_text = party.render(ctx, palette);

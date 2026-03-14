@@ -20,7 +20,7 @@ impl<'a> PaletteSelector<'a> {
     fn get_palette(&self, idx: usize) -> Option<&Palette> {
         self.palettes
             .get(idx)
-            .and_then(|name| ALL_PALETTES.iter().find(|&&p| p.name() == name))
+            .and_then(|id| ALL_PALETTES.iter().find(|&&p| p.id() == id))
             .map(|v| &**v)
     }
 }

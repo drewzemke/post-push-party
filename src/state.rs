@@ -1,4 +1,3 @@
-use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
 use crate::{
@@ -19,47 +18,39 @@ use crate::{
 ///     ... etc
 const PACK_ACCRUAL_RATE: u64 = 25;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct State {
     pub party_points: u64,
 
-    #[serde(default)]
     pub lifetime_points_earned: u64,
 
     /// refers to bonus tracks by their identifier string
-    #[serde(default)]
     pub bonus_tracks: HashMap<String, u32>,
 
     /// which parties the player has unlocked via the store.
     /// refers to parties by their identifier string
-    #[serde(default)]
     pub unlocked_parties: HashSet<String>,
 
     /// which parties have been enabled by the player.
     /// refers to parties by their identifier string
-    #[serde(default)]
     pub enabled_parties: HashSet<String>,
 
     /// which palettes the player has unlocked for each party.
     /// refers to parties by their identifier string, and to palettes by their names
-    #[serde(default)]
     pub unlocked_palettes: HashMap<String, Vec<String>>,
 
     /// which palette is currently configured for each party.
     /// refers to parties by their identifier string, palettes by their name
-    #[serde(default)]
     pub active_palettes: HashMap<String, PaletteSelection>,
 
     /// how many packs of each time the player has
-    #[serde(default)]
     pub packs: HashMap<Pack, u32>,
 
     /// how many packs have been earned though the points accrual mechanism
-    #[serde(default)]
     pub lifetime_packs_earned: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PaletteSelection {
     Specific(String), // palette name
     Random,

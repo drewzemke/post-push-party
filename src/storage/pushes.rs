@@ -1,17 +1,17 @@
 use rusqlite::Result;
-use serde::{Deserialize, Serialize};
 
 use crate::storage::DbConnection;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct PushEntry {
     timestamp: u64, // unix timestamp
     remote_url: String,
+
+    #[allow(dead_code)]
     branch: String,
+
     commits: u64,
-    #[serde(default)]
     lines_changed: u64,
-    #[serde(default)]
     points_earned: u64,
 }
 

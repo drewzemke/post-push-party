@@ -1,6 +1,6 @@
 use rusqlite::Result;
 
-use crate::storage::DbConnection;
+use crate::{clock::Clock, storage::DbConnection};
 
 #[derive(Debug, Clone)]
 pub struct PushEntry {
@@ -99,16 +99,45 @@ impl PushEntry {
         &self.branch
     }
 
+    #[cfg(test)]
     pub fn commits(&self) -> u64 {
         self.commits
     }
 
+    #[cfg(test)]
     pub fn lines_changed(&self) -> u64 {
         self.lines_changed
     }
 
+    #[cfg(test)]
     pub fn points_earned(&self) -> u64 {
         self.points_earned
+    }
+}
+
+/// numerical summary of activity during a given time period
+pub struct HistoryStats {
+    /// how many commits were pushed in total
+    pub commits: u64,
+
+    /// how many lines were changed across all commits
+    pub lines: u64,
+
+    /// how many points were earned (from pushes)
+    pub points: u64,
+
+    /// how many separate days are represented in the data
+    pub active_days: u64,
+}
+
+impl HistoryStats {
+    pub fn new(commits: u64, lines: u64, points: u64, active_days: u64) -> Self {
+        Self {
+            commits,
+            lines,
+            points,
+            active_days,
+        }
     }
 }
 
@@ -184,6 +213,36 @@ impl<'a> PushHistory<'a> {
         )
     }
 
+    pub fn stats_since(&self, timestamp: u64, tz_offset_secs: i32) -> Result<HistoryStats> {
+        let (commits, lines, points, days) = self.conn.query_one(
+            "
+                SELECT 
+                    COALESCE( SUM(commits), 0 ),
+                    COALESCE( SUM(lines_changed), 0 ),
+                    COALESCE( SUM(points_earned), 0 ),
+                    COUNT( DISTINCT (timestamp + ?2) / ?3 )
+                FROM pushes
+                WHERE timestamp >= ?1
+                ",
+            (timestamp as i64, tz_offset_secs, Clock::SECONDS_PER_DAY),
+            |r| {
+                Ok((
+                    r.get::<_, i64>(0)?,
+                    r.get::<_, i64>(1)?,
+                    r.get::<_, i64>(2)?,
+                    r.get::<_, i64>(3)?,
+                ))
+            },
+        )?;
+
+        Ok(HistoryStats::new(
+            commits as u64,
+            lines as u64,
+            points as u64,
+            days.max(1) as u64,
+        ))
+    }
+
     #[cfg(test)]
     pub fn with_entries(self, entries: impl IntoIterator<Item = PushEntry>) -> Self {
         let mut stmt = self
@@ -218,7 +277,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn record_and_entries_since_roundtrip() {
+    fn record_and_entries_since() {
         let conn = DbConnection::create_in_memory().unwrap();
         let pushes = PushHistory::new(&conn);
 
@@ -247,7 +306,7 @@ mod tests {
     }
 
     #[test]
-    fn with_entries_and_entries_since_roundtrip() {
+    fn with_entries_and_entries_since() {
         let conn = DbConnection::create_in_memory().unwrap();
 
         let entry = PushEntry::with_current_time(
@@ -270,7 +329,7 @@ mod tests {
     }
 
     #[test]
-    fn with_entries_and_count_since_roundtrip() {
+    fn with_entries_and_count_since() {
         let conn = DbConnection::create_in_memory().unwrap();
 
         let entries = [
@@ -283,5 +342,24 @@ mod tests {
         let count = pushes.count_since(0).unwrap();
 
         assert_eq!(count, 3);
+    }
+
+    #[test]
+    fn with_entries_and_stats_since() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
+        let entries = [
+            PushEntry::with_current_time("url/repo.git".to_string(), "main".to_string(), 1, 2, 3),
+            PushEntry::with_current_time("url/repo.git".to_string(), "main".to_string(), 4, 5, 6),
+            PushEntry::with_current_time("url/repo.git".to_string(), "main".to_string(), 7, 8, 9),
+        ];
+        let pushes = PushHistory::new(&conn).with_entries(entries);
+
+        let stats = pushes.stats_since(0, 0).unwrap();
+
+        assert_eq!(stats.commits, 12);
+        assert_eq!(stats.lines, 15);
+        assert_eq!(stats.points, 18);
+        assert_eq!(stats.active_days, 1);
     }
 }

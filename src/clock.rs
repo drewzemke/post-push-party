@@ -1,5 +1,3 @@
-const SECONDS_PER_DAY: i64 = 86400;
-
 /// time context for bonus calculations
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Clock {
@@ -8,6 +6,8 @@ pub struct Clock {
 }
 
 impl Clock {
+    pub const SECONDS_PER_DAY: i64 = 86400;
+
     #[cfg(test)]
     pub fn at(now: u64) -> Self {
         Self {
@@ -29,7 +29,7 @@ impl Clock {
 
     /// convert a utc timestamp to local day number
     pub fn day_id_of(&self, timestamp: u64) -> i64 {
-        (timestamp as i64 + self.tz_offset_secs as i64) / SECONDS_PER_DAY
+        (timestamp as i64 + self.tz_offset_secs as i64) / Self::SECONDS_PER_DAY
     }
 
     /// local day number for `now`
@@ -39,12 +39,12 @@ impl Clock {
 
     /// the timestamp at the start of the current day
     pub fn day_start(self, day_id: i64) -> u64 {
-        (SECONDS_PER_DAY * day_id) as u64
+        (Self::SECONDS_PER_DAY * day_id) as u64
     }
 
     /// the timestamp at the start of the current day
     pub fn today_start(self) -> u64 {
-        let today_id = (self.now as i64 + self.tz_offset_secs as i64) / SECONDS_PER_DAY;
+        let today_id = (self.now as i64 + self.tz_offset_secs as i64) / Self::SECONDS_PER_DAY;
         self.day_start(today_id)
     }
 
@@ -75,7 +75,7 @@ impl Clock {
         Self::with_offset(now, tz_offset_secs)
     }
 
-    pub fn is_today(&self, timestamp: u64) -> bool {
-        self.day_id_of(timestamp) == self.today_id()
+    pub fn tz_offset_secs(&self) -> i32 {
+        self.tz_offset_secs
     }
 }

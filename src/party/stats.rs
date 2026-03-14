@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use super::{
     Palette, Party, RenderContext,
     style::{bold, cyan, gray, green, yellow},
@@ -44,57 +42,42 @@ impl Party for Stats {
         let push_points = ctx.breakdown.total;
 
         // today
-        let today_pushes = ctx
+        let Ok(today_stats) = ctx
             .history
-            .entries_since(clock.today_start())
-            .unwrap_or_default()
-            .into_iter()
-            .filter(|push| clock.is_today(push.timestamp()));
+            .stats_since(clock.today_start(), clock.tz_offset_secs())
+        else {
+            return true;
+        };
 
-        let mut today_commit_count = 0;
-        let mut today_lines = 0;
-        let mut today_points = 0;
-
-        for push in today_pushes {
-            today_commit_count += push.commits();
-            today_lines += push.lines_changed();
-            today_points += push.points_earned();
-        }
-
-        // all time
-        // FIXME: refactor to use more effiecient queries
-        let all_pushes = ctx.history.entries_since(0).unwrap_or_default();
-
-        let mut days: HashSet<i64> = HashSet::new();
-        let mut all_time_commit_count = 0;
-        let mut all_time_lines = 0;
-        let mut all_time_points = 0;
-
-        for push in all_pushes {
-            let day = clock.day_id_of(push.timestamp());
-            days.insert(day);
-
-            all_time_commit_count += push.commits();
-            all_time_lines += push.lines_changed();
-            all_time_points += push.points_earned();
-        }
-
-        let num_days = days.len().max(1);
+        // all_time
+        let Ok(all_time_stats) = ctx.history.stats_since(0, clock.tz_offset_secs()) else {
+            return true;
+        };
 
         // daily_average
-        let daily_avg_commit_count = all_time_commit_count / num_days as u64;
-        let daily_avg_lines = all_time_lines / num_days as u64;
-        let daily_avg_points = all_time_points / num_days as u64;
+        let daily_avg_commit_count = all_time_stats.commits / all_time_stats.active_days;
+        let daily_avg_lines = all_time_stats.lines / all_time_stats.active_days;
+        let daily_avg_points = all_time_stats.points / all_time_stats.active_days;
 
         // calculate max widths for each column
         let w_commits = col_width([
             push_commit_count as u64,
-            today_commit_count,
+            today_stats.commits,
             daily_avg_commit_count,
-            all_time_commit_count,
+            all_time_stats.commits,
         ]);
-        let w_lines = col_width([push_lines, today_lines, daily_avg_lines, all_time_lines]);
-        let w_points = col_width([push_points, today_points, daily_avg_points, all_time_points]);
+        let w_lines = col_width([
+            push_lines,
+            today_stats.lines,
+            daily_avg_lines,
+            all_time_stats.lines,
+        ]);
+        let w_points = col_width([
+            push_points,
+            today_stats.points,
+            daily_avg_points,
+            all_time_stats.points,
+        ]);
 
         // helper function to print each row of output
         let print_row = |header: &str, commits: u64, lines: u64, points: u64| {
@@ -128,7 +111,12 @@ impl Party for Stats {
             );
         }
 
-        print_row("Today", today_commit_count, today_lines, today_points);
+        print_row(
+            "Today",
+            today_stats.commits,
+            today_stats.lines,
+            today_stats.points,
+        );
         print_row(
             "Daily Avg",
             daily_avg_commit_count,
@@ -137,9 +125,9 @@ impl Party for Stats {
         );
         print_row(
             "All Time",
-            all_time_commit_count,
-            all_time_lines,
-            all_time_points,
+            all_time_stats.commits,
+            all_time_stats.lines,
+            all_time_stats.points,
         );
 
         true

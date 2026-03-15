@@ -95,7 +95,7 @@ pub fn display(ctx: &RenderContext) {
                     .unwrap_or_default();
 
                 if unlocked_palettes.is_empty() {
-                    Palette::WHITE.id().to_string()
+                    Palette::WHITE_ANSI.id().to_string()
                 } else {
                     random_pick(&unlocked_palettes).to_string()
                 }
@@ -104,7 +104,7 @@ pub fn display(ctx: &RenderContext) {
             Some(PaletteSelection::Specific(color_name)) => color_name.to_string(),
 
             // if nothing has been chosen, go with white
-            None => Palette::WHITE.id().to_string(),
+            None => Palette::WHITE_ANSI.id().to_string(),
         };
 
         // look it up the resolved palette name in the list of palettes,
@@ -112,7 +112,7 @@ pub fn display(ctx: &RenderContext) {
         let palette = ALL_PALETTES
             .iter()
             .find(|&&c| c.id() == palette_id)
-            .unwrap_or(&&Palette::WHITE);
+            .unwrap_or(&&Palette::WHITE_ANSI);
 
         let printed_text = party.render(ctx, palette);
 

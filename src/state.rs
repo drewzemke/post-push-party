@@ -58,7 +58,7 @@ pub enum PaletteSelection {
 
 impl Default for PaletteSelection {
     fn default() -> Self {
-        Self::Specific(Palette::WHITE.id().to_string())
+        Self::Specific(Palette::WHITE_ANSI.id().to_string())
     }
 }
 
@@ -70,7 +70,7 @@ impl Default for State {
         let mut unlocked_parties = HashSet::new();
         unlocked_parties.insert("base".to_string());
 
-        let white = Palette::WHITE.id().to_string();
+        let white = Palette::WHITE_ANSI.id().to_string();
 
         Self {
             party_points: 0,
@@ -190,7 +190,7 @@ impl State {
 
         // seed with white palette if no palettes unlocked yet
         if !self.unlocked_palettes.contains_key(id) {
-            let white = Palette::WHITE.id().to_string();
+            let white = Palette::WHITE_ANSI.id().to_string();
             self.unlocked_palettes
                 .insert(id.to_string(), vec![white.clone()]);
             self.active_palettes
@@ -311,7 +311,7 @@ pub fn stats(state: &State, history: &PushHistory) {
 
     let ctx =
         crate::party::RenderContext::new(&push, history, &breakdown, state, &clock, Vec::new());
-    crate::party::stats::Stats.render(&ctx, &crate::party::Palette::WHITE);
+    crate::party::stats::Stats.render(&ctx, &crate::party::Palette::WHITE_ANSI);
 }
 
 pub fn dump(state: &State) {

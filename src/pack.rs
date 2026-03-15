@@ -157,11 +157,43 @@ const RARE_POINTS: u64 = 100;
 const EPIC_POINTS: u64 = 400;
 const LEGENDARY_POINTS: u64 = 1600;
 
-const COMMON_PALETTES: &[Palette] = &[Palette::RED, Palette::GREEN, Palette::BLUE];
+const COMMON_PALETTES: &[Palette] = &[
+    Palette::RED_ANSI,
+    Palette::GREEN_ANSI,
+    Palette::BLUE_ANSI,
+    Palette::CYAN_ANSI,
+    Palette::MAGENTA_ANSI,
+    Palette::YELLOW_ANSI,
+    Palette::RED_RGB,
+    Palette::GREEN_RGB,
+    Palette::BLUE_RGB,
+    Palette::CYAN_RGB,
+    Palette::MAGENTA_RGB,
+    Palette::YELLOW_RGB,
+];
 
-const RARE_PALETTES: &[Palette] = &[Palette::CYAN, Palette::MAGENTA, Palette::YELLOW];
+const RARE_PALETTES: &[Palette] = &[
+    Palette::FLAG_USA,
+    Palette::FLAG_ITALY,
+    Palette::FLAG_UKRAINE,
+    Palette::FLAG_FRANCE,
+    Palette::FLAG_TRANS,
+    Palette::MONOCHROME,
+    Palette::AUTUMN,
+    Palette::WINTER,
+    Palette::SPRING,
+    Palette::FIRE,
+];
 
-const EPIC_PALETTES: &[Palette] = &[Palette::SYNTHWAVE];
+const EPIC_PALETTES: &[Palette] = &[
+    Palette::AURORA,
+    Palette::NEON,
+    Palette::PASTEL,
+    Palette::RAINBOW,
+    Palette::RAINBOW_ANSI,
+    Palette::SUNSET,
+    Palette::SYNTHWAVE,
+];
 
 impl PackItem {
     #[cfg(test)]
@@ -478,7 +510,7 @@ mod tests {
 
         let target = PackItem::PaletteUnlock {
             party_id: BASE.id(),
-            palette_id: Palette::MAGENTA.id(),
+            palette_id: Palette::MAGENTA_ANSI.id(),
             rarity: Rarity::Common,
         };
         let commons = PackItem::common_items(&state);

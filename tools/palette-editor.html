@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Palette Editor</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      padding: 20px;
+      line-height: 1.4;
+      height: 100vh;
+      overflow: hidden;
+    }
+    h1 { color: #f39c12; margin-bottom: 6px; }
+    h2 { color: #3498db; margin: 0 0 8px; font-size: 1.1em; border-bottom: 1px solid #333; padding-bottom: 4px; }
+
+    .top-bar { display: flex; gap: 10px; margin-bottom: 12px; align-items: center; }
+    .top-bar button { padding: 6px 14px; border: 1px solid #555; border-radius: 4px; background: #0f0f23; color: #ccc; cursor: pointer; font-size: 0.85em; }
+    .top-bar button:hover { border-color: #3498db; color: #eee; }
+
+    .container { display: grid; grid-template-columns: 280px 300px 1fr; gap: 16px; height: calc(100vh - 90px); }
+    .panel { background: #16213e; padding: 12px; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; }
+
+    .scroll-area { overflow-y: auto; flex: 1; min-height: 0; }
+
+    /* color list */
+    .color-list { display: flex; flex-direction: column; gap: 3px; }
+    .color-entry {
+      display: flex; align-items: center; gap: 8px; padding: 4px 8px;
+      border-radius: 4px; cursor: pointer; border: 2px solid transparent; flex-shrink: 0;
+    }
+    .color-entry:hover { background: #1a2a4e; }
+    .color-entry.selected { border-color: #f39c12; background: #1a2a4e; }
+    .color-swatch {
+      width: 20px; height: 20px; border-radius: 3px; border: 1px solid #555; flex-shrink: 0;
+    }
+    .color-entry .name { font-size: 0.82em; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .color-entry .hex { font-size: 0.72em; color: #888; font-family: monospace; }
+
+    .add-btn {
+      padding: 4px 10px; border: 1px dashed #555; border-radius: 4px;
+      background: transparent; color: #888; cursor: pointer; font-size: 0.8em; width: 100%;
+      flex-shrink: 0; margin-top: 4px;
+    }
+    .add-btn:hover { border-color: #3498db; color: #eee; }
+
+    /* color editor */
+    .color-editor { flex-shrink: 0; border-top: 1px solid #333; padding-top: 8px; margin-top: 8px; }
+    .name-input {
+      width: 100%; padding: 4px 8px; border: 1px solid #444; border-radius: 4px;
+      background: #0f0f23; color: #eee; font-size: 0.85em; margin-bottom: 6px;
+    }
+    .mode-toggle { display: flex; gap: 0; margin-bottom: 6px; }
+    .mode-toggle button {
+      padding: 3px 10px; border: 1px solid #444; background: #0f0f23; color: #888;
+      cursor: pointer; font-size: 0.78em;
+    }
+    .mode-toggle button:first-child { border-radius: 4px 0 0 4px; }
+    .mode-toggle button:last-child { border-radius: 0 4px 4px 0; }
+    .mode-toggle button.active { background: #2a2a4e; color: #eee; border-color: #3498db; }
+
+    .slider-row { display: flex; align-items: center; gap: 6px; margin: 5px 0; }
+    .slider-row label { width: 14px; font-size: 0.82em; color: #aaa; text-align: right; flex-shrink: 0; }
+    .slider-wrap {
+      flex: 1; position: relative; height: 20px;
+    }
+    .slider-track {
+      position: absolute; top: 6px; left: 0; right: 0; height: 8px;
+      border-radius: 4px; pointer-events: none; border: 1px solid #333;
+    }
+    .slider-wrap input[type="range"] {
+      position: absolute; top: 0; left: 0; width: 100%; height: 20px;
+      -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer;
+    }
+    .slider-wrap input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+      background: #eee; border: 2px solid #888; cursor: pointer;
+    }
+    .slider-wrap input[type="range"]::-moz-range-thumb {
+      width: 14px; height: 14px; border-radius: 50%;
+      background: #eee; border: 2px solid #888; cursor: pointer;
+    }
+    .slider-wrap input[type="range"]::-webkit-slider-runnable-track {
+      background: transparent; height: 8px;
+    }
+    .slider-wrap input[type="range"]::-moz-range-track {
+      background: transparent; height: 8px; border: none;
+    }
+    .slider-row input[type="number"] {
+      width: 50px; padding: 2px 4px; border: 1px solid #444; border-radius: 4px;
+      background: #0f0f23; color: #eee; text-align: right; font-size: 0.8em; flex-shrink: 0;
+    }
+    .slider-row input[type="number"]::-webkit-inner-spin-button,
+    .slider-row input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+    .slider-row input[type="number"] { -moz-appearance: textfield; }
+
+    .hex-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+    .hex-row label { font-size: 0.82em; color: #aaa; }
+    .hex-row input {
+      width: 80px; padding: 2px 6px; border: 1px solid #444; border-radius: 4px;
+      background: #0f0f23; color: #eee; font-family: monospace; font-size: 0.85em;
+    }
+    .big-swatch {
+      width: 100%; height: 36px; border-radius: 5px; border: 1px solid #555; margin-bottom: 6px;
+    }
+    .delete-color-btn {
+      padding: 3px 8px; border: 1px solid #733; border-radius: 4px;
+      background: transparent; color: #c55; cursor: pointer; font-size: 0.78em; margin-top: 4px;
+    }
+    .delete-color-btn:hover { background: #3a1a1a; }
+
+    /* palette list */
+    .palette-entry {
+      display: flex; align-items: center; gap: 8px; padding: 4px 8px;
+      border-radius: 4px; cursor: pointer; border: 2px solid transparent; margin: 2px 0;
+    }
+    .palette-entry:hover { background: #1a2a4e; }
+    .palette-entry.selected { border-color: #f39c12; background: #1a2a4e; }
+    .palette-entry .name { font-size: 0.82em; flex: 1; }
+    .palette-mini-swatches { display: flex; gap: 2px; }
+    .palette-mini-swatch { width: 12px; height: 12px; border-radius: 2px; border: 1px solid #444; }
+
+    /* palette editor */
+    .palette-editor { flex-shrink: 0; border-top: 1px solid #333; padding-top: 8px; margin-top: 8px; }
+    .palette-colors {
+      display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; min-height: 32px;
+      padding: 5px; border: 1px dashed #444; border-radius: 4px;
+    }
+    .palette-color-chip {
+      display: flex; align-items: center; gap: 4px; padding: 3px 6px;
+      border-radius: 4px; font-size: 0.78em; border: 1px solid #555;
+      background: #1a2a4e; cursor: grab; user-select: none;
+    }
+    .palette-color-chip.dragging { opacity: 0.4; }
+    .palette-color-chip.drag-over { border-color: #f39c12; }
+    .palette-color-chip .chip-swatch { width: 12px; height: 12px; border-radius: 2px; border: 1px solid #666; }
+    .palette-color-chip .remove-chip {
+      cursor: pointer; color: #888; font-size: 0.85em; margin-left: 2px;
+    }
+    .palette-color-chip .remove-chip:hover { color: #e55; }
+
+    .color-picker-dropdown {
+      display: flex; flex-wrap: wrap; gap: 3px; margin: 4px 0; padding: 5px;
+      background: #0f0f23; border-radius: 4px;
+    }
+    .color-pick-option {
+      width: 24px; height: 24px; border-radius: 3px; border: 2px solid transparent;
+      cursor: pointer;
+    }
+    .color-pick-option:hover { border-color: #eee; }
+
+    .id-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+    .id-row label { font-size: 0.82em; color: #aaa; width: 36px; }
+    .id-row input {
+      flex: 1; padding: 4px 8px; border: 1px solid #444; border-radius: 4px;
+      background: #0f0f23; color: #eee; font-size: 0.85em;
+    }
+
+    /* preview */
+    .preview-bars { display: flex; gap: 0; height: 36px; border-radius: 6px; overflow: hidden; border: 1px solid #555; margin: 4px 0; }
+    .preview-bar { flex: 1; }
+    .preview-text {
+      font-family: 'Courier New', monospace; font-size: 1em; padding: 8px;
+      background: #0f0f23; border-radius: 6px; margin: 4px 0; white-space: pre-wrap;
+      line-height: 1.5;
+    }
+
+    .all-palettes-preview { display: flex; flex-direction: column; gap: 8px; }
+    .palette-preview-row { display: flex; flex-direction: column; gap: 3px; cursor: pointer; }
+    .palette-preview-row:hover { opacity: 0.85; }
+    .palette-preview-label { font-size: 0.82em; color: #aaa; }
+    .palette-preview-row .preview-bars { height: 26px; }
+    .palette-preview-row .preview-text { font-size: 0.85em; padding: 4px 6px; }
+  </style>
+</head>
+<body>
+  <div style="display:flex; align-items:baseline; gap: 16px;">
+    <h1>Palette Editor</h1>
+    <div class="top-bar">
+      <button onclick="loadJson()">Load JSON</button>
+      <button onclick="saveJson()">Save JSON</button>
+      <button onclick="resetToDefaults()">Reset</button>
+      <input type="file" id="file-input" accept=".json" style="display:none" onchange="handleFileLoad(event)">
+    </div>
+  </div>
+  <div class="container">
+    <div class="panel">
+      <h2>Colors</h2>
+      <div class="scroll-area">
+        <div id="color-list" class="color-list"></div>
+      </div>
+      <button class="add-btn" onclick="addColor()">+ Add Color</button>
+      <div id="color-editor"></div>
+    </div>
+    <div class="panel">
+      <h2>Palettes</h2>
+      <div class="scroll-area">
+        <div id="palette-list"></div>
+      </div>
+      <button class="add-btn" onclick="addPalette()">+ Add Palette</button>
+      <div id="palette-editor"></div>
+    </div>
+    <div class="panel">
+      <h2>Preview</h2>
+      <div id="selected-preview" style="margin-bottom:12px;"></div>
+      <h2>All Palettes</h2>
+      <div class="scroll-area">
+        <div id="all-preview" class="all-palettes-preview"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const PREVIEW_TEXT = "★ PARTY TIME! You pushed 5 commits and earned 42 points! ★";
+
+const DEFAULT_DATA = {
+  colors: {
+    "white":       { r: 250, g: 250, b: 250 },
+    "red":         { r: 220, g: 50,  b: 50  },
+    "green":       { r: 50,  g: 200, b: 50  },
+    "blue":        { r: 60,  g: 60,  b: 220 },
+    "yellow":      { r: 230, g: 230, b: 20  },
+    "cyan":        { r: 50,  g: 210, b: 210 },
+    "magenta":     { r: 210, g: 50,  b: 210 },
+    "trans-blue":  { r: 91,  g: 206, b: 250 },
+    "trans-pink":  { r: 245, g: 169, b: 184 },
+    "violet":      { r: 138, g: 43,  b: 226 },
+    "hot-pink":    { r: 255, g: 20,  b: 147 },
+    "neon-cyan":   { r: 0,   g: 255, b: 255 },
+    "gold":        { r: 255, g: 211, b: 25  },
+    "deep-orange": { r: 255, g: 144, b: 31  },
+    "rose":        { r: 255, g: 41,  b: 117 },
+    "fuchsia":     { r: 242, g: 34,  b: 255 },
+    "purple":      { r: 140, g: 30,  b: 255 },
+  },
+  palettes: {
+    "red-rgb":      { name: "Red (RGB)",      colors: ["red"] },
+    "green-rgb":    { name: "Green (RGB)",     colors: ["green"] },
+    "blue-rgb":     { name: "Blue (RGB)",      colors: ["blue"] },
+    "cyan-rgb":     { name: "Cyan (RGB)",      colors: ["cyan"] },
+    "yellow-rgb":   { name: "Yellow (RGB)",    colors: ["yellow"] },
+    "magenta-rgb":  { name: "Magenta (RGB)",   colors: ["magenta"] },
+    "flag-usa":     { name: "USA",             colors: ["red", "white", "blue"] },
+    "flag-italy":   { name: "Italy/Mexico",    colors: ["green", "white", "red"] },
+    "flag-ukraine": { name: "Ukraine",         colors: ["blue", "yellow"] },
+    "flag-france":  { name: "France",          colors: ["blue", "white", "red"] },
+    "flag-trans":   { name: "Trans Pride",     colors: ["trans-blue", "trans-pink", "white", "trans-pink", "trans-blue"] },
+    "synthwave":    { name: "Synthwave",       colors: ["violet", "hot-pink", "neon-cyan"] },
+    "sunset":       { name: "Sunset",          colors: ["gold", "deep-orange", "rose", "fuchsia", "purple"] },
+  }
+};
+
+let state = JSON.parse(JSON.stringify(DEFAULT_DATA));
+let selectedColor = null;
+let selectedPalette = null;
+let colorMode = "rgb";
+let dragIdx = null;
+let slidingChannel = null; // track which slider is being dragged
+
+function sortedColors() {
+  return Object.keys(state.colors).sort((a, b) => a.localeCompare(b));
+}
+function sortedPalettes() {
+  return Object.keys(state.palettes).sort((a, b) => a.localeCompare(b));
+}
+
+// --- color math ---
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h, s, l = (max + min) / 2;
+  if (max === min) { h = s = 0; }
+  else {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      case b: h = ((r - g) / d + 4) / 6; break;
+    }
+  }
+  return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+}
+
+function hslToRgb(h, s, l) {
+  h /= 360; s /= 100; l /= 100;
+  let r, g, b;
+  if (s === 0) { r = g = b = l; }
+  else {
+    const hue2rgb = (p, q, t) => {
+      if (t < 0) t += 1; if (t > 1) t -= 1;
+      if (t < 1/6) return p + (q - p) * 6 * t;
+      if (t < 1/2) return q;
+      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      return p;
+    };
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1/3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1/3);
+  }
+  return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) };
+}
+
+function rgbToHex(r, g, b) {
+  return "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join("");
+}
+
+function hexToRgb(hex) {
+  hex = hex.replace(/^#/, "");
+  if (hex.length === 3) hex = hex.split("").map(c => c + c).join("");
+  if (hex.length !== 6) return null;
+  const n = parseInt(hex, 16);
+  if (isNaN(n)) return null;
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+function cssColor(name) {
+  const c = state.colors[name];
+  return c ? `rgb(${c.r},${c.g},${c.b})` : "#333";
+}
+
+function cssRgb(r, g, b) { return `rgb(${r},${g},${b})`; }
+
+// --- gradient helpers ---
+function rgbGradient(c, ch) {
+  const stops = 8;
+  const parts = [];
+  for (let i = 0; i <= stops; i++) {
+    const v = Math.round(i * 255 / stops);
+    const r = ch === "r" ? v : c.r;
+    const g = ch === "g" ? v : c.g;
+    const b = ch === "b" ? v : c.b;
+    parts.push(cssRgb(r, g, b));
+  }
+  return `linear-gradient(to right, ${parts.join(", ")})`;
+}
+
+function hslGradient(hsl, ch) {
+  const stops = ch === "h" ? 12 : 8;
+  const parts = [];
+  const max = ch === "h" ? 360 : 100;
+  for (let i = 0; i <= stops; i++) {
+    const v = Math.round(i * max / stops);
+    const h = ch === "h" ? v : hsl.h;
+    const s = ch === "s" ? v : hsl.s;
+    const l = ch === "l" ? v : hsl.l;
+    const rgb = hslToRgb(h, s, l);
+    parts.push(cssRgb(rgb.r, rgb.g, rgb.b));
+  }
+  return `linear-gradient(to right, ${parts.join(", ")})`;
+}
+
+// --- rendering ---
+function renderAll() {
+  renderColorList();
+  renderPaletteList();
+  renderSelectedPreview();
+  renderAllPreview();
+}
+
+// update just the parts that change when a slider moves, without rebuilding the editor
+function renderLive() {
+  if (!selectedColor || !state.colors[selectedColor]) return;
+  const c = state.colors[selectedColor];
+  const hsl = rgbToHsl(c.r, c.g, c.b);
+  const hex = rgbToHex(c.r, c.g, c.b);
+
+  // update swatch
+  const swatch = document.getElementById("ed-swatch");
+  if (swatch) swatch.style.background = cssColor(selectedColor);
+
+  // update hex
+  const hexInput = document.getElementById("ed-hex");
+  if (hexInput && document.activeElement !== hexInput) hexInput.value = hex;
+
+  // update slider values + gradients (skip the one being dragged)
+  if (colorMode === "rgb") {
+    ["r", "g", "b"].forEach(ch => {
+      const track = document.getElementById(`track-${ch}`);
+      if (track) track.style.background = rgbGradient(c, ch);
+      if (slidingChannel !== ch) {
+        const range = document.getElementById(`range-${ch}`);
+        const num = document.getElementById(`num-${ch}`);
+        if (range) range.value = c[ch];
+        if (num) num.value = c[ch];
+      }
+    });
+  } else {
+    ["h", "s", "l"].forEach(ch => {
+      const track = document.getElementById(`track-${ch}`);
+      if (track) track.style.background = hslGradient(hsl, ch);
+      if (slidingChannel !== ch) {
+        const range = document.getElementById(`range-${ch}`);
+        const num = document.getElementById(`num-${ch}`);
+        if (range) range.value = hsl[ch];
+        if (num) num.value = hsl[ch];
+      }
+    });
+  }
+
+  // update color list swatches + hex
+  document.querySelectorAll(`.color-entry[data-name="${selectedColor}"]`).forEach(el => {
+    const sw = el.querySelector(".color-swatch");
+    if (sw) sw.style.background = cssColor(selectedColor);
+    const hx = el.querySelector(".hex");
+    if (hx) hx.textContent = hex;
+  });
+
+  renderPaletteList();
+  renderSelectedPreview();
+  renderAllPreview();
+}
+
+function renderColorList() {
+  const el = document.getElementById("color-list");
+  el.innerHTML = "";
+  for (const name of sortedColors()) {
+    const c = state.colors[name];
+    const div = document.createElement("div");
+    div.className = "color-entry" + (selectedColor === name ? " selected" : "");
+    div.dataset.name = name;
+    div.innerHTML = `
+      <div class="color-swatch" style="background:${cssColor(name)}"></div>
+      <span class="name">${name}</span>
+      <span class="hex">${rgbToHex(c.r, c.g, c.b)}</span>
+    `;
+    div.onclick = () => { selectedColor = name; renderAll(); };
+    el.appendChild(div);
+  }
+  renderColorEditor();
+}
+
+function renderColorEditor() {
+  const el = document.getElementById("color-editor");
+  if (!selectedColor || !state.colors[selectedColor]) {
+    el.innerHTML = "";
+    el.className = "";
+    return;
+  }
+  el.className = "color-editor";
+  const c = state.colors[selectedColor];
+  const hsl = rgbToHsl(c.r, c.g, c.b);
+
+  let slidersHtml;
+  if (colorMode === "rgb") {
+    slidersHtml = ["r", "g", "b"].map(ch => {
+      const val = c[ch];
+      const grad = rgbGradient(c, ch);
+      return `<div class="slider-row">
+        <label>${ch.toUpperCase()}</label>
+        <div class="slider-wrap">
+          <div class="slider-track" id="track-${ch}" style="background:${grad}"></div>
+          <input type="range" id="range-${ch}" min="0" max="255" value="${val}"
+            oninput="slidingChannel='${ch}'; updateColorChannel('${ch}', +this.value)"
+            onchange="slidingChannel=null">
+        </div>
+        <input type="number" id="num-${ch}" min="0" max="255" value="${val}"
+          oninput="updateColorChannel('${ch}', clamp(+this.value,0,255))">
+      </div>`;
+    }).join("");
+  } else {
+    slidersHtml = [
+      { ch: "h", label: "H", val: hsl.h, max: 360 },
+      { ch: "s", label: "S", val: hsl.s, max: 100 },
+      { ch: "l", label: "L", val: hsl.l, max: 100 },
+    ].map(({ ch, label, val, max }) => {
+      const grad = hslGradient(hsl, ch);
+      return `<div class="slider-row">
+        <label>${label}</label>
+        <div class="slider-wrap">
+          <div class="slider-track" id="track-${ch}" style="background:${grad}"></div>
+          <input type="range" id="range-${ch}" min="0" max="${max}" value="${val}"
+            oninput="slidingChannel='${ch}'; updateColorHsl('${ch}', +this.value)"
+            onchange="slidingChannel=null">
+        </div>
+        <input type="number" id="num-${ch}" min="0" max="${max}" value="${val}"
+          oninput="updateColorHsl('${ch}', clamp(+this.value,0,${max}))">
+      </div>`;
+    }).join("");
+  }
+
+  el.innerHTML = `
+    <div class="big-swatch" id="ed-swatch" style="background:${cssColor(selectedColor)}"></div>
+    <input class="name-input" value="${selectedColor}" onchange="renameColor(this.value)" placeholder="color name">
+    <div class="hex-row">
+      <label>Hex</label>
+      <input id="ed-hex" value="${rgbToHex(c.r, c.g, c.b)}" onchange="updateColorHex(this.value)" spellcheck="false">
+    </div>
+    <div class="mode-toggle">
+      <button class="${colorMode === 'rgb' ? 'active' : ''}" onclick="colorMode='rgb'; renderColorEditor()">RGB</button>
+      <button class="${colorMode === 'hsl' ? 'active' : ''}" onclick="colorMode='hsl'; renderColorEditor()">HSL</button>
+    </div>
+    ${slidersHtml}
+    <button class="delete-color-btn" onclick="deleteColor()">Delete</button>
+  `;
+}
+
+function renderPaletteList() {
+  const el = document.getElementById("palette-list");
+  el.innerHTML = "";
+  for (const id of sortedPalettes()) {
+    const p = state.palettes[id];
+    const div = document.createElement("div");
+    div.className = "palette-entry" + (selectedPalette === id ? " selected" : "");
+    const swatches = p.colors.map(c =>
+      `<div class="palette-mini-swatch" style="background:${cssColor(c)}"></div>`
+    ).join("");
+    div.innerHTML = `
+      <div class="palette-mini-swatches">${swatches}</div>
+      <span class="name">${p.name}</span>
+    `;
+    div.onclick = () => { selectedPalette = id; renderAll(); };
+    el.appendChild(div);
+  }
+  renderPaletteEditor();
+}
+
+function renderPaletteEditor() {
+  const el = document.getElementById("palette-editor");
+  if (!selectedPalette || !state.palettes[selectedPalette]) {
+    el.innerHTML = "";
+    el.className = "";
+    return;
+  }
+  el.className = "palette-editor";
+  const p = state.palettes[selectedPalette];
+
+  const chips = p.colors.map((c, i) =>
+    `<div class="palette-color-chip" draggable="true" data-idx="${i}"
+          ondragstart="onChipDragStart(event,${i})" ondragover="onChipDragOver(event,${i})"
+          ondragenter="onChipDragEnter(event)" ondragleave="onChipDragLeave(event)"
+          ondrop="onChipDrop(event,${i})" ondragend="onChipDragEnd(event)">
+      <div class="chip-swatch" style="background:${cssColor(c)}"></div>
+      <span>${c}</span>
+      <span class="remove-chip" onclick="event.stopPropagation();removePaletteColor(${i})">×</span>
+    </div>`
+  ).join("");
+
+  const colorOptions = sortedColors().map(name =>
+    `<div class="color-pick-option" style="background:${cssColor(name)}" title="${name}" onclick="addPaletteColor('${name}')"></div>`
+  ).join("");
+
+  el.innerHTML = `
+    <div class="id-row">
+      <label>ID</label>
+      <input value="${selectedPalette}" onchange="renamePalette(this.value)">
+    </div>
+    <div class="id-row">
+      <label>Name</label>
+      <input value="${p.name}" onchange="updatePaletteName(this.value)">
+    </div>
+    <div style="font-size:0.75em;color:#666;margin:4px 0;">drag to reorder</div>
+    <div class="palette-colors">${chips || '<span style="color:#666;font-size:0.8em;">no colors yet</span>'}</div>
+    <div style="font-size:0.75em;color:#666;margin:4px 0;">click to add</div>
+    <div class="color-picker-dropdown">${colorOptions}</div>
+    <button class="delete-color-btn" onclick="deletePalette()">Delete Palette</button>
+  `;
+}
+
+function renderSelectedPreview() {
+  const el = document.getElementById("selected-preview");
+  if (!selectedPalette || !state.palettes[selectedPalette]) {
+    el.innerHTML = '<span style="color:#666;font-size:0.85em;">select a palette</span>';
+    return;
+  }
+  const p = state.palettes[selectedPalette];
+  const colors = p.colors.map(c => state.colors[c]).filter(Boolean);
+  if (!colors.length) {
+    el.innerHTML = '<span style="color:#666;font-size:0.85em;">no colors in palette</span>';
+    return;
+  }
+
+  const bars = colors.map(c =>
+    `<div class="preview-bar" style="background:rgb(${c.r},${c.g},${c.b})"></div>`
+  ).join("");
+
+  let textHtml = "";
+  for (let i = 0; i < PREVIEW_TEXT.length; i++) {
+    const c = colors[i % colors.length];
+    textHtml += `<span style="color:rgb(${c.r},${c.g},${c.b})">${PREVIEW_TEXT[i]}</span>`;
+  }
+
+  el.innerHTML = `
+    <div style="font-size:0.85em;color:#aaa;margin-bottom:3px;">${p.name} <span style="color:#555">(${selectedPalette})</span></div>
+    <div class="preview-bars">${bars}</div>
+    <div class="preview-text">${textHtml}</div>
+  `;
+}
+
+function renderAllPreview() {
+  const el = document.getElementById("all-preview");
+  el.innerHTML = "";
+  for (const id of sortedPalettes()) {
+    const p = state.palettes[id];
+    const colors = p.colors.map(c => state.colors[c]).filter(Boolean);
+    if (!colors.length) continue;
+    const bars = colors.map(c =>
+      `<div class="preview-bar" style="background:rgb(${c.r},${c.g},${c.b})"></div>`
+    ).join("");
+
+    let textHtml = "";
+    const sampleText = "★ PARTY TIME! ★";
+    for (let i = 0; i < sampleText.length; i++) {
+      const c = colors[i % colors.length];
+      textHtml += `<span style="color:rgb(${c.r},${c.g},${c.b})">${sampleText[i]}</span>`;
+    }
+
+    const row = document.createElement("div");
+    row.className = "palette-preview-row";
+    row.onclick = () => { selectedPalette = id; renderAll(); };
+    row.innerHTML = `
+      <div class="palette-preview-label">${p.name} <span style="color:#555">(${id})</span></div>
+      <div class="preview-bars">${bars}</div>
+      <div class="preview-text">${textHtml}</div>
+    `;
+    el.appendChild(row);
+  }
+}
+
+// --- color actions ---
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+function updateColorChannel(ch, val) {
+  if (!selectedColor) return;
+  state.colors[selectedColor][ch] = val;
+  renderLive();
+}
+
+function updateColorHsl(ch, val) {
+  if (!selectedColor) return;
+  const c = state.colors[selectedColor];
+  const hsl = rgbToHsl(c.r, c.g, c.b);
+  hsl[ch] = val;
+  const rgb = hslToRgb(hsl.h, hsl.s, hsl.l);
+  Object.assign(state.colors[selectedColor], rgb);
+  renderLive();
+}
+
+function updateColorHex(hex) {
+  if (!selectedColor) return;
+  const rgb = hexToRgb(hex);
+  if (rgb) {
+    Object.assign(state.colors[selectedColor], rgb);
+    renderAll();
+  }
+}
+
+function renameColor(newName) {
+  newName = newName.trim().toLowerCase().replace(/\s+/g, "-");
+  if (!newName || newName === selectedColor || state.colors[newName]) return;
+  const c = state.colors[selectedColor];
+  delete state.colors[selectedColor];
+  state.colors[newName] = c;
+  for (const p of Object.values(state.palettes)) {
+    p.colors = p.colors.map(cn => cn === selectedColor ? newName : cn);
+  }
+  selectedColor = newName;
+  renderAll();
+}
+
+function addColor() {
+  let name = "new-color";
+  let i = 1;
+  while (state.colors[name]) { name = `new-color-${i++}`; }
+  state.colors[name] = { r: 128, g: 128, b: 128 };
+  selectedColor = name;
+  renderAll();
+}
+
+function deleteColor() {
+  if (!selectedColor) return;
+  for (const p of Object.values(state.palettes)) {
+    p.colors = p.colors.filter(c => c !== selectedColor);
+  }
+  delete state.colors[selectedColor];
+  selectedColor = null;
+  renderAll();
+}
+
+// --- palette actions ---
+function addPalette() {
+  let id = "new-palette";
+  let i = 1;
+  while (state.palettes[id]) { id = `new-palette-${i++}`; }
+  state.palettes[id] = { name: "New Palette", colors: [] };
+  selectedPalette = id;
+  renderAll();
+}
+
+function deletePalette() {
+  if (!selectedPalette) return;
+  delete state.palettes[selectedPalette];
+  selectedPalette = null;
+  renderAll();
+}
+
+function renamePalette(newId) {
+  newId = newId.trim().toLowerCase().replace(/\s+/g, "-");
+  if (!newId || newId === selectedPalette || state.palettes[newId]) return;
+  state.palettes[newId] = state.palettes[selectedPalette];
+  delete state.palettes[selectedPalette];
+  selectedPalette = newId;
+  renderAll();
+}
+
+function updatePaletteName(name) {
+  if (!selectedPalette) return;
+  state.palettes[selectedPalette].name = name;
+  renderAll();
+}
+
+function addPaletteColor(colorName) {
+  if (!selectedPalette) return;
+  state.palettes[selectedPalette].colors.push(colorName);
+  renderAll();
+}
+
+function removePaletteColor(idx) {
+  if (!selectedPalette) return;
+  state.palettes[selectedPalette].colors.splice(idx, 1);
+  renderAll();
+}
+
+// --- drag and drop reorder ---
+function onChipDragStart(e, idx) {
+  dragIdx = idx;
+  e.target.classList.add("dragging");
+  e.dataTransfer.effectAllowed = "move";
+}
+
+function onChipDragOver(e, idx) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = "move";
+}
+
+function onChipDragEnter(e) {
+  e.target.closest(".palette-color-chip")?.classList.add("drag-over");
+}
+
+function onChipDragLeave(e) {
+  e.target.closest(".palette-color-chip")?.classList.remove("drag-over");
+}
+
+function onChipDrop(e, targetIdx) {
+  e.preventDefault();
+  if (dragIdx === null || dragIdx === targetIdx || !selectedPalette) return;
+  const colors = state.palettes[selectedPalette].colors;
+  const [moved] = colors.splice(dragIdx, 1);
+  colors.splice(targetIdx, 0, moved);
+  dragIdx = null;
+  renderAll();
+}
+
+function onChipDragEnd(e) {
+  dragIdx = null;
+  document.querySelectorAll(".palette-color-chip").forEach(el => {
+    el.classList.remove("dragging", "drag-over");
+  });
+}
+
+// --- io ---
+function loadJson() {
+  document.getElementById("file-input").click();
+}
+
+function handleFileLoad(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (data.colors && data.palettes) {
+        state = data;
+        selectedColor = null;
+        selectedPalette = null;
+        renderAll();
+      } else {
+        alert("Invalid JSON: needs 'colors' and 'palettes' keys");
+      }
+    } catch (err) {
+      alert("Failed to parse JSON: " + err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = "";
+}
+
+function saveJson() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "palettes.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function resetToDefaults() {
+  if (!confirm("Reset everything to defaults?")) return;
+  state = JSON.parse(JSON.stringify(DEFAULT_DATA));
+  selectedColor = null;
+  selectedPalette = null;
+  renderAll();
+}
+
+renderAll();
+</script>
+</body>
+</html>

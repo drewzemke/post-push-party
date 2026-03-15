@@ -1,0 +1,293 @@
+{
+  "colors": {
+    "white": {
+      "r": 255,
+      "g": 255,
+      "b": 255
+    },
+    "red": {
+      "r": 244,
+      "g": 26,
+      "b": 26
+    },
+    "green": {
+      "r": 50,
+      "g": 200,
+      "b": 50
+    },
+    "blue": {
+      "r": 60,
+      "g": 60,
+      "b": 220
+    },
+    "cyan": {
+      "r": 15,
+      "g": 245,
+      "b": 245
+    },
+    "magenta": {
+      "r": 242,
+      "g": 34,
+      "b": 255
+    },
+    "violet": {
+      "r": 138,
+      "g": 43,
+      "b": 226
+    },
+    "pale-pink": {
+      "r": 245,
+      "g": 169,
+      "b": 184
+    },
+    "orange": {
+      "r": 255,
+      "g": 144,
+      "b": 31
+    },
+    "yellow": {
+      "r": 255,
+      "g": 211,
+      "b": 25
+    },
+    "pale-blue": {
+      "r": 138,
+      "g": 222,
+      "b": 255
+    },
+    "light-gray": {
+      "r": 207,
+      "g": 207,
+      "b": 207
+    },
+    "mid-gray": {
+      "r": 173,
+      "g": 173,
+      "b": 173
+    },
+    "mint": {
+      "r": 183,
+      "g": 240,
+      "b": 183
+    },
+    "pale-yellow": {
+      "r": 252,
+      "g": 253,
+      "b": 190
+    },
+    "neon-pink": {
+      "r": 255,
+      "g": 31,
+      "b": 150
+    },
+    "neon-green": {
+      "r": 119,
+      "g": 255,
+      "b": 56
+    },
+    "neon-yellow": {
+      "r": 249,
+      "g": 255,
+      "b": 61
+    },
+    "brown": {
+      "r": 179,
+      "g": 117,
+      "b": 50
+    },
+    "dark-red": {
+      "r": 167,
+      "g": 12,
+      "b": 12
+    },
+    "ice-blue": {
+      "r": 191,
+      "g": 208,
+      "b": 232
+    },
+    "teal": {
+      "r": 49,
+      "g": 168,
+      "b": 177
+    }
+  },
+  "palettes": {
+    "red-rgb": {
+      "name": "Red (RGB)",
+      "colors": [
+        "red"
+      ]
+    },
+    "green-rgb": {
+      "name": "Green (RGB)",
+      "colors": [
+        "green"
+      ]
+    },
+    "blue-rgb": {
+      "name": "Blue (RGB)",
+      "colors": [
+        "blue"
+      ]
+    },
+    "cyan-rgb": {
+      "name": "Cyan (RGB)",
+      "colors": [
+        "cyan"
+      ]
+    },
+    "yellow-rgb": {
+      "name": "Yellow (RGB)",
+      "colors": [
+        "yellow"
+      ]
+    },
+    "magenta-rgb": {
+      "name": "Magenta (RGB)",
+      "colors": [
+        "magenta"
+      ]
+    },
+    "flag-usa": {
+      "name": "USA",
+      "colors": [
+        "red",
+        "white",
+        "blue"
+      ]
+    },
+    "flag-italy": {
+      "name": "Italy/Mexico",
+      "colors": [
+        "green",
+        "white",
+        "red"
+      ]
+    },
+    "flag-ukraine": {
+      "name": "Ukraine",
+      "colors": [
+        "blue",
+        "yellow"
+      ]
+    },
+    "flag-france": {
+      "name": "France",
+      "colors": [
+        "blue",
+        "white",
+        "red"
+      ]
+    },
+    "flag-trans": {
+      "name": "Trans Pride",
+      "colors": [
+        "pale-blue",
+        "pale-pink",
+        "white",
+        "pale-pink",
+        "pale-blue"
+      ]
+    },
+    "synthwave": {
+      "name": "Synthwave",
+      "colors": [
+        "violet",
+        "neon-pink",
+        "cyan"
+      ]
+    },
+    "sunset": {
+      "name": "Sunset",
+      "colors": [
+        "yellow",
+        "orange",
+        "neon-pink",
+        "magenta",
+        "violet"
+      ]
+    },
+    "monochrome": {
+      "name": "Monochrome",
+      "colors": [
+        "white",
+        "light-gray",
+        "mid-gray"
+      ]
+    },
+    "rainbow": {
+      "name": "Pride",
+      "colors": [
+        "red",
+        "orange",
+        "yellow",
+        "green",
+        "blue",
+        "violet"
+      ]
+    },
+    "pastel": {
+      "name": "Pastel",
+      "colors": [
+        "pale-blue",
+        "pale-pink",
+        "mint",
+        "pale-yellow"
+      ]
+    },
+    "neon": {
+      "name": "Neon",
+      "colors": [
+        "cyan",
+        "neon-pink",
+        "neon-green",
+        "neon-yellow"
+      ]
+    },
+    "autumn": {
+      "name": "Autumn",
+      "colors": [
+        "dark-red",
+        "orange",
+        "yellow",
+        "brown"
+      ]
+    },
+    "winter": {
+      "name": "Winter",
+      "colors": [
+        "white",
+        "pale-blue",
+        "light-gray",
+        "ice-blue"
+      ]
+    },
+    "spring": {
+      "name": "Spring",
+      "colors": [
+        "neon-green",
+        "green",
+        "mint",
+        "pale-yellow"
+      ]
+    },
+    "fire": {
+      "name": "Fire",
+      "colors": [
+        "red",
+        "yellow",
+        "orange",
+        "light-gray"
+      ]
+    },
+    "aurora": {
+      "name": "Aurora",
+      "colors": [
+        "green",
+        "teal",
+        "violet",
+        "magenta"
+      ]
+    }
+  }
+}

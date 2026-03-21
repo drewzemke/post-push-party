@@ -14,7 +14,7 @@ impl Party for BigText {
     }
 
     fn name(&self) -> &'static str {
-        "Big Text"
+        "Big Text Party"
     }
 
     fn description(&self) -> &'static str {

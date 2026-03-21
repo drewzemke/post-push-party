@@ -14,7 +14,7 @@ impl Party for Breakdown {
     }
 
     fn name(&self) -> &'static str {
-        "Points Breakdown"
+        "Points Breakdown Party"
     }
 
     fn description(&self) -> &'static str {

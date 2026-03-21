@@ -1,7 +1,7 @@
 use rand::{RngExt, seq::IndexedRandom};
 
 use crate::{
-    party::{ALL_PARTIES, FIREWORKS, Palette, Party, palette::ALL_PALETTES},
+    party::{FIREWORKS, Palette, Party},
     state::State,
 };
 
@@ -345,27 +345,6 @@ impl PackItem {
             // want to trigger the lifetime points mechanism this way
             PackItem::PointBundle { points, .. } => state.party_points += *points,
         };
-    }
-
-    pub fn name(&self) -> String {
-        match self {
-            PackItem::PaletteUnlock {
-                party_id,
-                palette_id,
-                ..
-            } => {
-                let party = ALL_PARTIES
-                    .iter()
-                    .find(|p| p.id() == *party_id)
-                    .expect("party should exist");
-                let palette = ALL_PALETTES
-                    .iter()
-                    .find(|p| p.id() == *palette_id)
-                    .expect("palette should exist");
-                format!("{}: {}", party.name(), palette.name())
-            }
-            PackItem::PointBundle { points, .. } => format!("{points} P"),
-        }
     }
 }
 

@@ -13,7 +13,7 @@ impl Party for Fireworks {
     }
 
     fn name(&self) -> &'static str {
-        "Fireworks"
+        "Fireworks Party"
     }
 
     fn description(&self) -> &'static str {

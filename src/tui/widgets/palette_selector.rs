@@ -25,7 +25,7 @@ impl<'a> PaletteSelector<'a> {
     }
 }
 
-fn palette_preview(palette: &Palette, faded: bool) -> Line<'_> {
+pub fn palette_preview(palette: &Palette, faded: bool) -> Line<'_> {
     // try these: ▓▒░ ■
     let c = if faded { '■' } else { '█' };
     let colors = palette.all_ratatui();

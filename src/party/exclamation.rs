@@ -24,7 +24,7 @@ impl Party for Exclamation {
     }
 
     fn name(&self) -> &'static str {
-        "Exclamation"
+        "Exclamation Party"
     }
 
     fn description(&self) -> &'static str {

@@ -1,11 +1,12 @@
 pub mod games;
+pub mod pack_reveal;
 pub mod packs;
 pub mod party;
 pub mod store;
 
 use ratatui::prelude::*;
 
-use crate::state::State;
+use crate::{pack::Pack, state::State};
 
 use super::action::{Action, Route};
 
@@ -23,6 +24,10 @@ pub enum ViewResult {
     Redraw,
     /// navigate to a different route
     Navigate(Route),
+    /// open a pack of this type and go to the reveal screen for it
+    OpenPack(Pack),
+    /// correct the current offset by the given amount (because a pack item was just revealed granting that amount)
+    RevealPoints(u64),
     /// show a transient message
     Message(MessageType, String),
     /// exit the TUI

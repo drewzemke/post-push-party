@@ -11,7 +11,7 @@ use crate::{
     state::State,
     tui::{
         action::{Action, Route, StoreRoute},
-        views::{MessageType, View, ViewResult},
+        views::{View, ViewResult},
         widgets::ShimmerBlock,
     },
 };
@@ -186,9 +186,7 @@ impl View for PacksView {
             }
             Action::Select => {
                 if let Some(pack) = self.selected_pack(state) {
-                    // TODO: show opening ceremony, etc
-                    state.open_pack(*pack);
-                    ViewResult::Message(MessageType::Success, format!("Opened a {}!", pack.name()))
+                    ViewResult::OpenPack(*pack)
                 } else {
                     ViewResult::None
                 }

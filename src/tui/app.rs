@@ -3,6 +3,7 @@ use ratatui::prelude::*;
 use crate::state::State;
 use crate::storage::DbConnection;
 use crate::tui::views::MessageType;
+use crate::tui::views::pack_reveal::PackRevealView;
 
 use super::action::{Action, Route};
 use super::views::games::GamesView;
@@ -20,10 +21,14 @@ pub struct App<'a> {
     store: StoreView,
     party: PartyView,
     packs: PacksView,
+    pack_reveal: PackRevealView,
     games: GamesView,
 
     state: &'a mut State,
     conn: &'a DbConnection,
+
+    /// local state for the pack reveal ceremony
+    display_points_offset: u64,
 }
 
 impl<'a> App<'a> {
@@ -36,8 +41,10 @@ impl<'a> App<'a> {
             store: StoreView::default(),
             party: PartyView::default(),
             packs: PacksView::default(),
+            pack_reveal: PackRevealView::default(),
             games: GamesView,
             conn,
+            display_points_offset: 0,
         }
     }
 
@@ -57,6 +64,7 @@ impl<'a> App<'a> {
             Route::Store(_) => self.store.handle(action, self.state),
             Route::Party => self.party.handle(action, self.state),
             Route::Packs => self.packs.handle(action, self.state),
+            Route::PackReveal => self.pack_reveal.handle(action, self.state),
             Route::Games => self.games.handle(action, self.state),
         };
 
@@ -64,11 +72,26 @@ impl<'a> App<'a> {
             ViewResult::Redraw => {}
 
             ViewResult::Navigate(route) => {
-                // if navigating within store, update store's sub-route
+                self.display_points_offset = 0;
+
                 if let Route::Store(sub_route) = route {
                     self.store.set_route(sub_route);
                 }
                 self.route = route;
+            }
+
+            ViewResult::OpenPack(pack) => {
+                let points_before = self.state.party_points;
+                let pack_items = self.state.open_pack(pack);
+                self.save();
+                let offset = self.state.party_points - points_before;
+                self.display_points_offset = offset;
+                self.pack_reveal.set_items(pack_items);
+                self.route = Route::PackReveal;
+            }
+
+            ViewResult::RevealPoints(points) => {
+                self.display_points_offset = self.display_points_offset.saturating_sub(points);
             }
 
             ViewResult::Message(ty, msg) => {
@@ -109,6 +132,9 @@ impl<'a> App<'a> {
             Route::Store(_) => self.store.render(frame, chunks[1], self.state, self.tick),
             Route::Party => self.party.render(frame, chunks[1], self.state, self.tick),
             Route::Packs => self.packs.render(frame, chunks[1], self.state, self.tick),
+            Route::PackReveal => self
+                .pack_reveal
+                .render(frame, chunks[1], self.state, self.tick),
             Route::Games => self.games.render(frame, chunks[1], self.state, self.tick),
         }
 
@@ -117,13 +143,14 @@ impl<'a> App<'a> {
             Route::Store(_) => self.store.key_hints(),
             Route::Party => self.party.key_hints(),
             Route::Packs => self.packs.key_hints(),
+            Route::PackReveal => self.pack_reveal.key_hints(),
             Route::Games => self.games.key_hints(),
         };
         render_footer(
             frame,
             chunks[2],
             &hints,
-            self.state.party_points,
+            self.state.party_points - self.display_points_offset,
             &self.message,
         );
     }

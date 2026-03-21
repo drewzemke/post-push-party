@@ -18,6 +18,7 @@ pub enum Route {
     Store(StoreRoute),
     Party,
     Packs,
+    PackReveal,
     Games,
 }
 
@@ -42,6 +43,7 @@ impl Route {
             Route::Store(_) => 0,
             Route::Party => 1,
             Route::Packs => 2,
+            Route::PackReveal => 2,
             Route::Games => 3,
         }
     }

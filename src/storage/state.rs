@@ -99,6 +99,7 @@ impl State {
 
         // bonus_tracks
         {
+            tx.execute("DELETE FROM bonus_tracks", ())?;
             let mut stmt =
                 tx.prepare("INSERT OR REPLACE INTO bonus_tracks (id, level) VALUES (?1, ?2)")?;
             for (track_id, level) in &self.bonus_tracks {
@@ -108,6 +109,7 @@ impl State {
 
         // parties
         {
+            tx.execute("DELETE FROM parties", ())?;
             let mut stmt = tx.prepare(
                 "INSERT OR REPLACE INTO parties (id, enabled, active_palette ) VALUES (?1, ?2, ?3)",
             )?;
@@ -120,6 +122,7 @@ impl State {
 
         // palettes
         {
+            tx.execute("DELETE FROM palettes", ())?;
             let mut stmt = tx.prepare(
                 "INSERT OR REPLACE INTO palettes (party_id, palette_id) VALUES (?1, ?2)",
             )?;
@@ -132,6 +135,7 @@ impl State {
 
         // packs
         {
+            tx.execute("DELETE FROM packs", ())?;
             let mut stmt =
                 tx.prepare("INSERT OR REPLACE INTO packs (pack_type, count) VALUES (?1, ?2)")?;
             for (pack, count) in &self.packs {

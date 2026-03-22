@@ -76,6 +76,10 @@ impl PackRevealView {
         self.items = Vec::new();
         self.selected = None;
     }
+
+    fn first_row_len(&self) -> usize {
+        self.items.len().div_ceil(2)
+    }
 }
 
 impl View for PackRevealView {
@@ -83,7 +87,7 @@ impl View for PackRevealView {
         // strategy: show the pack items spread over two evenly-spaced rows
         // this will look nice for pack templates with 3, 5, 7, and maybe 9 items
         // this won't look as nice for templates with an even number or too many items
-        let split_idx = self.items.len().div_ceil(2);
+        let split_idx = self.first_row_len();
         let first_row_items = &self
             .items
             .iter()
@@ -209,7 +213,7 @@ impl View for PackRevealView {
 
     fn handle(&mut self, action: Action, _state: &mut State) -> ViewResult {
         match action {
-            Action::Up => {
+            Action::Left => {
                 self.selected = if let Some(selected) = self.selected {
                     Some(selected.saturating_sub(1))
                 } else {
@@ -217,7 +221,7 @@ impl View for PackRevealView {
                 };
                 ViewResult::Redraw
             }
-            Action::Down => {
+            Action::Right => {
                 self.selected = if let Some(selected) = self.selected {
                     Some((selected + 1).min(self.items.len() - 1))
                 } else {
@@ -225,8 +229,27 @@ impl View for PackRevealView {
                 };
                 ViewResult::Redraw
             }
-            Action::Right => ViewResult::None,
-            Action::Left => ViewResult::None,
+            Action::Up => {
+                if let Some(selected) = self.selected {
+                    if selected >= self.first_row_len() {
+                        self.selected = Some(selected.saturating_sub(self.first_row_len()))
+                    }
+                } else {
+                    self.selected = Some(self.items.len())
+                };
+                ViewResult::Redraw
+            }
+            Action::Down => {
+                if let Some(selected) = self.selected {
+                    if selected < self.first_row_len() {
+                        self.selected =
+                            Some((selected + self.first_row_len()).min(self.items.len() - 1))
+                    }
+                } else {
+                    self.selected = Some(0)
+                };
+                ViewResult::Redraw
+            }
             Action::Select => {
                 let selected_item = self.selected.and_then(|idx| self.items.get_mut(idx));
                 if let Some((item, state)) = selected_item

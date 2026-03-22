@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.5](https://github.com/drewzemke/post-push-party/compare/v0.1.4...v0.1.5) - 2026-03-22
+
+### Added
+
+- *(packs)* better arrow key nav in pack opening UI
+- *(packs)* improve pack opening UI a lot :)
+- *(packs)* functional but very ugly pack opening screen
+- *(party)* add more colors and palettes
+- *(tui)* adjust layout, improve enabled/disabled indication, fix truncated descriptions
+- *(tui)* hide palette config for parties that don't support color
+- *(packs)* add back pack functionality
+
+### Fixed
+
+- wipe existing data before overwriting when saving state
+- *(storage)* persist pack data
+
+### Other
+
+- add tool for creating and tweaking palettes
+- *(palettes)* add `id` field and migrate storage to refer to palettes by id
+- *(tui)* use `Rect::layout` instead of `Layout::split` (in some but not all places)
+- *(storage)* replace `BranchRefs::get_refs_for_repo` with a more targeted `get_ref` function
+- *(stats)* compute stats via more efficient queries
+- *(storage)* add `PushHistory::count_since` and use it in bonus track calculations
+- *(storage)* internal refactor and slight API improvement for `PushHistory`
+- remove serde-related stuff
+- remove all old-format bincode-related stuff
+
 ## [0.1.4](https://github.com/drewzemke/post-push-party/compare/v0.1.3...v0.1.4) - 2026-03-12
 
 ### Added

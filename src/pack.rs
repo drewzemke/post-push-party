@@ -135,6 +135,16 @@ impl Rarity {
             Self::Legendary => None,
         }
     }
+
+    /// gets colors in HSL
+    pub fn color(&self) -> (f32, f32, f32) {
+        match self {
+            Rarity::Common => (0., 0., 0.55),
+            Rarity::Rare => (240., 1., 0.7),
+            Rarity::Epic => (280., 1., 0.55),
+            Rarity::Legendary => (45., 1., 0.50),
+        }
+    }
 }
 
 /// what can be in a pack
@@ -196,8 +206,7 @@ const EPIC_PALETTES: &[Palette] = &[
 ];
 
 impl PackItem {
-    #[cfg(test)]
-    fn rarity(&self) -> Rarity {
+    pub fn rarity(&self) -> Rarity {
         match self {
             PackItem::PaletteUnlock { rarity, .. } => *rarity,
             PackItem::PointBundle { rarity, .. } => *rarity,

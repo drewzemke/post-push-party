@@ -19,8 +19,9 @@ chrono = "0.4"
 clap = { version = "4", features = ["derive"] }
 crossterm = "0.28"
 dirs = "6"
+palette = "0.7.6"
 rand = "0.10"
-ratatui = "0.30"
+ratatui = { version = "0.30", features = ["palette"] }
 rusqlite = { version = "0.38.0", features = ["bundled"] }
 tui-scrollview = "0.6"
 

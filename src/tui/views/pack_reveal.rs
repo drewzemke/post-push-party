@@ -1,5 +1,7 @@
+use palette::Hsl;
 use ratatui::{
     prelude::*,
+    symbols::border,
     widgets::{Block, Borders, Paragraph},
 };
 
@@ -83,7 +85,7 @@ impl PackRevealView {
 }
 
 impl View for PackRevealView {
-    fn render(&self, frame: &mut Frame, area: Rect, _state: &State, _tick: u32) {
+    fn render(&self, frame: &mut Frame, area: Rect, _state: &State, tick: u32) {
         // strategy: show the pack items spread over two evenly-spaced rows
         // this will look nice for pack templates with 3, 5, 7, and maybe 9 items
         // this won't look as nice for templates with an even number or too many items
@@ -183,12 +185,19 @@ impl View for PackRevealView {
                 let opened = matches!(state, PackItemState::Opened);
 
                 let block = if selected {
+                    let (hue, sat, mut lum) = item.rarity().color();
+                    if !opened {
+                        // adjust based on time to make it pulse/glow/whatever
+                        lum += 0.1 * f32::cos(tick as f32 / 10.);
+                    }
                     Block::default()
                         .borders(Borders::ALL)
-                        .style(Style::default().yellow())
+                        .border_set(border::PROPORTIONAL_TALL)
+                        .style(Style::default().fg(Color::from_hsl(Hsl::new(hue, sat, lum))))
                 } else {
                     Block::default()
                         .borders(Borders::ALL)
+                        .border_set(border::PROPORTIONAL_TALL)
                         .style(Style::default().dark_gray())
                 };
 

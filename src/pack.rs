@@ -1,4 +1,7 @@
-use rand::{RngExt, seq::IndexedRandom};
+use rand::{
+    RngExt,
+    seq::{IndexedRandom, SliceRandom},
+};
 
 use crate::{
     party::{FIREWORKS, Palette, Party},
@@ -57,7 +60,10 @@ impl Pack {
         let template = self.template();
 
         // upgrade the template
-        let upgraded_rarities = template.upgrade(upgrader);
+        let mut upgraded_rarities = template.upgrade(upgrader);
+
+        // shuffle rarities for extra fun and surprise
+        upgraded_rarities.shuffle(&mut rand::rng());
 
         // iteratively choose items based on state
         upgraded_rarities

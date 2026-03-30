@@ -9,23 +9,23 @@ pub struct ManyLinesChanged;
 static TIERS: &[Tier] = &[
     Tier {
         cost: 25,
-        reward: Reward::FlatPoints(5),
-    },
-    Tier {
-        cost: 200,
         reward: Reward::FlatPoints(10),
     },
     Tier {
-        cost: 2000,
+        cost: 200,
         reward: Reward::FlatPoints(20),
     },
     Tier {
-        cost: 20000,
+        cost: 2000,
         reward: Reward::FlatPoints(50),
     },
     Tier {
-        cost: 80000,
+        cost: 20000,
         reward: Reward::FlatPoints(100),
+    },
+    Tier {
+        cost: 80000,
+        reward: Reward::FlatPoints(200),
     },
 ];
 

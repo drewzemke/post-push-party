@@ -45,6 +45,9 @@ pub trait Vcs {
     /// create a commit with a file (should update main bookmark/branch)
     fn commit_file(&self, name: &str, content: &str, message: &str);
 
+    /// create a commit with a file on a given branch
+    fn commit_file_on_branch(&self, name: &str, content: &str, message: &str, branch: &str);
+
     /// ensure main branch exists (git needs explicit branch -M, jj doesn't)
     fn ensure_main(&self) {}
 
@@ -163,6 +166,11 @@ impl Vcs for Git<'_> {
         self.cmd(&["commit", "-m", message]);
     }
 
+    fn commit_file_on_branch(&self, name: &str, content: &str, message: &str, branch: &str) {
+        self.create_feature_branch(branch);
+        self.commit_file(name, content, message);
+    }
+
     fn ensure_main(&self) {
         self.cmd(&["branch", "-M", "main"]);
     }
@@ -253,6 +261,13 @@ impl Vcs for Jj<'_> {
         std::fs::write(&path, content).expect("failed to write file");
         self.cmd(&["commit", "-m", message]);
         self.cmd(&["bookmark", "set", "main", "-r", "@-"]);
+    }
+
+    fn commit_file_on_branch(&self, name: &str, content: &str, message: &str, branch: &str) {
+        let path = self.repo_dir.join(name);
+        std::fs::write(&path, content).expect("failed to write file");
+        self.cmd(&["commit", "-m", message]);
+        self.cmd(&["bookmark", "set", branch, "-r", "@-"]);
     }
 
     fn push(&self) {

@@ -17,11 +17,11 @@ static TIERS: &[Tier] = &[
         reward: Reward::FlatPoints(3),
     },
     Tier {
-        cost: 1600,
+        cost: 2_000,
         reward: Reward::FlatPoints(4),
     },
     Tier {
-        cost: 12800,
+        cost: 20_000,
         reward: Reward::FlatPoints(5),
     },
 ];

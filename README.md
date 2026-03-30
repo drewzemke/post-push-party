@@ -39,8 +39,4 @@ brew install drewzemke/tap/post-push-party
 
 ## Coming Soon
 
-- *Color!* Unlock color palettes and apply your favorite ones to your party.
-
-- *Packs!* Buy packs with points. Packs contain color palettes to beautify your party, mini-game tokens, maybe even more points!
-
-- *Mini-games!* Play a round of snake while you're waiting for your tests to run. Earn points! Or have a go at the slot machine. Earn (or lose) points!
+- *Mini-games!* Play a round of snake while you're waiting for your tests to run. Earn points! Or have a go at the slot machine while your waiting for your LLM to finish doing your work for you. Earn (or lose) points!

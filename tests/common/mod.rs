@@ -68,6 +68,9 @@ pub trait Vcs {
 
     /// fetch from origin
     fn fetch(&self);
+
+    /// moves the commit pointer to the remote main commit
+    fn rebase_onto_remote_main(&self);
 }
 
 pub struct TestEnv<V> {
@@ -198,6 +201,10 @@ impl Vcs for Git<'_> {
     fn fetch(&self) {
         self.cmd(&["fetch", "origin"]);
     }
+
+    fn rebase_onto_remote_main(&self) {
+        self.cmd(&["rebase", "origin/main"]);
+    }
 }
 
 pub fn git_env() -> TestEnv<Git<'static>> {
@@ -296,6 +303,10 @@ impl Vcs for Jj<'_> {
 
     fn fetch(&self) {
         self.cmd(&["git", "fetch"]);
+    }
+
+    fn rebase_onto_remote_main(&self) {
+        self.cmd(&["new", "main@origin"]);
     }
 }
 

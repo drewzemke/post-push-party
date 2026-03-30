@@ -1,11 +1,3 @@
-//! End-to-end tests for git integration
-//!
-//! These tests create real git repos with local bare git remotes and verify
-//! that pushing commits awards the correct number of points.
-//!
-//! Requirements:
-//! - `git` must be installed and available in PATH
-
 mod common;
 
 use common::{Vcs, git_env};
@@ -33,39 +25,6 @@ fn rebase_and_force_push_awards_no_points() {
         env.get_points(),
         points_after_feature,
         "rebasing and force pushing should not award points (same patch-id)"
-    );
-}
-
-#[test]
-fn fetch_then_rebase_onto_main_only_awards_for_my_work() {
-    let env = git_env();
-    env.party(&["init"]);
-
-    // push initial commit to main
-    env.vcs.commit_file("README.md", "# Test", "initial commit");
-    env.vcs.ensure_main();
-    env.vcs.push();
-    let points_after_initial = env.get_points();
-
-    // someone else pushes to main
-    env.simulate_external_push_to_main("external.rs", "// external", "external commit");
-
-    // I fetch their changes
-    env.vcs.fetch();
-
-    // I rebase onto the updated origin/main and create new work
-    env.vcs.cmd(&["rebase", "origin/main"]);
-    env.vcs
-        .commit_file("mywork.rs", "// my work", "my new commit");
-
-    // push main (which now includes my rebased work)
-    env.vcs.push();
-
-    // I should only get credit for my 1 commit, not the external one
-    assert_eq!(
-        env.get_points(),
-        points_after_initial + 1,
-        "pushing main after fetch+rebase should only award points for my commits, not fetched ones"
     );
 }
 

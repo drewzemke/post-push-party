@@ -1,11 +1,3 @@
-//! End-to-end tests for jj integration
-//!
-//! These tests create real jj repos with local bare git remotes and verify
-//! that pushing commits awards the correct number of points.
-//!
-//! Requirements:
-//! - `jj` and `git` must be installed and available in PATH
-
 mod common;
 
 use common::{Vcs, jj_env};
@@ -59,39 +51,6 @@ fn rebasing_feature_onto_updated_main() {
         env.get_points(),
         points_after_main_update,
         "rebasing and pushing feature should not award points"
-    );
-}
-
-#[test]
-fn fetch_then_rebase_onto_main_only_awards_for_my_work() {
-    let env = jj_env();
-    env.party(&["init"]);
-
-    // push initial commit to main
-    env.vcs.commit_file("README.md", "# Test", "initial commit");
-    env.vcs.push();
-    let points_after_initial = env.get_points();
-
-    // someone else pushes to main
-    env.simulate_external_push_to_main("external.rs", "// external", "external commit");
-
-    // I fetch their changes
-    env.vcs.fetch();
-
-    // I create new work and rebase onto the updated main
-    env.vcs.cmd(&["new", "main@origin"]);
-    env.vcs
-        .commit_file("mywork.rs", "// my work", "my new commit");
-    env.vcs.cmd(&["bookmark", "set", "main", "-r", "@-"]);
-
-    // push main (which now includes my rebased work)
-    env.vcs.push();
-
-    // I should only get credit for my 1 commit, not the external one
-    assert_eq!(
-        env.get_points(),
-        points_after_initial + 1,
-        "pushing main after fetch+rebase should only award points for my commits, not fetched ones"
     );
 }
 

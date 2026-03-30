@@ -163,3 +163,33 @@ fn fetch_does_not_award_points<V: Vcs>(env: &TestEnv<V>) {
         "pushing feature branch should award points for my new commit"
     );
 }
+
+shared_test!(fetch_then_rebase_onto_main_only_awards_for_my_work);
+fn fetch_then_rebase_onto_main_only_awards_for_my_work<V: Vcs>(env: &TestEnv<V>) {
+    env.party(&["init"]);
+
+    // push initial commit to main
+    env.vcs.commit_file("README.md", "# Test", "initial commit");
+    env.vcs.ensure_main();
+    env.vcs.push();
+    let points_after_push = env.get_points();
+
+    // someone else pushes to main
+    env.simulate_external_push_to_main("external.rs", "// external", "external commit");
+
+    // fetch their changes
+    env.vcs.fetch();
+
+    // rebase onto the updated origin/main and push new work
+    env.vcs.rebase_onto_remote_main();
+    env.vcs
+        .commit_file("mywork.rs", "// my work", "my new commit");
+    env.vcs.push();
+
+    // should only get credit for my 1 commit, not the external one
+    assert_eq!(
+        env.get_points(),
+        points_after_push + 1,
+        "pushing main after fetch+rebase should only award points for my commits, not fetched ones"
+    );
+}

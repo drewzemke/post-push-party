@@ -10,10 +10,6 @@ fn consecutive_push_days(history: &PushHistory, clock: &Clock) -> u32 {
     let mut day_id = clock.today_id();
     let mut count = history.count_since(clock.today_start()).unwrap_or_default();
 
-    if count == 0 {
-        return 0;
-    }
-
     // count today automatically
     let mut consec_days = 1;
 
@@ -185,7 +181,7 @@ mod tests {
     }
 
     #[test]
-    fn does_not_apply_if_no_push_today() {
+    fn applies_on_first_push_of_day() {
         let conn = DbConnection::create_in_memory().unwrap();
 
         let bonus = Streak;
@@ -196,14 +192,14 @@ mod tests {
             entry_on_day(101),
         ]);
 
-        // clock is on day 102, but no push today
+        // clock is on day 102, so this is the first push
         let clock = clock_at_day(102);
         let ctx = PushContext {
             push: &push,
             history: &history,
             clock: &clock,
         };
-        assert_eq!(bonus.applies(&ctx), 0);
+        assert_eq!(bonus.applies(&ctx), 1);
     }
 
     #[test]

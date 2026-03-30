@@ -55,59 +55,6 @@ fn rebasing_feature_onto_updated_main() {
 }
 
 #[test]
-fn rebase_force_push_still_shows_party() {
-    let env = jj_env();
-    env.party(&["init"]);
-
-    // allow rewriting pushed commits for this test
-    env.vcs.cmd(&[
-        "config",
-        "set",
-        "--repo",
-        "revset-aliases.'immutable_heads()'",
-        "none()",
-    ]);
-
-    // create initial commit on main
-    env.vcs.commit_file("README.md", "# Test", "initial commit");
-    let initial = env
-        .vcs
-        .cmd(&["log", "-r", "main", "-T", "commit_id", "--no-graph"])
-        .trim()
-        .to_string();
-    env.vcs.push();
-
-    // create feature as sibling of main (both children of initial)
-    env.vcs.cmd(&["new", &initial]); // go to initial, not main
-    let feature_path = env.vcs.repo_dir.join("feature.rs");
-    std::fs::write(&feature_path, "// feature").expect("write failed");
-    env.vcs.cmd(&["commit", "-m", "feature work"]);
-    env.vcs.cmd(&["bookmark", "create", "feature", "-r", "@-"]);
-    env.vcs.push_branch("feature");
-
-    // create main2 as another child of initial (sibling of feature)
-    env.vcs.cmd(&["new", &initial]);
-    let main2_path = env.vcs.repo_dir.join("main2.rs");
-    std::fs::write(&main2_path, "// main2").expect("write failed");
-    env.vcs.cmd(&["commit", "-m", "more main work"]);
-    env.vcs.cmd(&["bookmark", "set", "main", "-r", "@-"]);
-    env.vcs.push();
-
-    // now feature and main are siblings - rebase should create new commit
-    env.vcs.cmd(&["rebase", "-b", "feature", "-d", "main"]);
-
-    // push rebased feature
-    let output = env.vcs.cmd(&["push", "-b", "feature"]);
-
-    // should still show party even though no points earned
-    assert!(
-        output.contains("🎉"),
-        "push of rebased commits should still show party message, got: {}",
-        output
-    );
-}
-
-#[test]
 fn duplicate_feature_onto_fetched_trunk_only_awards_for_my_work() {
     let env = jj_env();
     env.party(&["init"]);

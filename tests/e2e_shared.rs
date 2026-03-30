@@ -193,3 +193,39 @@ fn fetch_then_rebase_onto_main_only_awards_for_my_work<V: Vcs>(env: &TestEnv<V>)
         "pushing main after fetch+rebase should only award points for my commits, not fetched ones"
     );
 }
+
+shared_test!(pushing_after_failed_push_awards_points);
+fn pushing_after_failed_push_awards_points<V: Vcs>(env: &TestEnv<V>) {
+    env.party(&["init"]);
+
+    // push initial commit to main
+    env.vcs.commit_file("README.md", "# Test", "initial commit");
+    env.vcs.ensure_main();
+    env.vcs.push();
+    let points_after_push = env.get_points();
+
+    // someone else pushes to main
+    env.simulate_external_push_to_main("external.rs", "// external", "external commit");
+
+    // try pushing a change; should fail
+    env.vcs
+        .commit_file("mywork.rs", "// my work", "my new commit");
+    let result = env.vcs.try_push();
+    assert!(result.is_err());
+
+    assert_eq!(
+        env.get_points(),
+        points_after_push,
+        "should get get points for a failed push"
+    );
+
+    // pull and rebase changes, then push
+    env.vcs.pull_and_rebase();
+    env.vcs.push();
+
+    assert_eq!(
+        env.get_points(),
+        points_after_push + 1,
+        "should get credit for pushing after a failed push and then a rebase"
+    );
+}

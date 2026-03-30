@@ -2,25 +2,32 @@
 
 #![allow(dead_code)]
 
+use anyhow::{Result, anyhow};
 use std::path::Path;
 use std::process::Command;
 
 use tempfile::TempDir;
 
 fn run(cmd: &mut Command) -> String {
+    try_run(cmd).unwrap()
+}
+
+fn try_run(cmd: &mut Command) -> Result<String> {
     let output = cmd.output().expect("failed to execute command");
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         let stdout = String::from_utf8_lossy(&output.stdout);
-        panic!(
+        return Err(anyhow!(
             "command failed: {:?}\nstdout: {}\nstderr: {}",
-            cmd, stdout, stderr
-        );
+            cmd,
+            stdout,
+            stderr
+        ));
     }
     // combine stdout and stderr since party output might go to either
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
-    format!("{}{}", stdout, stderr)
+    Ok(format!("{}{}", stdout, stderr))
 }
 
 fn party_bin() -> String {
@@ -42,6 +49,9 @@ pub trait Vcs {
     /// run VCS command in repo
     fn cmd(&self, args: &[&str]) -> String;
 
+    /// run VCS command in repo, possibly failing
+    fn try_cmd(&self, args: &[&str]) -> Result<String>;
+
     /// create a commit with a file (should update main bookmark/branch)
     fn commit_file(&self, name: &str, content: &str, message: &str);
 
@@ -53,6 +63,9 @@ pub trait Vcs {
 
     /// push main to origin
     fn push(&self);
+
+    /// push main to origin, possibly failing
+    fn try_push(&self) -> Result<()>;
 
     /// push without going through an alias (relevant to jj only)
     fn raw_push(&self);
@@ -71,6 +84,9 @@ pub trait Vcs {
 
     /// moves the commit pointer to the remote main commit
     fn rebase_onto_remote_main(&self);
+
+    // fetches and rebases the head commit over the incoming changes
+    fn pull_and_rebase(&self);
 }
 
 pub struct TestEnv<V> {
@@ -162,6 +178,16 @@ impl Vcs for Git<'_> {
             .current_dir(self.repo_dir))
     }
 
+    fn try_cmd(&self, args: &[&str]) -> Result<String> {
+        try_run(
+            Command::new("git")
+                .args(args)
+                .env("PATH", path_with_party())
+                .env("PARTY_STATE_DIR", self.state_dir)
+                .current_dir(self.repo_dir),
+        )
+    }
+
     fn commit_file(&self, name: &str, content: &str, message: &str) {
         let path = self.repo_dir.join(name);
         std::fs::write(&path, content).expect("failed to write file");
@@ -180,6 +206,11 @@ impl Vcs for Git<'_> {
 
     fn push(&self) {
         self.cmd(&["push", "-u", "origin", "main"]);
+    }
+
+    fn try_push(&self) -> Result<()> {
+        self.try_cmd(&["push", "-u", "origin", "main"])?;
+        Ok(())
     }
 
     fn raw_push(&self) {
@@ -204,6 +235,10 @@ impl Vcs for Git<'_> {
 
     fn rebase_onto_remote_main(&self) {
         self.cmd(&["rebase", "origin/main"]);
+    }
+
+    fn pull_and_rebase(&self) {
+        self.cmd(&["pull", "--rebase"]);
     }
 }
 
@@ -263,6 +298,15 @@ impl Vcs for Jj<'_> {
             .current_dir(self.repo_dir))
     }
 
+    fn try_cmd(&self, args: &[&str]) -> Result<String> {
+        try_run(
+            Command::new("jj")
+                .args(args)
+                .env("PATH", path_with_party())
+                .env("PARTY_STATE_DIR", self.state_dir)
+                .current_dir(self.repo_dir),
+        )
+    }
     fn commit_file(&self, name: &str, content: &str, message: &str) {
         let path = self.repo_dir.join(name);
         std::fs::write(&path, content).expect("failed to write file");
@@ -280,6 +324,12 @@ impl Vcs for Jj<'_> {
     fn push(&self) {
         self.cmd(&["push", "--allow-new", "-b", "main"]);
         self.cmd(&["git", "fetch"]);
+    }
+
+    fn try_push(&self) -> Result<()> {
+        self.try_cmd(&["push", "--allow-new", "-b", "main"])?;
+        self.cmd(&["git", "fetch"]);
+        Ok(())
     }
 
     /// used to push before the party hook is installed
@@ -307,6 +357,16 @@ impl Vcs for Jj<'_> {
 
     fn rebase_onto_remote_main(&self) {
         self.cmd(&["new", "main@origin"]);
+    }
+
+    fn pull_and_rebase(&self) {
+        self.fetch();
+        // use a bookmark to mark the latest commit in the branch so we
+        // can refer to it after it moves
+        self.cmd(&["bookmark", "set", "current", "-r", "@-"]);
+        self.cmd(&["bookmark", "set", "main", "-r", "main@origin"]); // needed because main may be confliced
+        self.cmd(&["rebase", "-r", "current", "-d", "main"]);
+        self.cmd(&["bookmark", "set", "main", "-r", "current"]);
     }
 }
 

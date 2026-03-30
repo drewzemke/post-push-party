@@ -8,24 +8,7 @@
 
 mod common;
 
-use common::{git_env, Vcs};
-
-#[test]
-fn happy_path_awards_points_for_main() {
-    let env = git_env();
-    env.party(&["init"]);
-
-    env.vcs.commit_file("README.md", "# Test", "initial commit");
-    env.vcs.ensure_main();
-    env.vcs.push();
-
-    env.vcs
-        .commit_file("src.rs", "fn main() {}", "add source file");
-    env.vcs.push();
-
-    // 10 starter + 1 first push + 1 second push = 12 points
-    assert_eq!(env.get_points(), 12);
-}
+use common::{Vcs, git_env};
 
 #[test]
 fn pushing_feature_branch_awards_points() {
@@ -229,32 +212,6 @@ fn rebase_force_push_still_shows_party() {
         output.contains("🎉"),
         "force push of rebased commits should still show party message, got: {}",
         output
-    );
-}
-
-#[test]
-fn init_after_existing_commits_only_counts_new() {
-    let env = git_env();
-
-    // push a commit BEFORE init
-    env.vcs.commit_file("README.md", "# Test", "initial commit");
-    env.vcs.ensure_main();
-    env.vcs.push();
-
-    // now init party
-    env.party(&["init"]);
-
-    // push a second commit
-    env.vcs
-        .commit_file("src.rs", "fn main() {}", "add source file");
-    env.vcs.push();
-
-    // should only get credit for the second commit
-    // 10 starter + 1 (second commit only) = 11 points
-    assert_eq!(
-        env.get_points(),
-        11,
-        "init after existing commits should not retroactively award points"
     );
 }
 

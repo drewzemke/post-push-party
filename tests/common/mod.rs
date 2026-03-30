@@ -51,6 +51,9 @@ pub trait Vcs {
     /// push main to origin
     fn push(&self);
 
+    /// push without going through an alias (relevant to jj only)
+    fn raw_push(&self);
+
     /// push a specific branch to origin
     fn push_branch(&self, branch: &str);
 
@@ -168,6 +171,10 @@ impl Vcs for Git<'_> {
         self.cmd(&["push", "-u", "origin", "main"]);
     }
 
+    fn raw_push(&self) {
+        self.push()
+    }
+
     fn push_branch(&self, branch: &str) {
         self.cmd(&["push", "-u", "origin", branch]);
     }
@@ -253,6 +260,11 @@ impl Vcs for Jj<'_> {
         self.cmd(&["git", "fetch"]);
     }
 
+    /// used to push before the party hook is installed
+    fn raw_push(&self) {
+        self.cmd(&["git", "push", "--allow-new", "-b", "main"]);
+    }
+
     fn push_branch(&self, branch: &str) {
         self.cmd(&["push", "--allow-new", "-b", branch]);
         self.cmd(&["git", "fetch"]);
@@ -269,13 +281,6 @@ impl Vcs for Jj<'_> {
 
     fn fetch(&self) {
         self.cmd(&["git", "fetch"]);
-    }
-}
-
-impl Jj<'_> {
-    /// used to push before the party hook is installed
-    pub fn git_push(&self) {
-        self.cmd(&["git", "push", "--allow-new", "-b", "main"]);
     }
 }
 

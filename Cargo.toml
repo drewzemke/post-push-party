@@ -26,6 +26,7 @@ rusqlite = { version = "0.38.0", features = ["bundled"] }
 tui-scrollview = "0.6"
 
 [dev-dependencies]
+paste = "1.0.15"
 tempfile = "3"
 
 [features]

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6](https://github.com/drewzemke/post-push-party/compare/v0.1.5...v0.1.6) - 2026-04-01
+
+### Added
+
+- *(tui)* tab/shift-tab navigate tabs
+
+### Fixed
+
+- *(packs)* don't give palettes for parties that don't support color
+
+### Other
+
+- *(packs)* split into submodules
+
 ## [0.1.5](https://github.com/drewzemke/post-push-party/compare/v0.1.4...v0.1.5) - 2026-03-30
 
 ### Added

@@ -1,12 +1,14 @@
-use rand::{
-    RngExt,
-    seq::{IndexedRandom, SliceRandom},
-};
+use rand::seq::{IndexedRandom, SliceRandom};
 
-use crate::{
-    party::{FIREWORKS, Palette, Party},
-    state::State,
-};
+use crate::state::State;
+
+mod pack_item;
+mod rarity;
+
+use rarity::{RarityUpgrader, RngUpgrader};
+
+pub use pack_item::PackItem;
+pub use rarity::{PackTemplate, Rarity};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Pack {
@@ -15,6 +17,17 @@ pub enum Pack {
 }
 
 pub const ALL_PACKS: &[Pack] = &[Pack::Basic, Pack::Premium];
+
+pub const BASIC_PACK_TEMPLATE: PackTemplate = PackTemplate(&[
+    Rarity::Common,
+    Rarity::Common,
+    Rarity::Common,
+    Rarity::Common,
+    Rarity::Rare,
+]);
+
+pub const PREMIUM_PACK_TEMPLATE: PackTemplate =
+    PackTemplate(&[Rarity::Common, Rarity::Rare, Rarity::Epic]);
 
 impl Pack {
     pub fn cost(&self) -> u64 {
@@ -88,341 +101,27 @@ impl Pack {
     }
 }
 
-/// the base rarity of items in a pack
-#[derive(Debug, Copy, Clone, PartialEq)]
-struct PackTemplate(&'static [Rarity]);
-
-const BASIC_PACK_TEMPLATE: PackTemplate = PackTemplate(&[
-    Rarity::Common,
-    Rarity::Common,
-    Rarity::Common,
-    Rarity::Common,
-    Rarity::Rare,
-]);
-
-const PREMIUM_PACK_TEMPLATE: PackTemplate =
-    PackTemplate(&[Rarity::Common, Rarity::Rare, Rarity::Epic]);
-
-impl PackTemplate {
-    /// iteratively upgrades the elements of the template
-    fn upgrade(&self, upgrader: &mut impl RarityUpgrader) -> Vec<Rarity> {
-        self.0
-            .iter()
-            .map(|rarity| {
-                let mut rarity = *rarity;
-                while upgrader.should_upgrade(&rarity) {
-                    if let Some(new) = rarity.upgrade() {
-                        rarity = new;
-                    } else {
-                        break;
-                    }
-                }
-                rarity
-            })
-            .collect()
-    }
-}
-
-/// how uncommon a pack item is
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Rarity {
-    Common,
-    Rare,
-    Epic,
-    Legendary,
-}
-
-impl Rarity {
-    fn upgrade(&self) -> Option<Self> {
-        match self {
-            Self::Common => Some(Self::Rare),
-            Self::Rare => Some(Self::Epic),
-            Self::Epic => Some(Self::Legendary),
-            Self::Legendary => None,
-        }
-    }
-
-    /// gets colors in HSL
-    pub fn color(&self) -> (f32, f32, f32) {
-        match self {
-            Rarity::Common => (0., 0., 0.55),
-            Rarity::Rare => (240., 1., 0.7),
-            Rarity::Epic => (280., 1., 0.55),
-            Rarity::Legendary => (45., 1., 0.50),
-        }
-    }
-}
-
-/// what can be in a pack
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum PackItem {
-    PaletteUnlock {
-        party_id: &'static str,
-        palette_id: &'static str,
-        rarity: Rarity,
-    },
-    PointBundle {
-        points: u64,
-        rarity: Rarity,
-    },
-    // GameToken (GameType)   // soon(ish)!
-}
-
-const COMMON_POINTS: u64 = 25;
-const RARE_POINTS: u64 = 100;
-const EPIC_POINTS: u64 = 400;
-const LEGENDARY_POINTS: u64 = 1600;
-
-const COMMON_PALETTES: &[Palette] = &[
-    Palette::RED_ANSI,
-    Palette::GREEN_ANSI,
-    Palette::BLUE_ANSI,
-    Palette::CYAN_ANSI,
-    Palette::MAGENTA_ANSI,
-    Palette::YELLOW_ANSI,
-    Palette::RED_RGB,
-    Palette::GREEN_RGB,
-    Palette::BLUE_RGB,
-    Palette::CYAN_RGB,
-    Palette::MAGENTA_RGB,
-    Palette::YELLOW_RGB,
-];
-
-const RARE_PALETTES: &[Palette] = &[
-    Palette::FLAG_USA,
-    Palette::FLAG_ITALY,
-    Palette::FLAG_UKRAINE,
-    Palette::FLAG_FRANCE,
-    Palette::FLAG_TRANS,
-    Palette::MONOCHROME,
-    Palette::AUTUMN,
-    Palette::WINTER,
-    Palette::SPRING,
-    Palette::FIRE,
-];
-
-const EPIC_PALETTES: &[Palette] = &[
-    Palette::AURORA,
-    Palette::NEON,
-    Palette::PASTEL,
-    Palette::RAINBOW,
-    Palette::RAINBOW_ANSI,
-    Palette::SUNSET,
-    Palette::SYNTHWAVE,
-];
-
-impl PackItem {
-    pub fn rarity(&self) -> Rarity {
-        match self {
-            PackItem::PaletteUnlock { rarity, .. } => *rarity,
-            PackItem::PointBundle { rarity, .. } => *rarity,
-        }
-    }
-
-    /// all items of a given rarity that are available to be opened
-    /// in packs based on current state. in particular, this excludes
-    /// all already-unlocked palettes
-    fn available_items(rarity: Rarity, state: &State) -> Vec<Self> {
-        match rarity {
-            Rarity::Common => Self::common_items(state),
-            Rarity::Rare => Self::rare_items(state),
-            Rarity::Epic => Self::epic_items(state),
-            Rarity::Legendary => Self::legendary_items(state),
-        }
-    }
-
-    fn common_items(state: &State) -> Vec<Self> {
-        state
-            .unlocked_parties()
-            .filter(|party| party.supports_color() && party.id() != FIREWORKS.id())
-            .flat_map(|party| {
-                COMMON_PALETTES
-                    .iter()
-                    .filter(|palette| !state.is_palette_unlocked(party.id(), palette.id()))
-                    .map(|palette| Self::PaletteUnlock {
-                        party_id: party.id(),
-                        palette_id: palette.id(),
-                        rarity: Rarity::Common,
-                    })
-            })
-            .chain([Self::PointBundle {
-                points: COMMON_POINTS,
-                rarity: Rarity::Common,
-            }])
-            .collect()
-    }
-
-    fn rare_items(state: &State) -> Vec<Self> {
-        let iter = state
-            .unlocked_parties()
-            .filter(|party| party.supports_color() && party.id() != FIREWORKS.id())
-            .flat_map(|party| {
-                RARE_PALETTES
-                    .iter()
-                    .filter(|palette| !state.is_palette_unlocked(party.id(), palette.id()))
-                    .map(|palette| Self::PaletteUnlock {
-                        party_id: party.id(),
-                        palette_id: palette.id(),
-                        rarity: Rarity::Rare,
-                    })
-            })
-            .chain([Self::PointBundle {
-                points: RARE_POINTS,
-                rarity: Rarity::Rare,
-            }]);
-
-        if state.is_party_unlocked(FIREWORKS.id()) {
-            iter.chain(
-                COMMON_PALETTES
-                    .iter()
-                    .filter(|palette| !state.is_palette_unlocked(FIREWORKS.id(), palette.id()))
-                    .map(|palette| Self::PaletteUnlock {
-                        party_id: FIREWORKS.id(),
-                        palette_id: palette.id(),
-                        rarity: Rarity::Rare,
-                    }),
-            )
-            .collect()
-        } else {
-            iter.collect()
-        }
-    }
-
-    fn epic_items(state: &State) -> Vec<Self> {
-        let iter = state
-            .unlocked_parties()
-            .filter(|party| party.supports_color() && party.id() != FIREWORKS.id())
-            .flat_map(|party| {
-                EPIC_PALETTES
-                    .iter()
-                    .filter(|palette| !state.is_palette_unlocked(party.id(), palette.id()))
-                    .map(|palette| Self::PaletteUnlock {
-                        party_id: party.id(),
-                        palette_id: palette.id(),
-                        rarity: Rarity::Epic,
-                    })
-            })
-            .chain([Self::PointBundle {
-                points: EPIC_POINTS,
-                rarity: Rarity::Epic,
-            }]);
-
-        if state.is_party_unlocked(FIREWORKS.id()) {
-            iter.chain(
-                RARE_PALETTES
-                    .iter()
-                    .filter(|palette| !state.is_palette_unlocked(FIREWORKS.id(), palette.id()))
-                    .map(|palette| Self::PaletteUnlock {
-                        party_id: FIREWORKS.id(),
-                        palette_id: palette.id(),
-                        rarity: Rarity::Epic,
-                    }),
-            )
-            .collect()
-        } else {
-            iter.collect()
-        }
-    }
-
-    fn legendary_items(state: &State) -> Vec<Self> {
-        if state.is_party_unlocked(FIREWORKS.id()) {
-            EPIC_PALETTES
-                .iter()
-                .filter(|palette| !state.is_palette_unlocked(FIREWORKS.id(), palette.id()))
-                .map(|palette| Self::PaletteUnlock {
-                    party_id: FIREWORKS.id(),
-                    palette_id: palette.id(),
-                    rarity: Rarity::Legendary,
-                })
-                .chain([Self::PointBundle {
-                    points: LEGENDARY_POINTS,
-                    rarity: Rarity::Legendary,
-                }])
-                .collect()
-        } else {
-            Vec::from([Self::PointBundle {
-                points: LEGENDARY_POINTS,
-                rarity: Rarity::Legendary,
-            }])
-        }
-    }
-
-    pub fn apply(&self, state: &mut State) {
-        match self {
-            PackItem::PaletteUnlock {
-                party_id,
-                palette_id,
-                ..
-            } => {
-                state.unlock_palette(party_id, palette_id);
-            }
-            // directly updating party points here, because we don't
-            // want to trigger the lifetime points mechanism this way
-            PackItem::PointBundle { points, .. } => state.party_points += *points,
-        };
-    }
-}
-
-trait RarityUpgrader {
-    fn should_upgrade(&mut self, rarity: &Rarity) -> bool;
-}
-
-struct RngUpgrader<R: rand::Rng> {
-    rng: R,
-}
-
-impl<R: rand::Rng> RngUpgrader<R> {
-    fn new(rng: R) -> Self {
-        Self { rng }
-    }
-}
-
-// for the basic pack template (CCCCR), the probabilities below
-// yield an item distribution of (approx)
-//   72% C, 22% R, 5% E, 1%
-//   epic every 4 packs
-//   legendary every 18 packs
-//   one in four packs contains epic/legendary
-const COMMON_TO_RARE_PROB: f64 = 0.10;
-const RARE_TO_EPIC_PROB: f64 = 0.20;
-const EPIC_TO_LEGENDARY_PROB: f64 = 0.20;
-
-impl<R: rand::Rng> RarityUpgrader for RngUpgrader<R> {
-    fn should_upgrade(&mut self, rarity: &Rarity) -> bool {
-        let roll = self.rng.random_range(0.0..1.0);
-        match rarity {
-            Rarity::Common => roll < COMMON_TO_RARE_PROB,
-            Rarity::Rare => roll < RARE_TO_EPIC_PROB,
-            Rarity::Epic => roll < EPIC_TO_LEGENDARY_PROB,
-            Rarity::Legendary => false,
-        }
-    }
-}
-
-#[cfg(test)]
-struct MockUpgrader<'a> {
-    will_upgrade: &'a [Rarity],
-}
-
-#[cfg(test)]
-impl<'a> MockUpgrader<'a> {
-    fn new(will_upgrade: &'a [Rarity]) -> Self {
-        Self { will_upgrade }
-    }
-}
-
-#[cfg(test)]
-impl<'a> RarityUpgrader for MockUpgrader<'a> {
-    fn should_upgrade(&mut self, rarity: &Rarity) -> bool {
-        self.will_upgrade.contains(rarity)
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::party::BASE;
+    use crate::party::{BASE, Palette, Party};
 
     use super::*;
+
+    struct MockUpgrader<'a> {
+        will_upgrade: &'a [Rarity],
+    }
+
+    impl<'a> MockUpgrader<'a> {
+        fn new(will_upgrade: &'a [Rarity]) -> Self {
+            Self { will_upgrade }
+        }
+    }
+
+    impl<'a> RarityUpgrader for MockUpgrader<'a> {
+        fn should_upgrade(&mut self, rarity: &Rarity) -> bool {
+            self.will_upgrade.contains(rarity)
+        }
+    }
 
     #[test]
     fn no_upgrades_to_template() {

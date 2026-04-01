@@ -8,7 +8,7 @@ use crate::party::Party;
 use crate::state::State;
 use crate::tui::widgets::{PaletteSelector, ShimmerBlock};
 
-use super::{Action, Route, View, ViewResult};
+use super::{Action, View, ViewResult};
 
 const ITEM_HEIGHT: u16 = 5;
 const SCROLL_PADDING: u16 = ITEM_HEIGHT;
@@ -290,16 +290,6 @@ impl View for PartyView {
                 self.mode = Mode::SelectingParty;
                 ViewResult::Redraw
             }
-            (Action::Tab(i), _) => {
-                self.mode = Mode::SelectingParty;
-                ViewResult::Navigate(match i {
-                    0 => Route::Store(Default::default()),
-                    1 => Route::Party,
-                    2 => Route::Packs,
-                    _ => Route::Games,
-                })
-            }
-            (Action::Quit, _) => ViewResult::Exit,
             _ => ViewResult::None,
         }
     }

@@ -99,13 +99,6 @@ impl View for GridView {
                     ViewResult::Navigate(Route::Store(route))
                 }
             }
-            Action::Tab(i) => ViewResult::Navigate(match i {
-                0 => Route::Store(Default::default()),
-                1 => Route::Party,
-                2 => Route::Packs,
-                _ => Route::Games,
-            }),
-            Action::Quit => ViewResult::Exit,
             _ => ViewResult::None,
         }
     }

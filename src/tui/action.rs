@@ -8,9 +8,13 @@ pub enum Action {
     Select,
     Back,
     Tab(usize),
+    NextTab,
+    PrevTab,
     Palette,
     Quit,
 }
+
+pub const NUM_TABS: usize = 4;
 
 /// navigation targets
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -2,6 +2,7 @@ use ratatui::prelude::*;
 
 use crate::state::State;
 use crate::storage::DbConnection;
+use crate::tui::action::NUM_TABS;
 use crate::tui::views::MessageType;
 use crate::tui::views::pack_reveal::PackRevealView;
 
@@ -60,6 +61,32 @@ impl<'a> App<'a> {
         // clear message on any action
         self.message = None;
 
+        // handle tab navigation globally without forwarding to components
+        let is_tab_nav = matches!(action, Action::Tab(_) | Action::NextTab | Action::PrevTab);
+
+        if is_tab_nav {
+            let tab_idx = match action {
+                Action::Tab(n) => n,
+                Action::NextTab => (self.route.tab_index() + 1) % NUM_TABS,
+                Action::PrevTab => (NUM_TABS + self.route.tab_index() - 1) % NUM_TABS,
+                _ => unreachable!(),
+            };
+
+            self.route = match tab_idx {
+                0 => Route::Store(Default::default()),
+                1 => Route::Party,
+                2 => Route::Packs,
+                _ => Route::Games,
+            };
+
+            return true;
+        }
+
+        // same for quit
+        if matches!(action, Action::Quit) {
+            return false;
+        }
+
         let result = match &mut self.route {
             Route::Store(_) => self.store.handle(action, self.state),
             Route::Party => self.party.handle(action, self.state),
@@ -98,8 +125,6 @@ impl<'a> App<'a> {
                 self.message = Some((ty, msg));
                 self.save();
             }
-
-            ViewResult::Exit => return false,
 
             ViewResult::None => {}
         }

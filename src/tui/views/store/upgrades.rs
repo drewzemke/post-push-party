@@ -211,13 +211,6 @@ impl View for UpgradesView {
                 }
             }
             Action::Back => ViewResult::Navigate(Route::Store(StoreRoute::Grid)),
-            Action::Tab(i) => ViewResult::Navigate(match i {
-                0 => Route::Store(Default::default()),
-                1 => Route::Party,
-                2 => Route::Packs,
-                _ => Route::Games,
-            }),
-            Action::Quit => ViewResult::Exit,
             _ => ViewResult::None,
         }
     }

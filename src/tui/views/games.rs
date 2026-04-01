@@ -3,7 +3,7 @@ use ratatui::widgets::Paragraph;
 
 use crate::state::State;
 
-use super::{Action, Route, View, ViewResult};
+use super::{Action, View, ViewResult};
 
 #[derive(Default)]
 pub struct GamesView;
@@ -16,17 +16,8 @@ impl View for GamesView {
         frame.render_widget(text, area);
     }
 
-    fn handle(&mut self, action: Action, _state: &mut State) -> ViewResult {
-        match action {
-            Action::Tab(i) => ViewResult::Navigate(match i {
-                0 => Route::Store(Default::default()),
-                1 => Route::Party,
-                2 => Route::Packs,
-                _ => Route::Games,
-            }),
-            Action::Quit => ViewResult::Exit,
-            _ => ViewResult::None,
-        }
+    fn handle(&mut self, _action: Action, _state: &mut State) -> ViewResult {
+        ViewResult::None
     }
 
     fn key_hints(&self) -> Vec<(&'static str, &'static str)> {

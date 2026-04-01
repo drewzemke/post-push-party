@@ -11,6 +11,17 @@ enum Tab {
     Games,
 }
 
+impl From<&Route> for Tab {
+    fn from(route: &Route) -> Self {
+        match route {
+            Route::Store(_) => Self::Store,
+            Route::Party => Self::Party,
+            Route::Packs | Route::PackReveal => Self::Packs,
+            Route::Games => Self::Games,
+        }
+    }
+}
+
 impl Tab {
     fn name(&self) -> &'static str {
         match self {
@@ -43,12 +54,12 @@ pub fn render_header(frame: &mut Frame, area: Rect, route: &Route, state: &State
 
     // tabs
     let pack_total = state.pack_total();
-    let selected = route.tab_index();
     let tabs: Vec<Span> = TABS
         .iter()
         .enumerate()
         .flat_map(|(i, tab)| {
-            let style = if i == selected {
+            let selected = *tab == Tab::from(route);
+            let style = if selected {
                 Style::default().fg(Color::Reset)
             } else {
                 Style::default().fg(Color::DarkGray)

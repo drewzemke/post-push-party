@@ -30,8 +30,6 @@ pub enum ViewResult {
     RevealPoints(u64),
     /// show a transient message
     Message(MessageType, String),
-    /// exit the TUI
-    Exit,
 }
 
 /// a renderable, interactive view

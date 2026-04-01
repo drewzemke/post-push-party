@@ -234,7 +234,7 @@ impl PackItem {
     fn common_items(state: &State) -> Vec<Self> {
         state
             .unlocked_parties()
-            .filter(|party| party.id() != FIREWORKS.id())
+            .filter(|party| party.supports_color() && party.id() != FIREWORKS.id())
             .flat_map(|party| {
                 COMMON_PALETTES
                     .iter()
@@ -255,7 +255,7 @@ impl PackItem {
     fn rare_items(state: &State) -> Vec<Self> {
         let iter = state
             .unlocked_parties()
-            .filter(|party| party.id() != FIREWORKS.id())
+            .filter(|party| party.supports_color() && party.id() != FIREWORKS.id())
             .flat_map(|party| {
                 RARE_PALETTES
                     .iter()
@@ -291,7 +291,7 @@ impl PackItem {
     fn epic_items(state: &State) -> Vec<Self> {
         let iter = state
             .unlocked_parties()
-            .filter(|party| party.id() != FIREWORKS.id())
+            .filter(|party| party.supports_color() && party.id() != FIREWORKS.id())
             .flat_map(|party| {
                 EPIC_PALETTES
                     .iter()

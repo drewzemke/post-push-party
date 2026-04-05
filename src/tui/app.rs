@@ -64,6 +64,11 @@ impl<'a> App<'a> {
         let _ = self.state.save(self.conn);
     }
 
+    pub fn reload_state(&mut self) -> anyhow::Result<()> {
+        *self.state = State::load(self.conn)?;
+        Ok(())
+    }
+
     pub fn take_pending_game(&mut self) -> Option<GameRef> {
         self.pending_game.take()
     }

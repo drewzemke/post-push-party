@@ -15,7 +15,7 @@ use tixel::{Color, HalfCellCanvas};
 
 use crate::{
     game::{
-        Game,
+        Game, GameWallet,
         snake::state::{Dir, SnakeGame},
     },
     tui::Terminal,
@@ -53,7 +53,7 @@ impl Game for Snake {
         25
     }
 
-    fn run(&self, terminal: &mut Terminal, state: &mut State) -> Result<()> {
+    fn run(&self, terminal: &mut Terminal, wallet: &GameWallet, state: &mut State) -> Result<()> {
         let mut stdout = std::io::stdout();
 
         let size = terminal.size()?;
@@ -152,9 +152,11 @@ impl Game for Snake {
             }
         }
 
-        // save high score
-        if board.score() > state.high_score {
-            state.high_score = board.score();
+        // save earned points and high score
+        let points = board.score();
+        wallet.earn(points)?;
+        if points > state.high_score {
+            state.high_score = points;
         }
 
         execute!(stdout, LeaveAlternateScreen, Show)?;

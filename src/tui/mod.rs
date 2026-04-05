@@ -17,6 +17,7 @@ use ratatui::{Terminal as RatatuiTerminal, prelude::*};
 use app::App;
 use input::map_key;
 
+use crate::game::GameWallet;
 use crate::storage::game_state;
 use crate::{state::State, storage::DbConnection};
 
@@ -58,14 +59,20 @@ pub fn run(state: &mut State, conn: &DbConnection) -> anyhow::Result<()> {
 
         // run a game if there is one to run
         if let Some(game) = app.take_pending_game() {
-            let mut state = game_state::load(conn, game.id())?;
+            let mut game_state = game_state::load(conn, game.id())?;
+            let wallet = GameWallet::new(conn);
+
             leave_tui()?;
-            game.run(&mut terminal, &mut state)?;
+            game.run(&mut terminal, &wallet, &mut game_state)?;
             enter_tui()?;
-            if let Some(state) = state {
+            terminal.clear()?;
+
+            if let Some(state) = game_state {
                 game_state::save(conn, game.id(), &state)?;
             }
-            terminal.clear()?;
+
+            // reload tui state in case points were updated
+            app.reload_state()?;
         }
 
         if last_tick.elapsed() >= TICK_RATE {

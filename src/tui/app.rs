@@ -1,5 +1,6 @@
 use ratatui::prelude::*;
 
+use crate::game::GameRef;
 use crate::state::State;
 use crate::storage::DbConnection;
 use crate::tui::action::NUM_TABS;
@@ -30,6 +31,11 @@ pub struct App<'a> {
 
     /// local state for the pack reveal ceremony
     display_points_offset: u64,
+
+    /// used to allow the TUI harness to invoke games.
+    /// if this is populated, on the next iteration of the event loop,
+    /// the harness will take this item and run the game
+    pending_game: Option<GameRef>,
 }
 
 impl<'a> App<'a> {
@@ -46,6 +52,7 @@ impl<'a> App<'a> {
             games: GamesView::default(),
             conn,
             display_points_offset: 0,
+            pending_game: None,
         }
     }
 
@@ -55,6 +62,10 @@ impl<'a> App<'a> {
 
     pub fn save(&self) {
         let _ = self.state.save(self.conn);
+    }
+
+    pub fn take_pending_game(&mut self) -> Option<GameRef> {
+        self.pending_game.take()
     }
 
     pub fn handle(&mut self, action: Action) -> bool {
@@ -136,7 +147,7 @@ impl<'a> App<'a> {
                     ));
                 } else {
                     self.state.deduct_game_token(game);
-                    // TODO: start the game
+                    self.pending_game = Some(game);
                 }
             }
 

@@ -23,9 +23,20 @@ pub type Terminal = RatatuiTerminal<CrosstermBackend<io::Stdout>>;
 
 const TICK_RATE: Duration = Duration::from_millis(50); // ~20 FPS for animations
 
-pub fn run(state: &mut State, conn: &DbConnection) -> io::Result<()> {
+fn enter_tui() -> io::Result<()> {
     enable_raw_mode()?;
     io::stdout().execute(EnterAlternateScreen)?;
+    Ok(())
+}
+
+fn leave_tui() -> io::Result<()> {
+    io::stdout().execute(LeaveAlternateScreen)?;
+    disable_raw_mode()?;
+    Ok(())
+}
+
+pub fn run(state: &mut State, conn: &DbConnection) -> anyhow::Result<()> {
+    enter_tui()?;
     let mut terminal: Terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
 
     let mut app = App::new(state, conn);
@@ -44,6 +55,15 @@ pub fn run(state: &mut State, conn: &DbConnection) -> io::Result<()> {
             break;
         }
 
+        // run a game if there is one to run
+
+        if let Some(game) = app.take_pending_game() {
+            leave_tui()?;
+            game.run(&mut terminal)?;
+            enter_tui()?;
+            terminal.clear()?;
+        }
+
         if last_tick.elapsed() >= TICK_RATE {
             app.tick();
             last_tick = Instant::now();
@@ -51,7 +71,6 @@ pub fn run(state: &mut State, conn: &DbConnection) -> io::Result<()> {
     }
 
     app.save();
-    io::stdout().execute(LeaveAlternateScreen)?;
-    disable_raw_mode()?;
+    leave_tui()?;
     Ok(())
 }

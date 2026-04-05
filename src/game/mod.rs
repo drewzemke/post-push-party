@@ -22,7 +22,7 @@ pub trait Game: Sync {
     /// runs a game.
     ///
     /// suspends the normal party tui runs an entire separate tui for the game
-    fn run(&self, terminal: &mut Terminal);
+    fn run(&self, terminal: &mut Terminal) -> anyhow::Result<()>;
 }
 
 pub type GameRef = &'static dyn Game;

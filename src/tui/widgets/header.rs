@@ -28,7 +28,7 @@ impl Tab {
             Tab::Store => "Store",
             Tab::Party => "Party",
             Tab::Packs => "Packs",
-            Tab::Games => "Game",
+            Tab::Games => "Games",
         }
     }
 }
@@ -54,6 +54,7 @@ pub fn render_header(frame: &mut Frame, area: Rect, route: &Route, state: &State
 
     // tabs
     let pack_total = state.pack_total();
+    let game_token_total = state.game_token_total();
     let tabs: Vec<Span> = TABS
         .iter()
         .enumerate()
@@ -67,6 +68,8 @@ pub fn render_header(frame: &mut Frame, area: Rect, route: &Route, state: &State
             let name = tab.name();
             let count = if *tab == Tab::Packs && pack_total > 0 {
                 format!(" ({pack_total})")
+            } else if *tab == Tab::Games && game_token_total > 0 {
+                format!(" ({game_token_total})")
             } else {
                 "".to_string()
             };

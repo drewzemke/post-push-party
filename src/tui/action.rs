@@ -39,6 +39,7 @@ pub enum StoreRoute {
     Upgrades,
     Bonuses,
     Packs,
+    Games,
 }
 
 impl Route {

@@ -23,9 +23,9 @@ const GRID_ITEMS: [(StoreRoute, &str, &str); 4] = [
         "Buy packs which contain color palettes, games, and other fun stuff.",
     ),
     (
-        StoreRoute::Grid, // placeholder - games not implemented yet
+        StoreRoute::Games,
         "Games",
-        "Spend points to unlock more attempts at mini-games.",
+        "Spend points to buy tokens used to play games.",
     ),
 ];
 

@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::{
     bonus_track::{ALL_TRACKS, Reward},
+    game::Game,
     pack::{Pack, PackItem},
     party::{ALL_PARTIES, Palette, Party},
     storage::PushHistory,
@@ -43,11 +44,15 @@ pub struct State {
     /// refers to parties and palettes by their id strings
     pub active_palettes: HashMap<String, PaletteSelection>,
 
-    /// how many packs of each time the player has
+    /// how many packs of each type the player has
     pub packs: HashMap<Pack, u32>,
 
     /// how many packs have been earned though the points accrual mechanism
     pub lifetime_packs_earned: u64,
+
+    /// how many game tokens the player has
+    /// refers to games by their ids
+    pub games: HashMap<String, u32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -84,6 +89,7 @@ impl Default for State {
                 PaletteSelection::Specific(white),
             )]),
             packs: HashMap::new(),
+            games: HashMap::new(),
             lifetime_packs_earned: 0,
         }
     }
@@ -101,6 +107,7 @@ impl State {
         unlocked_palettes: HashMap<String, Vec<String>>,
         active_palettes: HashMap<String, PaletteSelection>,
         packs: HashMap<Pack, u32>,
+        games: HashMap<String, u32>,
     ) -> Self {
         Self {
             party_points,
@@ -111,6 +118,7 @@ impl State {
             unlocked_palettes,
             active_palettes,
             packs,
+            games,
             lifetime_packs_earned,
         }
     }
@@ -287,6 +295,24 @@ impl State {
             .and_modify(|n| *n = n.saturating_sub(1));
 
         pack.open(self)
+    }
+
+    /// adds a game token to the player's inventory
+    pub fn add_game_token(&mut self, game: &'static dyn Game) {
+        self.games
+            .entry(game.id().to_string())
+            .and_modify(|n| *n += 1)
+            .or_insert(1);
+    }
+
+    /// how many games tokens for the given game the player has
+    pub fn game_token_count(&self, game: &'static dyn Game) -> u32 {
+        self.games.get(game.id()).copied().unwrap_or_default()
+    }
+
+    /// how many game tokens the player has across all games
+    pub fn game_token_total(&self) -> u32 {
+        self.games.values().sum()
     }
 }
 

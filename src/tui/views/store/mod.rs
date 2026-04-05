@@ -1,4 +1,5 @@
 mod bonuses;
+mod games;
 mod grid;
 mod packs;
 mod upgrades;
@@ -7,6 +8,7 @@ use ratatui::prelude::*;
 
 use crate::state::State;
 use crate::tui::action::{Action, Route, StoreRoute};
+use crate::tui::views::store::games::GamesView;
 use crate::tui::views::store::packs::PacksView;
 use crate::tui::views::{View, ViewResult};
 
@@ -20,6 +22,7 @@ pub struct StoreView {
     upgrades: UpgradesView,
     bonuses: BonusesView,
     packs: PacksView,
+    games: GamesView,
 }
 
 impl Default for StoreView {
@@ -30,6 +33,7 @@ impl Default for StoreView {
             upgrades: UpgradesView::default(),
             bonuses: BonusesView::default(),
             packs: PacksView::default(),
+            games: GamesView::default(),
         }
     }
 }
@@ -45,6 +49,7 @@ impl StoreView {
             StoreRoute::Upgrades => &self.upgrades,
             StoreRoute::Bonuses => &self.bonuses,
             StoreRoute::Packs => &self.packs,
+            StoreRoute::Games => &self.games,
         }
     }
 
@@ -54,6 +59,7 @@ impl StoreView {
             StoreRoute::Upgrades => &mut self.upgrades,
             StoreRoute::Bonuses => &mut self.bonuses,
             StoreRoute::Packs => &mut self.packs,
+            StoreRoute::Games => &mut self.games,
         }
     }
 }

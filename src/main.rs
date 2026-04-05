@@ -3,6 +3,7 @@ mod cli;
 mod clock;
 #[cfg(feature = "dev")]
 mod dev;
+mod game;
 mod git;
 mod hook;
 mod init;

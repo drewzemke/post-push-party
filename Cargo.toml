@@ -23,6 +23,7 @@ palette = "0.7.6"
 rand = "0.10"
 ratatui = { version = "0.30", features = ["palette"] }
 rusqlite = { version = "0.38.0", features = ["bundled"] }
+tixel = { git = "https://github.com/drewzemke/tixel", branch = "main" }
 tui-scrollview = "0.6"
 
 [dev-dependencies]
@@ -31,3 +32,6 @@ tempfile = "3"
 
 [features]
 dev = []
+
+[patch."https://github.com/drewzemke/tixel"]
+tixel = { path = "../tixel" }

@@ -12,19 +12,21 @@ use crossterm::{
     event::{self, Event, KeyEventKind},
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
-use ratatui::prelude::*;
+use ratatui::{Terminal as RatatuiTerminal, prelude::*};
 
 use app::App;
 use input::map_key;
 
 use crate::{state::State, storage::DbConnection};
 
+pub type Terminal = RatatuiTerminal<CrosstermBackend<io::Stdout>>;
+
 const TICK_RATE: Duration = Duration::from_millis(50); // ~20 FPS for animations
 
 pub fn run(state: &mut State, conn: &DbConnection) -> io::Result<()> {
     enable_raw_mode()?;
     io::stdout().execute(EnterAlternateScreen)?;
-    let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
+    let mut terminal: Terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
 
     let mut app = App::new(state, conn);
     let mut last_tick = Instant::now();

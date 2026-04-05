@@ -43,7 +43,7 @@ impl<'a> App<'a> {
             party: PartyView::default(),
             packs: PacksView::default(),
             pack_reveal: PackRevealView::default(),
-            games: GamesView,
+            games: GamesView::default(),
             conn,
             display_points_offset: 0,
         }
@@ -124,6 +124,20 @@ impl<'a> App<'a> {
             ViewResult::Message(ty, msg) => {
                 self.message = Some((ty, msg));
                 self.save();
+            }
+
+            ViewResult::StartGame(game) => {
+                // make sure the user can play this game
+                let tokens = self.state.game_token_count(game);
+                if tokens == 0 {
+                    self.message = Some((
+                        MessageType::Error,
+                        "You don't have any tokens for this game".into(),
+                    ));
+                } else {
+                    self.state.deduct_game_token(game);
+                    // TODO: start the game
+                }
             }
 
             ViewResult::None => {}

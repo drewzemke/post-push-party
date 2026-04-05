@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::{
     bonus_track::{ALL_TRACKS, Reward},
-    game::Game,
+    game::GameRef,
     pack::{Pack, PackItem},
     party::{ALL_PARTIES, Palette, Party},
     storage::PushHistory,
@@ -298,15 +298,22 @@ impl State {
     }
 
     /// adds a game token to the player's inventory
-    pub fn add_game_token(&mut self, game: &'static dyn Game) {
+    pub fn add_game_token(&mut self, game: GameRef) {
         self.games
             .entry(game.id().to_string())
             .and_modify(|n| *n += 1)
             .or_insert(1);
     }
 
+    /// deducts a game token from the player's inventory
+    pub fn deduct_game_token(&mut self, game: GameRef) {
+        self.games
+            .entry(game.id().to_string())
+            .and_modify(|n| *n = n.saturating_sub(1));
+    }
+
     /// how many games tokens for the given game the player has
-    pub fn game_token_count(&self, game: &'static dyn Game) -> u32 {
+    pub fn game_token_count(&self, game: GameRef) -> u32 {
         self.games.get(game.id()).copied().unwrap_or_default()
     }
 

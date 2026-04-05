@@ -6,7 +6,7 @@ pub mod store;
 
 use ratatui::prelude::*;
 
-use crate::{pack::Pack, state::State};
+use crate::{game::GameRef, pack::Pack, state::State};
 
 use super::action::{Action, Route};
 
@@ -28,6 +28,8 @@ pub enum ViewResult {
     OpenPack(Pack),
     /// correct the current offset by the given amount (because a pack item was just revealed granting that amount)
     RevealPoints(u64),
+    /// starts a game
+    StartGame(GameRef),
     /// show a transient message
     Message(MessageType, String),
 }

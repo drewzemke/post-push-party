@@ -7,7 +7,7 @@ use ratatui::{
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
 use crate::{
-    game::{ALL_GAMES, Game},
+    game::{ALL_GAMES, GameRef},
     state::State,
     tui::{
         action::{Action, Route, StoreRoute},
@@ -21,7 +21,7 @@ const SCROLL_PADDING: u16 = ITEM_HEIGHT; // keep one item of padding when scroll
 const OWNED_COUNT_WIDTH: u16 = 17;
 
 struct GameListItem {
-    game: &'static dyn Game,
+    game: GameRef,
     num_owned: u32,
     affordable: bool,
     selected: bool,
@@ -29,13 +29,7 @@ struct GameListItem {
 }
 
 impl GameListItem {
-    fn new(
-        game: &'static dyn Game,
-        num_owned: u32,
-        affordable: bool,
-        selected: bool,
-        tick: u32,
-    ) -> Self {
+    fn new(game: GameRef, num_owned: u32, affordable: bool, selected: bool, tick: u32) -> Self {
         Self {
             game,
             num_owned,
@@ -120,7 +114,7 @@ pub struct GamesView {
 }
 
 impl GamesView {
-    fn selected_game(&self) -> Option<&'static dyn Game> {
+    fn selected_game(&self) -> Option<GameRef> {
         ALL_GAMES.get(self.selection).copied()
     }
 

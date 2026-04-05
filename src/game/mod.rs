@@ -25,8 +25,10 @@ pub trait Game: Sync {
     fn run(&self, terminal: &mut Terminal);
 }
 
+pub type GameRef = &'static dyn Game;
+
 // static instances
-static SNAKE: Snake = Snake;
+pub static SNAKE: Snake = Snake;
 
 // all parties in order
-pub static ALL_GAMES: &[&'static dyn Game] = &[&SNAKE];
+pub static ALL_GAMES: &[GameRef] = &[&SNAKE];

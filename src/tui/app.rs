@@ -73,6 +73,10 @@ impl<'a> App<'a> {
         self.pending_game.take()
     }
 
+    pub fn set_error(&mut self, message: String) {
+        self.message = Some((MessageType::Error, message))
+    }
+
     pub fn handle(&mut self, action: Action) -> bool {
         // clear message on any action
         self.message = None;
@@ -152,6 +156,7 @@ impl<'a> App<'a> {
                     ));
                 } else {
                     self.state.deduct_game_token(game);
+                    self.save();
                     self.pending_game = Some(game);
                 }
             }

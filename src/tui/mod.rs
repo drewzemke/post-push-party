@@ -63,7 +63,11 @@ pub fn run(state: &mut State, conn: &DbConnection) -> anyhow::Result<()> {
             let wallet = GameWallet::new(conn);
 
             leave_tui()?;
-            game.run(&mut terminal, &wallet, &mut game_state)?;
+            let game_result = game.run(&mut terminal, &wallet, &mut game_state);
+            if let Err(err) = game_result {
+                // FIXME: do we also refund the token?
+                app.set_error(err.to_string());
+            }
             enter_tui()?;
             terminal.clear()?;
 

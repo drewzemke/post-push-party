@@ -3,7 +3,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use anyhow::Result;
+use anyhow::{Result, bail};
 use ratatui::crossterm::{
     cursor::{Hide, Show},
     event::{self, Event, KeyCode, KeyEvent},
@@ -61,11 +61,11 @@ impl Game for Snake {
         let cols = size.width as usize;
 
         if rows < GAME_DIMS.0 || cols < GAME_DIMS.1 {
-            eprintln!(
-                "Error: terminal window too small.\nYour terminal window is {rows} rows x {cols} cols.\nMinimum dimensions are {} rows x {} cols.",
-                GAME_DIMS.0, GAME_DIMS.1
+            bail!(
+                "Minimum terminal dimensions are {} rows x {} cols.",
+                GAME_DIMS.0,
+                GAME_DIMS.1
             );
-            std::process::exit(1);
         }
 
         // center the game area in the screen

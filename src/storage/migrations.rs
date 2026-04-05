@@ -3,7 +3,7 @@ use anyhow::Result;
 
 pub type Migration = fn(&DbConnection) -> Result<()>;
 
-pub const MIGRATIONS: &[Migration] = &[migrate_v1, migrate_v2];
+pub const MIGRATIONS: &[Migration] = &[migrate_v1, migrate_v2, migrate_v3];
 
 /// initial table construction and state population
 fn migrate_v1(conn: &DbConnection) -> Result<()> {
@@ -155,6 +155,21 @@ fn migrate_v2(conn: &DbConnection) -> Result<()> {
 
         DROP TABLE unlocked_palettes;
         ",
+    )?;
+
+    Ok(())
+}
+
+/// add games table
+fn migrate_v3(conn: &DbConnection) -> Result<()> {
+    conn.execute(
+        "
+        CREATE TABLE IF NOT EXISTS games (
+            id     TEXT PRIMARY KEY,
+            count  INTEGER NOT NULL
+        );
+        ",
+        [],
     )?;
 
     Ok(())

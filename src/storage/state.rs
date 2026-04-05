@@ -63,6 +63,12 @@ impl State {
             .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
             .collect::<RusqliteResult<HashMap<Pack, u32>>>()?;
 
+        // games
+        let mut stmt = conn.prepare("SELECT id, count FROM games")?;
+        let games = stmt
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
+            .collect::<RusqliteResult<HashMap<String, u32>>>()?;
+
         let state = Self::new(
             party_points as u64,
             points_earned as u64,
@@ -73,7 +79,7 @@ impl State {
             unlocked_palettes,
             active_palettes,
             packs,
-            todo!(),
+            games,
         );
         Ok(state)
     }
@@ -144,6 +150,16 @@ impl State {
             }
         }
 
+        // games
+        {
+            tx.execute("DELETE FROM games", ())?;
+            let mut stmt =
+                tx.prepare("INSERT OR REPLACE INTO games (id, count) VALUES (?1, ?2)")?;
+            for (game_id, count) in &self.games {
+                stmt.execute((game_id, count))?;
+            }
+        }
+
         tx.commit()?;
 
         Ok(())
@@ -152,6 +168,8 @@ impl State {
 
 #[cfg(test)]
 mod state_storage_tests {
+    use crate::game::SNAKE;
+
     use super::*;
 
     #[test]
@@ -170,6 +188,7 @@ mod state_storage_tests {
         state.set_selected_palette("base", 1);
         state.set_selected_palette("exclamations", 3);
         state.add_pack(Pack::Basic);
+        state.add_game_token(&SNAKE);
 
         state.save(&conn).unwrap();
         let loaded = State::load(&conn).unwrap();

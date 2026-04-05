@@ -10,6 +10,7 @@ use ratatui::crossterm::{
     execute,
     terminal::{Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use serde::{Deserialize, Serialize};
 use tixel::{Color, HalfCellCanvas};
 
 use crate::{
@@ -28,7 +29,14 @@ const GAME_DIMS: (usize, usize) = (15, 60);
 /// Classic snake game in which users earn points as they grow their snake.
 pub struct Snake;
 
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct State {
+    high_score: u32,
+}
+
 impl Game for Snake {
+    type State = State;
+
     fn id(&self) -> &'static str {
         "snake"
     }
@@ -45,7 +53,7 @@ impl Game for Snake {
         25
     }
 
-    fn run(&self, terminal: &mut Terminal) -> Result<()> {
+    fn run(&self, terminal: &mut Terminal, state: &mut State) -> Result<()> {
         let mut stdout = std::io::stdout();
 
         let size = terminal.size()?;
@@ -89,10 +97,6 @@ impl Game for Snake {
                         KeyCode::Down => board.turn(Dir::Down),
                         KeyCode::Left => board.turn(Dir::Left),
                         KeyCode::Right => board.turn(Dir::Right),
-                        KeyCode::Char('r') => {
-                            board.reset();
-                            running = true;
-                        }
                         _ => {}
                     }
                 }
@@ -146,6 +150,11 @@ impl Game for Snake {
                 let _ = stdout.write_all(output.as_bytes());
                 let _ = stdout.flush();
             }
+        }
+
+        // save high score
+        if board.score() > state.high_score {
+            state.high_score = board.score();
         }
 
         execute!(stdout, LeaveAlternateScreen, Show)?;

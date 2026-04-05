@@ -166,7 +166,8 @@ fn migrate_v3(conn: &DbConnection) -> Result<()> {
         "
         CREATE TABLE IF NOT EXISTS games (
             id     TEXT PRIMARY KEY,
-            count  INTEGER NOT NULL
+            count  INTEGER NOT NULL,
+            state  TEXT
         );
         ",
         [],

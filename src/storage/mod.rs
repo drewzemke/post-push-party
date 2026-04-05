@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 mod branch_refs;
 mod connection;
+pub mod game_state;
 mod logs;
 mod migrations;
 mod patch_ids;

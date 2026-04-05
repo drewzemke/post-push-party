@@ -17,6 +17,7 @@ use ratatui::{Terminal as RatatuiTerminal, prelude::*};
 use app::App;
 use input::map_key;
 
+use crate::storage::game_state;
 use crate::{state::State, storage::DbConnection};
 
 pub type Terminal = RatatuiTerminal<CrosstermBackend<io::Stdout>>;
@@ -56,11 +57,14 @@ pub fn run(state: &mut State, conn: &DbConnection) -> anyhow::Result<()> {
         }
 
         // run a game if there is one to run
-
         if let Some(game) = app.take_pending_game() {
+            let mut state = game_state::load(conn, game.id())?;
             leave_tui()?;
-            game.run(&mut terminal)?;
+            game.run(&mut terminal, &mut state)?;
             enter_tui()?;
+            if let Some(state) = state {
+                game_state::save(conn, game.id(), &state)?;
+            }
             terminal.clear()?;
         }
 

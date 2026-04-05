@@ -152,9 +152,10 @@ impl State {
 
         // games
         {
-            tx.execute("DELETE FROM games", ())?;
             let mut stmt =
-                tx.prepare("INSERT OR REPLACE INTO games (id, count) VALUES (?1, ?2)")?;
+                tx.prepare("
+                    INSERT INTO games (id, count) VALUES (?1, ?2) ON CONFLICT(id) DO UPDATE SET count = excluded.count
+                    ")?;
             for (game_id, count) in &self.games {
                 stmt.execute((game_id, count))?;
             }

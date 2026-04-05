@@ -63,10 +63,6 @@ impl SnakeGame {
         pt
     }
 
-    pub fn reset(&mut self) {
-        *self = Self::new(self.width, self.height);
-    }
-
     fn head_pos(&self) -> (i64, i64) {
         self.snake[0]
     }
@@ -102,5 +98,9 @@ impl SnakeGame {
             || self.head_pos().1 < 0
             || self.head_pos().1 >= self.height
             || self.snake.iter().skip(1).any(|&x| x == self.head_pos())
+    }
+
+    pub fn score(&self) -> u32 {
+        self.snake.len().saturating_sub(3) as u32
     }
 }

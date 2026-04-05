@@ -1204,6 +1204,8 @@ dependencies = [
  "rand 0.10.0",
  "ratatui",
  "rusqlite",
+ "serde",
+ "serde_json",
  "tempfile",
  "tixel",
  "tui-scrollview",

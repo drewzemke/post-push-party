@@ -4,12 +4,7 @@ use std::{
 };
 
 use anyhow::{Result, bail};
-use ratatui::crossterm::{
-    cursor::{Hide, Show},
-    event::{self, Event, KeyCode, KeyEvent},
-    execute,
-    terminal::{Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen},
-};
+use ratatui::crossterm::event::{self, Event, KeyCode, KeyEvent};
 use serde::{Deserialize, Serialize};
 use tixel::{Color, HalfCellCanvas};
 
@@ -53,6 +48,10 @@ impl Game for Snake {
         25
     }
 
+    fn clear_color(&self) -> (u8, u8, u8) {
+        (10, 10, 10)
+    }
+
     fn run(&self, terminal: &mut Terminal, wallet: &GameWallet, state: &mut State) -> Result<()> {
         let mut stdout = std::io::stdout();
 
@@ -76,9 +75,6 @@ impl Game for Snake {
 
         let height = canvas.height();
         let width = canvas.width();
-
-        ratatui::crossterm::terminal::enable_raw_mode()?;
-        execute!(stdout, EnterAlternateScreen, Hide, Clear(ClearType::All))?;
 
         let mut running = true;
         let mut quitting = false;
@@ -158,9 +154,6 @@ impl Game for Snake {
         if points > state.high_score {
             state.high_score = points;
         }
-
-        execute!(stdout, LeaveAlternateScreen, Show)?;
-        ratatui::crossterm::terminal::disable_raw_mode()?;
 
         Ok(())
     }

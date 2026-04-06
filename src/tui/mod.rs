@@ -1,11 +1,7 @@
-mod action;
-mod app;
-mod input;
-mod views;
-mod widgets;
-
-use std::io;
-use std::time::{Duration, Instant};
+use std::{
+    io,
+    time::{Duration, Instant},
+};
 
 use crossterm::{
     ExecutableCommand,
@@ -14,12 +10,22 @@ use crossterm::{
 };
 use ratatui::{Terminal as RatatuiTerminal, prelude::*};
 
+use crate::{
+    game::GameWallet,
+    state::State,
+    storage::{DbConnection, game_state},
+    tui::transition::Transition,
+};
+
+mod action;
+mod app;
+mod input;
+mod transition;
+mod views;
+mod widgets;
+
 use app::App;
 use input::map_key;
-
-use crate::game::GameWallet;
-use crate::storage::game_state;
-use crate::{state::State, storage::DbConnection};
 
 pub type Terminal = RatatuiTerminal<CrosstermBackend<io::Stdout>>;
 
@@ -45,7 +51,7 @@ pub fn run(state: &mut State, conn: &DbConnection) -> anyhow::Result<()> {
     let mut last_tick = Instant::now();
 
     loop {
-        terminal.draw(|frame| app.render(frame))?;
+        let frame = terminal.draw(|frame| app.render(frame))?;
 
         let timeout = TICK_RATE.saturating_sub(last_tick.elapsed());
         if event::poll(timeout)?
@@ -62,14 +68,16 @@ pub fn run(state: &mut State, conn: &DbConnection) -> anyhow::Result<()> {
             let mut game_state = game_state::load(conn, game.id())?;
             let wallet = GameWallet::new(conn);
 
-            leave_tui()?;
+            let mut transition = Transition::new(frame.buffer.clone());
+
+            transition.transition_to(game.clear_color(), &mut terminal)?;
             let game_result = game.run(&mut terminal, &wallet, &mut game_state);
             if let Err(err) = game_result {
                 // FIXME: do we also refund the token?
                 app.set_error(err.to_string());
             }
-            enter_tui()?;
             terminal.clear()?;
+            transition.transition_from(game.clear_color(), &mut terminal)?;
 
             if let Some(state) = game_state {
                 game_state::save(conn, game.id(), &state)?;

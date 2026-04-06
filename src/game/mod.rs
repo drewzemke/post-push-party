@@ -23,6 +23,16 @@ pub trait Game: Sync {
     /// cost of a single game token
     fn cost(&self) -> u64;
 
+    /// the terminal will be transitioned towards this color before handing over
+    /// render control to the game, and after the game finishes the terminal
+    /// will transition from this color back to the Party TUI
+    ///
+    /// the game is responsible for gracefully transition to and from this
+    /// color as it starts up and shuts down
+    ///
+    /// format is (r,g,b)
+    fn clear_color(&self) -> (u8, u8, u8);
+
     /// runs a game.
     ///
     /// suspends the normal party tui runs an entire separate tui for the game
@@ -49,10 +59,10 @@ pub trait GameObject: Sync {
     /// cost of a single game token
     fn cost(&self) -> u64;
 
-    /// runs a game.
-    ///
-    /// suspends the normal party tui runs an entire separate tui for the game.
-    /// handles tranforming the state blob to/from the game's `State` type before/after running
+    /// format is (r,g,b)
+    fn clear_color(&self) -> (u8, u8, u8);
+
+    /// runs a game
     fn run(
         &self,
         terminal: &mut Terminal,
@@ -79,6 +89,10 @@ impl<G: Game> GameObject for G {
 
     fn cost(&self) -> u64 {
         self.cost()
+    }
+
+    fn clear_color(&self) -> (u8, u8, u8) {
+        self.clear_color()
     }
 
     fn run(

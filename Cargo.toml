@@ -34,6 +34,3 @@ tempfile = "3"
 
 [features]
 dev = []
-
-[patch."https://github.com/drewzemke/tixel"]
-tixel = { path = "../tixel" }

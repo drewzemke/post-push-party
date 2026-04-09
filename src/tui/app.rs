@@ -36,10 +36,17 @@ pub struct App<'a> {
     /// if this is populated, on the next iteration of the event loop,
     /// the harness will take this item and run the game
     pending_game: Option<GameRef>,
+
+    /// set by the caller via `Self::update_size` whenever the terminal
+    /// dimensions change
+    terminal_size: Size,
 }
 
+const MIN_GAME_WIDTH: u16 = 80;
+const MIN_GAME_HEIGHT: u16 = 24;
+
 impl<'a> App<'a> {
-    pub fn new(state: &'a mut State, conn: &'a DbConnection) -> Self {
+    pub fn new(state: &'a mut State, conn: &'a DbConnection, terminal_size: Size) -> Self {
         Self {
             route: Route::default(),
             message: None,
@@ -53,6 +60,7 @@ impl<'a> App<'a> {
             conn,
             display_points_offset: 0,
             pending_game: None,
+            terminal_size,
         }
     }
 
@@ -75,6 +83,10 @@ impl<'a> App<'a> {
 
     pub fn set_error(&mut self, message: String) {
         self.message = Some((MessageType::Error, message))
+    }
+
+    pub fn update_size(&mut self, size: Size) {
+        self.terminal_size = size;
     }
 
     pub fn handle(&mut self, action: Action) -> bool {
@@ -148,17 +160,35 @@ impl<'a> App<'a> {
 
             ViewResult::StartGame(game) => {
                 // make sure the user can play this game
+
+                // do they have enough tokens?
                 let tokens = self.state.game_token_count(game);
                 if tokens == 0 {
                     self.message = Some((
                         MessageType::Error,
-                        "You don't have any tokens for this game".into(),
+                        "You don't have any tokens for this game.".into(),
                     ));
-                } else {
-                    self.state.deduct_game_token(game);
-                    self.save();
-                    self.pending_game = Some(game);
+                    return true;
                 }
+
+                // is their terminal big enough?
+                if self.terminal_size.width < MIN_GAME_WIDTH
+                    || self.terminal_size.height < MIN_GAME_HEIGHT
+                {
+                    self.message = Some((
+                        MessageType::Error,
+                        format!(
+                            "Your terminal must be at least {}x{} to play games.",
+                            MIN_GAME_WIDTH, MIN_GAME_HEIGHT
+                        ),
+                    ));
+                    return true;
+                }
+
+                // okay, proceed with the game
+                self.state.deduct_game_token(game);
+                self.save();
+                self.pending_game = Some(game);
             }
 
             ViewResult::None => {}

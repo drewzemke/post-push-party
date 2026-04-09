@@ -59,17 +59,9 @@ impl Game for Snake {
         let rows = size.height as usize;
         let cols = size.width as usize;
 
-        if rows < GAME_DIMS.0 || cols < GAME_DIMS.1 {
-            bail!(
-                "Minimum terminal dimensions are {} rows x {} cols.",
-                GAME_DIMS.0,
-                GAME_DIMS.1
-            );
-        }
-
         // center the game area in the screen
-        let offset_x = (cols - GAME_DIMS.1) / 2;
-        let offset_y = (rows - GAME_DIMS.0) / 2;
+        let offset_x = (cols.saturating_sub(GAME_DIMS.1)) / 2;
+        let offset_y = (rows.saturating_sub(GAME_DIMS.0)) / 2;
 
         let mut canvas = HalfCellCanvas::new(GAME_DIMS, (offset_y, offset_x));
 

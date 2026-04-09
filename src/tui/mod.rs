@@ -47,20 +47,26 @@ pub fn run(state: &mut State, conn: &DbConnection) -> anyhow::Result<()> {
     enter_tui()?;
     let mut terminal: Terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
 
-    let mut app = App::new(state, conn);
+    let mut app = App::new(state, conn, terminal.size()?);
     let mut last_tick = Instant::now();
 
     loop {
         let frame = terminal.draw(|frame| app.render(frame))?;
 
         let timeout = TICK_RATE.saturating_sub(last_tick.elapsed());
-        if event::poll(timeout)?
-            && let Event::Key(key) = event::read()?
-            && key.kind == KeyEventKind::Press
-            && let Some(action) = map_key(key)
-            && !app.handle(action)
-        {
-            break;
+        if event::poll(timeout)? {
+            let event = event::read()?;
+
+            if let Event::Key(key) = event
+                && key.kind == KeyEventKind::Press
+                && let Some(action) = map_key(key)
+                && !app.handle(action)
+            {
+                break;
+            } else if let Event::Resize(cols, rows) = event {
+                let size = Size::new(cols, rows);
+                app.update_size(size);
+            }
         }
 
         // run a game if there is one to run

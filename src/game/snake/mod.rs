@@ -45,7 +45,7 @@ impl Game for Snake {
     }
 
     fn cost(&self) -> u64 {
-        25
+        100
     }
 
     fn clear_color(&self) -> (u8, u8, u8) {

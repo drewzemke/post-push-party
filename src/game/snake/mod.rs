@@ -3,7 +3,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use anyhow::{Result, bail};
+use anyhow::Result;
 use ratatui::crossterm::event::{self, Event, KeyCode, KeyEvent};
 use serde::{Deserialize, Serialize};
 use tixel::{Color, HalfCellCanvas};

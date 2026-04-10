@@ -57,6 +57,10 @@ pub fn item_preview(item: &PackItem) -> Vec<Line<'static>> {
             ]
             .into(),
         },
+
+        PackItem::GameToken { game, .. } => {
+            ["".into(), game.name().cyan().into(), "".into()].into()
+        }
     }
 }
 
@@ -154,6 +158,11 @@ impl View for PackRevealView {
                     "You got ".into(),
                     points.yellow(),
                     " P".yellow(),
+                    "!".into(),
+                ]),
+                (PackItem::GameToken { game, .. }, PackItemState::Opened) => Line::from(vec![
+                    "You got a token to play ".into(),
+                    game.name().cyan(),
                     "!".into(),
                 ]),
                 (_, PackItemState::Unopened) => "Press enter to reveal!".dim().into(),

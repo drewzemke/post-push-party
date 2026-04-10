@@ -71,6 +71,18 @@ pub trait GameObject: Sync {
     ) -> anyhow::Result<()>;
 }
 
+impl std::fmt::Debug for dyn GameObject {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Game: {}", self.name())
+    }
+}
+
+impl PartialEq for dyn GameObject {
+    fn eq(&self, other: &Self) -> bool {
+        self.id() == other.id()
+    }
+}
+
 pub type GameRef = &'static dyn GameObject;
 
 // blanket impl of `GameObject` for all `Game`s

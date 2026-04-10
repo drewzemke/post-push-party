@@ -1,4 +1,5 @@
 use crate::{
+    game::{GameRef, SNAKE},
     pack::Rarity,
     party::{FIREWORKS, Palette, Party},
     state::State,
@@ -16,7 +17,10 @@ pub enum PackItem {
         points: u64,
         rarity: Rarity,
     },
-    // GameToken (GameType)   // soon(ish)!
+    GameToken {
+        game: GameRef,
+        rarity: Rarity,
+    },
 }
 
 const COMMON_POINTS: u64 = 25;
@@ -62,11 +66,16 @@ const EPIC_PALETTES: &[Palette] = &[
     Palette::SYNTHWAVE,
 ];
 
+const COMMON_GAMES: &[GameRef] = &[&SNAKE];
+const RARE_GAMES: &[GameRef] = &[];
+const EPIC_GAMES: &[GameRef] = &[];
+
 impl PackItem {
     pub fn rarity(&self) -> Rarity {
         match self {
             PackItem::PaletteUnlock { rarity, .. } => *rarity,
             PackItem::PointBundle { rarity, .. } => *rarity,
+            PackItem::GameToken { rarity, .. } => *rarity,
         }
     }
 
@@ -96,6 +105,10 @@ impl PackItem {
                         rarity: Rarity::Common,
                     })
             })
+            .chain(COMMON_GAMES.iter().map(|&game| Self::GameToken {
+                game,
+                rarity: Rarity::Common,
+            }))
             .chain([Self::PointBundle {
                 points: COMMON_POINTS,
                 rarity: Rarity::Common,
@@ -117,6 +130,10 @@ impl PackItem {
                         rarity: Rarity::Rare,
                     })
             })
+            .chain(RARE_GAMES.iter().map(|&game| Self::GameToken {
+                game,
+                rarity: Rarity::Rare,
+            }))
             .chain([Self::PointBundle {
                 points: RARE_POINTS,
                 rarity: Rarity::Rare,
@@ -153,6 +170,10 @@ impl PackItem {
                         rarity: Rarity::Epic,
                     })
             })
+            .chain(EPIC_GAMES.iter().map(|&game| Self::GameToken {
+                game,
+                rarity: Rarity::Epic,
+            }))
             .chain([Self::PointBundle {
                 points: EPIC_POINTS,
                 rarity: Rarity::Epic,
@@ -210,6 +231,8 @@ impl PackItem {
             // directly updating party points here, because we don't
             // want to trigger the lifetime points mechanism this way
             PackItem::PointBundle { points, .. } => state.party_points += *points,
+
+            PackItem::GameToken { game, .. } => state.add_game_token(*game),
         };
     }
 }

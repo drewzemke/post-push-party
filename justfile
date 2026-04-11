@@ -22,6 +22,10 @@ party id:
 palette id:
     @cargo run --quiet --features dev -- palette {{id}}
 
+# runs a game without touching user state
+game id:
+    @cargo run --quiet --features dev -- game {{id}}
+
 # installs app to local machine
 install:
     cargo install --path .

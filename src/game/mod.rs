@@ -3,10 +3,10 @@ use serde::{Serialize, de::DeserializeOwned};
 use crate::tui::Terminal;
 
 mod snake;
-mod wallet;
+pub mod wallet;
 
 pub use snake::Snake;
-pub use wallet::{GameWallet, Wallet};
+use wallet::Wallet;
 
 pub trait Game: Sync {
     type State: Serialize + DeserializeOwned + Default;
@@ -39,7 +39,7 @@ pub trait Game: Sync {
     fn run(
         &self,
         terminal: &mut Terminal,
-        wallet: &'_ impl Wallet,
+        wallet: &'_ mut dyn Wallet,
         state: &mut Self::State,
     ) -> anyhow::Result<()>;
 }
@@ -66,7 +66,7 @@ pub trait GameObject: Sync {
     fn run(
         &self,
         terminal: &mut Terminal,
-        wallet: &GameWallet,
+        wallet: &mut dyn Wallet,
         state_json: &mut Option<String>,
     ) -> anyhow::Result<()>;
 }
@@ -110,7 +110,7 @@ impl<G: Game> GameObject for G {
     fn run(
         &self,
         terminal: &mut Terminal,
-        wallet: &GameWallet,
+        wallet: &mut dyn Wallet,
         state_json: &mut Option<String>,
     ) -> anyhow::Result<()> {
         // deserialize the state blob into the typed state object for this game

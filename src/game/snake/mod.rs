@@ -26,7 +26,7 @@ pub struct Snake;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct State {
-    high_score: u32,
+    high_score: u64,
 }
 
 impl Game for Snake {
@@ -52,7 +52,12 @@ impl Game for Snake {
         (10, 10, 10)
     }
 
-    fn run(&self, terminal: &mut Terminal, wallet: &impl Wallet, state: &mut State) -> Result<()> {
+    fn run(
+        &self,
+        terminal: &mut Terminal,
+        wallet: &mut dyn Wallet,
+        state: &mut State,
+    ) -> Result<()> {
         let mut stdout = std::io::stdout();
 
         let size = terminal.size()?;

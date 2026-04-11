@@ -11,18 +11,24 @@ pub struct Cli {
 pub enum Command {
     /// install hook in current repo
     Init,
+
     /// remove hook from current repo
     Uninit,
+
     /// prints current party points
     Points,
+
     /// show push and commit stats
     Stats,
+
     /// called by git hook (not user-facing)
     #[command(hide = true)]
     Hook,
+
     /// snapshot current refs (called before push in jj)
     #[command(hide = true)]
     Snapshot,
+
     /// print state for debugging
     #[command(hide = true)]
     Dump,
@@ -34,6 +40,7 @@ pub enum Command {
         /// amount to add (can be negative)
         amount: i64,
     },
+
     /// simulate pushing N commits (dev only)
     #[cfg(feature = "dev")]
     Push {
@@ -43,27 +50,39 @@ pub enum Command {
         #[arg(long, value_delimiter = ',')]
         lines: Option<Vec<u64>>,
     },
+
     /// reset all state to defaults (dev only)
     #[cfg(feature = "dev")]
     Reset,
+
     /// set a bonus track to a specific level (dev only)
     #[cfg(feature = "dev")]
     Bonus {
         /// track id (e.g. "first_push")
         track: String,
+
         /// level to set (1 = first tier)
         level: u32,
     },
+
     /// unlock and enable a party (dev only)
     #[cfg(feature = "dev")]
     Party {
         /// party id (e.g. "big_text")
         id: String,
     },
+
     /// unlock all palettes for a party (dev only)
     #[cfg(feature = "dev")]
     Palette {
         /// party id, or "all" for every party
+        id: String,
+    },
+
+    /// runs a game without touching user state
+    #[cfg(feature = "dev")]
+    Game {
+        /// game id
         id: String,
     },
 }

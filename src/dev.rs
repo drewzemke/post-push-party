@@ -1,12 +1,17 @@
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 
 use crate::{
     clock::Clock,
+    game::{
+        ALL_GAMES,
+        wallet::{MemoryWallet, Wallet},
+    },
     git::{Commit, Push},
     party::{self, RenderContext},
     scoring,
     state::{self, State},
     storage::{PushEntry, PushHistory},
+    tui::{self, clear_bg_color, enter_tui, leave_tui},
 };
 
 pub fn cheat(amount: i64, state: &mut State) {
@@ -131,4 +136,33 @@ pub fn party(party_id: &str, state: &mut State) {
 
     state.unlock_party(party_id);
     println!("{} unlocked and enabled", party_id);
+}
+
+const STARTING_BALANCE: u64 = 100;
+
+pub fn game(game_id: &str) -> Result<()> {
+    let game = ALL_GAMES.iter().find(|g| g.id() == game_id);
+    let Some(game) = game else {
+        return Err(anyhow!("Game with id '{game_id}' not found."));
+    };
+
+    let mut wallet = MemoryWallet::new(STARTING_BALANCE);
+    let state = &mut None;
+
+    let mut terminal = tui::get_terminal()?;
+    enter_tui()?;
+    clear_bg_color(game.clear_color())?;
+    game.run(&mut terminal, &mut wallet, state)?;
+    leave_tui()?;
+
+    println!("Game '{}' complete.", game.name());
+    println!(
+        "Points balance: {STARTING_BALANCE} -> {}",
+        wallet.balance()?
+    );
+    if let Some(state) = state {
+        println!("Final game state: {state}");
+    }
+
+    Ok(())
 }

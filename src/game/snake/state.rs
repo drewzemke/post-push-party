@@ -100,7 +100,7 @@ impl SnakeGame {
             || self.snake.iter().skip(1).any(|&x| x == self.head_pos())
     }
 
-    pub fn score(&self) -> u32 {
-        self.snake.len().saturating_sub(3) as u32
+    pub fn score(&self) -> u64 {
+        self.snake.len().saturating_sub(3) as u64
     }
 }

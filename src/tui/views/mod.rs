@@ -26,8 +26,10 @@ pub enum ViewResult {
     Navigate(Route),
     /// open a pack of this type and go to the reveal screen for it
     OpenPack(Pack),
-    /// correct the current offset by the given amount (because a pack item was just revealed granting that amount)
+    /// correct the current point offset by the given amount (because a pack item was just revealed granting that amount)
     RevealPoints(u64),
+    /// correct the current game offset by the given amount (because a pack item was just revealed with a game token)
+    RevealGame,
     /// starts a game
     StartGame(GameRef),
     /// show a transient message

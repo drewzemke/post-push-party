@@ -31,6 +31,7 @@ pub struct App<'a> {
 
     /// local state for the pack reveal ceremony
     display_points_offset: u64,
+    display_games_offset: u32,
 
     /// used to allow the TUI harness to invoke games.
     /// if this is populated, on the next iteration of the event loop,
@@ -59,6 +60,7 @@ impl<'a> App<'a> {
             games: GamesView::default(),
             conn,
             display_points_offset: 0,
+            display_games_offset: 0,
             pending_game: None,
             terminal_size,
         }
@@ -132,6 +134,7 @@ impl<'a> App<'a> {
 
             ViewResult::Navigate(route) => {
                 self.display_points_offset = 0;
+                self.display_games_offset = 0;
 
                 if let Route::Store(sub_route) = route {
                     self.store.set_route(sub_route);
@@ -141,16 +144,28 @@ impl<'a> App<'a> {
 
             ViewResult::OpenPack(pack) => {
                 let points_before = self.state.party_points;
+                let games_before = self.state.game_token_total();
                 let pack_items = self.state.open_pack(pack);
                 self.save();
-                let offset = self.state.party_points - points_before;
-                self.display_points_offset = offset;
+
+                // did points change?
+                let point_offset = self.state.party_points - points_before;
+                self.display_points_offset = point_offset;
+
+                // did games change?
+                let game_offset = self.state.game_token_total() - games_before;
+                self.display_games_offset = game_offset;
+
                 self.pack_reveal.set_items(pack_items);
                 self.route = Route::PackReveal;
             }
 
             ViewResult::RevealPoints(points) => {
                 self.display_points_offset = self.display_points_offset.saturating_sub(points);
+            }
+
+            ViewResult::RevealGame => {
+                self.display_games_offset = self.display_games_offset.saturating_sub(1);
             }
 
             ViewResult::Message(ty, msg) => {
@@ -215,6 +230,7 @@ impl<'a> App<'a> {
             chunks[0].inner(Margin::new(1, 0)),
             &self.route,
             self.state,
+            self.display_games_offset,
         );
 
         // content

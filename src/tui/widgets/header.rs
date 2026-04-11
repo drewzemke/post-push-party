@@ -35,7 +35,13 @@ impl Tab {
 
 const TABS: [Tab; 4] = [Tab::Store, Tab::Party, Tab::Packs, Tab::Games];
 
-pub fn render_header(frame: &mut Frame, area: Rect, route: &Route, state: &State) {
+pub fn render_header(
+    frame: &mut Frame,
+    area: Rect,
+    route: &Route,
+    state: &State,
+    game_count_offset: u32,
+) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(1), Constraint::Length(1)])
@@ -54,7 +60,7 @@ pub fn render_header(frame: &mut Frame, area: Rect, route: &Route, state: &State
 
     // tabs
     let pack_total = state.pack_total();
-    let game_token_total = state.game_token_total();
+    let game_token_total = state.game_token_total() - game_count_offset;
     let tabs: Vec<Span> = TABS
         .iter()
         .enumerate()

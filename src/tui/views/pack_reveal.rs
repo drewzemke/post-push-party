@@ -276,6 +276,8 @@ impl View for PackRevealView {
                     *state = PackItemState::Opened;
                     if let PackItem::PointBundle { points, .. } = item {
                         ViewResult::RevealPoints(*points)
+                    } else if let PackItem::GameToken { .. } = item {
+                        ViewResult::RevealGame
                     } else {
                         ViewResult::Redraw
                     }

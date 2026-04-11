@@ -10,7 +10,7 @@ use tixel::{Color, HalfCellCanvas};
 
 use crate::{
     game::{
-        Game, GameWallet,
+        Game, Wallet,
         snake::state::{Dir, SnakeGame},
     },
     tui::Terminal,
@@ -52,7 +52,7 @@ impl Game for Snake {
         (10, 10, 10)
     }
 
-    fn run(&self, terminal: &mut Terminal, wallet: &GameWallet, state: &mut State) -> Result<()> {
+    fn run(&self, terminal: &mut Terminal, wallet: &impl Wallet, state: &mut State) -> Result<()> {
         let mut stdout = std::io::stdout();
 
         let size = terminal.size()?;

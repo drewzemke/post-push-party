@@ -6,7 +6,7 @@ mod snake;
 mod wallet;
 
 pub use snake::Snake;
-pub use wallet::GameWallet;
+pub use wallet::{GameWallet, Wallet};
 
 pub trait Game: Sync {
     type State: Serialize + DeserializeOwned + Default;
@@ -39,7 +39,7 @@ pub trait Game: Sync {
     fn run(
         &self,
         terminal: &mut Terminal,
-        wallet: &GameWallet,
+        wallet: &'_ impl Wallet,
         state: &mut Self::State,
     ) -> anyhow::Result<()>;
 }

@@ -58,9 +58,12 @@ pub fn item_preview(item: &PackItem) -> Vec<Line<'static>> {
             .into(),
         },
 
-        PackItem::GameToken { game, .. } => {
-            ["".into(), game.name().cyan().into(), "".into()].into()
-        }
+        PackItem::GameToken { .. } => [
+            "┌────┐".reset().bold().into(),
+            "│▔▔▔▔│".reset().bold().into(),
+            "└────┘".reset().bold().into(),
+        ]
+        .into(),
     }
 }
 

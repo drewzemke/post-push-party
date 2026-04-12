@@ -1,4 +1,5 @@
 use std::{
+    fmt::Write as _,
     io::Write,
     time::{Duration, Instant},
 };
@@ -6,20 +7,26 @@ use std::{
 use anyhow::Result;
 use ratatui::crossterm::event::{self, Event, KeyCode, KeyEvent};
 use serde::{Deserialize, Serialize};
-use tixel::{Color, HalfCellCanvas};
+use tixel::{Color, HalfCellCanvas, write_bg_color, write_fg_color, write_move_to};
 
 use crate::{
     game::{
         Game, Wallet,
-        snake::state::{Dir, SnakeGame},
+        snake::game::{Dir, SnakeGame},
     },
     tui::Terminal,
 };
 
-mod state;
+mod game;
 
 const TARGET_FRAME_TIME: Duration = Duration::from_millis(50);
 const GAME_DIMS: (usize, usize) = (15, 60);
+
+const BG_COLOR: Color = Color::new(10, 10, 10);
+const BORDER_COLOR: Color = Color::new(200, 200, 200);
+const BOARD_COLOR: Color = Color::new(20, 20, 20);
+const SNAKE_COLOR: Color = Color::new(140, 240, 140);
+const FRUIT_COLOR: Color = Color::new(240, 140, 140);
 
 /// Classic snake game in which users earn points as they grow their snake.
 pub struct Snake;
@@ -76,7 +83,8 @@ impl Game for Snake {
         let mut running = true;
         let mut quitting = false;
 
-        let mut board = SnakeGame::new(width as i64, height as i64);
+        let mut board = SnakeGame::new(width as i64 - 2, height as i64 - 2);
+        let high_score_str = format!("High Score: {}", state.high_score);
 
         loop {
             let frame_start = Instant::now();
@@ -106,26 +114,34 @@ impl Game for Snake {
                     // board
                     for y in 0..height {
                         for x in 0..width {
-                            canvas.set_color(x, y, Color::new(10, 10, 10));
+                            canvas.set_color(x, y, BOARD_COLOR);
+                        }
+                    }
+
+                    // border
+                    for y in [0, height - 1] {
+                        for x in 0..width {
+                            canvas.set_color(x, y, BORDER_COLOR);
+                        }
+                    }
+                    for y in 0..height {
+                        for x in [0, width - 1] {
+                            canvas.set_color(x, y, BORDER_COLOR);
                         }
                     }
 
                     // snake
                     for pos in &board.snake {
-                        // FIXME: doesn't work
-                        let color = if board.is_dead() {
-                            Color::new(100, 100, 100)
-                        } else {
-                            Color::new(140, 240, 140)
-                        };
-                        canvas.set_color(pos.0 as usize, pos.1 as usize, color);
+                        // add 1 to both coordinates to account for the border
+                        canvas.set_color(pos.0 as usize + 1, pos.1 as usize + 1, SNAKE_COLOR);
                     }
 
                     // food
+                    // add 1 to both coordinates to account for the border
                     canvas.set_color(
-                        board.food.0 as usize,
-                        board.food.1 as usize,
-                        Color::new(240, 140, 140),
+                        board.food.0 as usize + 1,
+                        board.food.1 as usize + 1,
+                        FRUIT_COLOR,
                     );
 
                     board.advance();
@@ -139,7 +155,27 @@ impl Game for Snake {
             }
 
             if running {
-                let output = canvas.render();
+                let mut output = canvas.render();
+
+                // write the score and high score under the game window
+                write_bg_color(&mut output, BG_COLOR);
+                write_fg_color(&mut output, BORDER_COLOR);
+
+                write_move_to(
+                    &mut output,
+                    offset_y + (board.height as usize).div_ceil(2) + 1,
+                    offset_x + 1,
+                );
+                let _ = write!(&mut output, "Score: {}", board.score());
+
+                write_move_to(
+                    &mut output,
+                    offset_y + (board.height as usize).div_ceil(2) + 1,
+                    offset_x + board.width as usize - high_score_str.len() + 1,
+                );
+                let _ = write!(&mut output, "{high_score_str}");
+
+                // output to the screen
                 let _ = stdout.write_all(output.as_bytes());
                 let _ = stdout.flush();
             }
@@ -155,3 +191,19 @@ impl Game for Snake {
         Ok(())
     }
 }
+
+// scenes:
+// - fade in (1 sec)
+// - title screen with instructions and controls
+//   - get fruit
+//   - arrow keys to move
+//   - space to pause
+//   - any key start
+// - game running
+// - game paused (just a message at the bottom, saying how to unpause, or maybe also how to quit)
+// - (after death) blinking snake or something show you're dead (1-2 sec)
+// - game over screen
+//   - how many points were earned
+//   - new high score?
+//   - press any key to go back to party
+// - fade out

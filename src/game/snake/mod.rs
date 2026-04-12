@@ -21,15 +21,32 @@ mod game;
 
 const TARGET_FRAME_TIME: Duration = Duration::from_millis(50);
 const GAME_DIMS: (usize, usize) = (15, 60);
+const FADE_DUR: Duration = Duration::from_millis(500);
+const DEAD_DUR: Duration = Duration::from_secs(2);
 
-const BG_COLOR: Color = Color::new(10, 10, 10);
-const BORDER_COLOR: Color = Color::new(200, 200, 200);
+const BG_COLOR_U8: (u8, u8, u8) = (10, 10, 10);
+const BG_COLOR: Color = Color::new(BG_COLOR_U8.0, BG_COLOR_U8.1, BG_COLOR_U8.2);
+const FG_COLOR_U8: (u8, u8, u8) = (200, 200, 200);
+const FG_COLOR: Color = Color::new(FG_COLOR_U8.0, FG_COLOR_U8.1, FG_COLOR_U8.2);
+
+const BOARD_COLOR_U8: (u8, u8, u8) = (20, 20, 20);
 const BOARD_COLOR: Color = Color::new(20, 20, 20);
 const SNAKE_COLOR: Color = Color::new(140, 240, 140);
 const FRUIT_COLOR: Color = Color::new(240, 140, 140);
 
 /// Classic snake game in which users earn points as they grow their snake.
 pub struct Snake;
+
+enum Scene {
+    FadeIn { since: Instant },
+    Title,
+    Running,
+    Paused,
+    Dead { since: Instant },
+    GameOver,
+    FadeOut { since: Instant },
+    Done,
+}
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct State {
@@ -80,73 +97,48 @@ impl Game for Snake {
         let height = canvas.height();
         let width = canvas.width();
 
-        let mut running = true;
-        let mut quitting = false;
+        let mut game = SnakeGame::new(width as i64 - 2, height as i64 - 2);
 
-        let mut board = SnakeGame::new(width as i64 - 2, height as i64 - 2);
-        let high_score_str = format!("High Score: {}", state.high_score);
+        let mut scene = Scene::FadeIn {
+            since: Instant::now(),
+        };
+
+        let mut prev_disc = std::mem::discriminant(&scene);
 
         loop {
             let frame_start = Instant::now();
 
-            while ratatui::crossterm::event::poll(Duration::ZERO)? {
-                if let Event::Key(KeyEvent { code, .. }) = event::read()? {
-                    match code {
-                        KeyCode::Char('q') => quitting = true,
-                        KeyCode::Char(' ') => running = !running,
-                        KeyCode::Up => board.turn(Dir::Up),
-                        KeyCode::Down => board.turn(Dir::Down),
-                        KeyCode::Left => board.turn(Dir::Left),
-                        KeyCode::Right => board.turn(Dir::Right),
-                        _ => {}
-                    }
-                }
-            }
+            let key = read_key()?;
 
-            if quitting {
+            // quit on 'q', don't even check the scene
+            if matches!(key, Some(KeyCode::Char('q'))) {
                 break;
             }
 
-            if running {
-                if board.is_dead() {
-                    running = false;
-                } else {
-                    // board
-                    for y in 0..height {
-                        for x in 0..width {
-                            canvas.set_color(x, y, BOARD_COLOR);
-                        }
-                    }
+            scene = update(scene, key, &mut game);
 
-                    // border
-                    for y in [0, height - 1] {
-                        for x in 0..width {
-                            canvas.set_color(x, y, BORDER_COLOR);
-                        }
-                    }
-                    for y in 0..height {
-                        for x in [0, width - 1] {
-                            canvas.set_color(x, y, BORDER_COLOR);
-                        }
-                    }
-
-                    // snake
-                    for pos in &board.snake {
-                        // add 1 to both coordinates to account for the border
-                        canvas.set_color(pos.0 as usize + 1, pos.1 as usize + 1, SNAKE_COLOR);
-                    }
-
-                    // food
-                    // add 1 to both coordinates to account for the border
-                    canvas.set_color(
-                        board.food.0 as usize + 1,
-                        board.food.1 as usize + 1,
-                        FRUIT_COLOR,
-                    );
-
-                    board.advance();
-                }
+            // do a full redraw if the scene changed
+            let disc = std::mem::discriminant(&scene);
+            if disc != prev_disc {
+                canvas.reset();
             }
+            prev_disc = disc;
+
+            if matches!(scene, Scene::Done) {
+                break;
+            }
+
+            let mut output = String::new();
+
+            render(
+                &scene,
+                &game,
+                &mut canvas,
+                &mut output,
+                state,
+                offset_x,
+                offset_y,
+            );
 
             let elapsed = frame_start.elapsed();
             if elapsed < TARGET_FRAME_TIME {
@@ -154,35 +146,13 @@ impl Game for Snake {
                 std::thread::sleep(remaining);
             }
 
-            if running {
-                let mut output = canvas.render();
-
-                // write the score and high score under the game window
-                write_bg_color(&mut output, BG_COLOR);
-                write_fg_color(&mut output, BORDER_COLOR);
-
-                write_move_to(
-                    &mut output,
-                    offset_y + (board.height as usize).div_ceil(2) + 1,
-                    offset_x + 1,
-                );
-                let _ = write!(&mut output, "Score: {}", board.score());
-
-                write_move_to(
-                    &mut output,
-                    offset_y + (board.height as usize).div_ceil(2) + 1,
-                    offset_x + board.width as usize - high_score_str.len() + 1,
-                );
-                let _ = write!(&mut output, "{high_score_str}");
-
-                // output to the screen
-                let _ = stdout.write_all(output.as_bytes());
-                let _ = stdout.flush();
-            }
+            // output to the screen
+            let _ = stdout.write_all(output.as_bytes());
+            let _ = stdout.flush();
         }
 
         // save earned points and high score
-        let points = board.score();
+        let points = game.score();
         wallet.earn(points)?;
         if points > state.high_score {
             state.high_score = points;
@@ -192,18 +162,314 @@ impl Game for Snake {
     }
 }
 
-// scenes:
-// - fade in (1 sec)
-// - title screen with instructions and controls
-//   - get fruit
-//   - arrow keys to move
-//   - space to pause
-//   - any key start
-// - game running
-// - game paused (just a message at the bottom, saying how to unpause, or maybe also how to quit)
-// - (after death) blinking snake or something show you're dead (1-2 sec)
-// - game over screen
-//   - how many points were earned
-//   - new high score?
-//   - press any key to go back to party
-// - fade out
+fn update(scene: Scene, key: Option<KeyCode>, game: &mut SnakeGame) -> Scene {
+    let any_key = key.is_some();
+    let is_space = matches!(key, Some(KeyCode::Char(' ')));
+
+    match scene {
+        Scene::FadeIn { since } if since.elapsed() > FADE_DUR => Scene::Title,
+        Scene::Title if any_key => Scene::Running,
+        Scene::Running => {
+            // snake control
+            match key {
+                Some(KeyCode::Up) => game.turn(Dir::Up),
+                Some(KeyCode::Down) => game.turn(Dir::Down),
+                Some(KeyCode::Left) => game.turn(Dir::Left),
+                Some(KeyCode::Right) => game.turn(Dir::Right),
+                _ => {}
+            };
+            game.advance();
+
+            // control flow
+            if game.is_dead() {
+                Scene::Dead {
+                    since: Instant::now(),
+                }
+            } else if is_space {
+                Scene::Paused
+            } else {
+                Scene::Running
+            }
+        }
+        Scene::Paused if is_space => Scene::Running,
+        Scene::Dead { since } if since.elapsed() > DEAD_DUR => Scene::GameOver,
+        Scene::GameOver if any_key => Scene::FadeOut {
+            since: Instant::now(),
+        },
+        Scene::FadeOut { since } if since.elapsed() > FADE_DUR => Scene::Done,
+        s => s,
+    }
+}
+
+fn render(
+    scene: &Scene,
+    game: &SnakeGame,
+    canvas: &mut HalfCellCanvas,
+    output: &mut String,
+    state: &State,
+    offset_x: usize,
+    offset_y: usize,
+) {
+    match scene {
+        Scene::FadeIn { since } => {
+            let opacity = since.elapsed().as_secs_f64() / FADE_DUR.as_secs_f64();
+            render_board_with_opacity(canvas, opacity);
+            render_border_with_opacity(canvas, opacity);
+            *output = canvas.render();
+        }
+        Scene::Title => {
+            render_board(canvas);
+            render_border(canvas);
+            *output = canvas.render();
+            render_title(output, canvas.width(), offset_x, offset_y);
+        }
+        Scene::Running => {
+            render_board(canvas);
+            render_border(canvas);
+            render_snake(canvas, game);
+            render_food(canvas, game);
+            *output = canvas.render();
+            render_score_line(output, game, state, offset_x, offset_y);
+        }
+        Scene::Paused => render_paused_line(output, game, offset_x, offset_y),
+        Scene::Dead { .. } => clear_message_line(output, game, offset_x, offset_y),
+        Scene::GameOver => {
+            render_board(canvas);
+            render_border(canvas);
+            *output = canvas.render();
+            render_game_over(
+                output,
+                canvas.width(),
+                offset_x,
+                offset_y,
+                game.score(),
+                game.score() > state.high_score,
+            );
+        }
+        Scene::FadeOut { since } => {
+            let opacity = 1. - since.elapsed().as_secs_f64() / FADE_DUR.as_secs_f64();
+            render_board_with_opacity(canvas, opacity);
+            render_border_with_opacity(canvas, opacity);
+            *output = canvas.render();
+        }
+        Scene::Done => {}
+    }
+}
+
+fn read_key() -> Result<Option<KeyCode>> {
+    Ok(
+        if ratatui::crossterm::event::poll(Duration::ZERO)?
+            && let Event::Key(KeyEvent { code, .. }) = event::read()?
+        {
+            Some(code)
+        } else {
+            None
+        },
+    )
+}
+
+fn render_border(canvas: &mut HalfCellCanvas) {
+    render_border_with_opacity(canvas, 1.);
+}
+
+fn render_border_with_opacity(canvas: &mut HalfCellCanvas, opacity: f64) {
+    let color = lerp_color(FG_COLOR_U8, BG_COLOR_U8, opacity);
+    for y in [0, canvas.height() - 1] {
+        for x in 0..canvas.width() {
+            canvas.set_color(x, y, color);
+        }
+    }
+    for y in 0..canvas.height() {
+        for x in [0, canvas.width() - 1] {
+            canvas.set_color(x, y, color);
+        }
+    }
+}
+
+fn render_board(canvas: &mut HalfCellCanvas) {
+    render_board_with_opacity(canvas, 1.);
+}
+fn render_board_with_opacity(canvas: &mut HalfCellCanvas, opacity: f64) {
+    let color = lerp_color(BOARD_COLOR_U8, BG_COLOR_U8, opacity);
+
+    for y in 0..canvas.height() {
+        for x in 0..canvas.width() {
+            canvas.set_color(x, y, color);
+        }
+    }
+}
+
+fn lerp_u8(v: u8, bg: u8, opacity: f64) -> u8 {
+    (bg as f64 * (1. - opacity)) as u8 + (v as f64 * opacity) as u8
+}
+
+fn lerp_color(color: (u8, u8, u8), bg_color: (u8, u8, u8), opacity: f64) -> Color {
+    let r = lerp_u8(color.0, bg_color.0, opacity);
+    let g = lerp_u8(color.1, bg_color.1, opacity);
+    let b = lerp_u8(color.2, bg_color.2, opacity);
+    Color::new(r, g, b)
+}
+
+fn render_food(canvas: &mut HalfCellCanvas, game: &SnakeGame) {
+    // add 1 to both coordinates to account for the border
+    canvas.set_color(
+        game.food.0 as usize + 1,
+        game.food.1 as usize + 1,
+        FRUIT_COLOR,
+    );
+}
+
+fn render_snake(canvas: &mut HalfCellCanvas, game: &SnakeGame) {
+    for pos in &game.snake {
+        // add 1 to both coordinates to account for the border
+        canvas.set_color(pos.0 as usize + 1, pos.1 as usize + 1, SNAKE_COLOR);
+    }
+}
+
+/// write the score and high score under the game window
+fn render_score_line(
+    out: &mut String,
+    game: &SnakeGame,
+    state: &State,
+    offset_x: usize,
+    offset_y: usize,
+) {
+    clear_message_line(out, game, offset_x, offset_y);
+    write_bg_color(out, BG_COLOR);
+    write_fg_color(out, FG_COLOR);
+
+    write_move_to(
+        out,
+        offset_y + (game.height as usize).div_ceil(2) + 1,
+        offset_x + 1,
+    );
+    let _ = write!(out, "Score: {}", game.score());
+
+    let high_score_str = format!("High Score: {}", state.high_score);
+    write_move_to(
+        out,
+        offset_y + (game.height as usize).div_ceil(2) + 1,
+        offset_x + game.width as usize - high_score_str.len() + 1,
+    );
+    let _ = write!(out, "{high_score_str}");
+}
+
+/// clears the line under the game board
+fn clear_message_line(out: &mut String, game: &SnakeGame, offset_x: usize, offset_y: usize) {
+    write_bg_color(out, BG_COLOR);
+    write_fg_color(out, FG_COLOR);
+
+    write_move_to(
+        out,
+        offset_y + (game.height as usize).div_ceil(2) + 1,
+        offset_x + 1,
+    );
+    let _ = write!(out, "{}", " ".repeat(game.width as usize));
+}
+
+/// writes a paused message to the screen
+fn render_paused_line(out: &mut String, game: &SnakeGame, offset_x: usize, offset_y: usize) {
+    clear_message_line(out, game, offset_x, offset_y);
+    write_bg_color(out, BG_COLOR);
+    write_fg_color(out, FG_COLOR);
+
+    render_centered(
+        out,
+        "PAUSED  (press space to resume)",
+        offset_y + (game.height as usize).div_ceil(2) + 1,
+        offset_x,
+        game.width as usize,
+    );
+}
+
+fn render_centered(out: &mut String, text: &str, row: usize, offset_x: usize, width: usize) {
+    let col = offset_x + (width - text.len()) / 2;
+    write_move_to(out, row, col);
+    let _ = write!(out, "{text}");
+}
+
+fn render_title(out: &mut String, width: usize, offset_x: usize, offset_y: usize) {
+    write_fg_color(out, FG_COLOR);
+    write_bg_color(out, BOARD_COLOR);
+
+    render_centered(out, "Welcome to Snake!", offset_y + 3, offset_x, width);
+
+    render_centered(out, "Collect fruit.", offset_y + 5, offset_x, width);
+    render_centered(
+        out,
+        "Don't run into yourself or the walls.",
+        offset_y + 6,
+        offset_x,
+        width,
+    );
+
+    render_centered(
+        out,
+        "Use the arrow keys to move.",
+        offset_y + 8,
+        offset_x,
+        width,
+    );
+    render_centered(
+        out,
+        "Press space to pause, q to return to Party.",
+        offset_y + 9,
+        offset_x,
+        width,
+    );
+    render_centered(
+        out,
+        "Press any key to play!",
+        offset_y + 11,
+        offset_x,
+        width,
+    );
+}
+
+fn render_game_over(
+    out: &mut String,
+    width: usize,
+    offset_x: usize,
+    offset_y: usize,
+    score: u64,
+    new_high_score: bool,
+) {
+    write_fg_color(out, FG_COLOR);
+    write_bg_color(out, BOARD_COLOR);
+
+    render_centered(out, "Game Over!", offset_y + 3, offset_x, width);
+
+    let fruit_word = if score == 1 { "fruit" } else { "fruits" };
+    render_centered(
+        out,
+        &format!("You collected {score} {fruit_word}."),
+        offset_y + 5,
+        offset_x,
+        width,
+    );
+    if new_high_score {
+        render_centered(
+            out,
+            "(That's a new high score!)",
+            offset_y + 6,
+            offset_x,
+            width,
+        );
+    }
+
+    let points_word = if score == 1 { "point" } else { "points" };
+    render_centered(
+        out,
+        &format!("You earned {score} party {points_word}!"),
+        offset_y + 9,
+        offset_x,
+        width,
+    );
+    render_centered(
+        out,
+        "Press any key to return to Party.",
+        offset_y + 10,
+        offset_x,
+        width,
+    );
+}

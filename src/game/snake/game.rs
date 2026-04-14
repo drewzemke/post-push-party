@@ -24,6 +24,14 @@ impl Dir {
             (s, _) => *s,
         }
     }
+
+    pub fn is_perpendicular(&self, other: Self) -> bool {
+        matches!(
+            (self, other),
+            (Dir::Right | Dir::Left, Dir::Up | Dir::Down)
+                | (Dir::Up | Dir::Down, Dir::Right | Dir::Left)
+        )
+    }
 }
 
 pub struct SnakeGame {
@@ -32,6 +40,9 @@ pub struct SnakeGame {
     pub food: (i64, i64),
     pub snake: VecDeque<(i64, i64)>,
     dir: Dir,
+
+    /// a queue of turn directions. one is consuemd on each call to `advance()`
+    pending_turns: VecDeque<Dir>,
 }
 
 impl SnakeGame {
@@ -44,6 +55,7 @@ impl SnakeGame {
             food: Self::gen_food_loc(width, height, &snake),
             snake,
             dir: Dir::Right,
+            pending_turns: VecDeque::new(),
         }
     }
 
@@ -68,6 +80,12 @@ impl SnakeGame {
     }
 
     pub fn advance(&mut self) {
+        // turn if there's a pending turn
+        if let Some(dir) = self.pending_turns.pop_front() {
+            self.dir = self.dir.turn(dir);
+        }
+
+        // move forward
         let mut new_head = self.head_pos();
         match self.dir {
             Dir::Up => new_head.1 -= 1,
@@ -89,7 +107,20 @@ impl SnakeGame {
     }
 
     pub fn turn(&mut self, dir: Dir) {
-        self.dir = self.dir.turn(dir);
+        // don't queue too many turns at once
+        const MAX_PENDING_TURNS: usize = 2;
+        if self.pending_turns.len() >= MAX_PENDING_TURNS {
+            return;
+        }
+
+        // make sure incoming turn is perpendicular to what will be the
+        // snake's direction when this is applied
+        let effective_dir = self.pending_turns.back().copied().unwrap_or(self.dir);
+
+        // only queue this if it's a real turn
+        if dir.is_perpendicular(effective_dir) {
+            self.pending_turns.push_back(dir);
+        }
     }
 
     pub fn is_dead(&self) -> bool {

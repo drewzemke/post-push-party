@@ -19,7 +19,10 @@ use crate::{
 
 mod game;
 
-const TARGET_FRAME_TIME: Duration = Duration::from_millis(50);
+const MAX_GAME_TICK_MS: u64 = 200;
+const MIN_GAME_TICK_MS: u64 = 30;
+
+const TARGET_FRAME_TIME: Duration = Duration::from_millis(30);
 const GAME_DIMS: (usize, usize) = (15, 60);
 const FADE_DUR: Duration = Duration::from_millis(500);
 const DEAD_DUR: Duration = Duration::from_secs(2);
@@ -40,7 +43,7 @@ pub struct Snake;
 enum Scene {
     FadeIn { since: Instant },
     Title,
-    Running,
+    Running { last_tick: Instant },
     Paused,
     Dead { since: Instant },
     GameOver,
@@ -168,8 +171,10 @@ fn update(scene: Scene, key: Option<KeyCode>, game: &mut SnakeGame) -> Scene {
 
     match scene {
         Scene::FadeIn { since } if since.elapsed() > FADE_DUR => Scene::Title,
-        Scene::Title if any_key => Scene::Running,
-        Scene::Running => {
+        Scene::Title if any_key => Scene::Running {
+            last_tick: Instant::now(),
+        },
+        Scene::Running { last_tick } => {
             // snake control
             match key {
                 Some(KeyCode::Up) => game.turn(Dir::Up),
@@ -178,7 +183,13 @@ fn update(scene: Scene, key: Option<KeyCode>, game: &mut SnakeGame) -> Scene {
                 Some(KeyCode::Right) => game.turn(Dir::Right),
                 _ => {}
             };
-            game.advance();
+
+            let last_tick = if last_tick.elapsed() >= tick_length(game) {
+                game.advance();
+                Instant::now()
+            } else {
+                last_tick
+            };
 
             // control flow
             if game.is_dead() {
@@ -188,10 +199,12 @@ fn update(scene: Scene, key: Option<KeyCode>, game: &mut SnakeGame) -> Scene {
             } else if is_space {
                 Scene::Paused
             } else {
-                Scene::Running
+                Scene::Running { last_tick }
             }
         }
-        Scene::Paused if is_space => Scene::Running,
+        Scene::Paused if is_space => Scene::Running {
+            last_tick: Instant::now(),
+        },
         Scene::Dead { since } if since.elapsed() > DEAD_DUR => Scene::GameOver,
         Scene::GameOver if any_key => Scene::FadeOut {
             since: Instant::now(),
@@ -223,7 +236,7 @@ fn render(
             *output = canvas.render();
             render_title(output, canvas.width(), offset_x, offset_y);
         }
-        Scene::Running => {
+        Scene::Running { .. } => {
             render_board(canvas);
             render_border(canvas);
             render_snake(canvas, game);
@@ -266,6 +279,23 @@ fn read_key() -> Result<Option<KeyCode>> {
             None
         },
     )
+}
+
+/// controls how fast the tick rate increases. higher is slower.
+/// (more precisely, this is the value at which the tick rate will have
+/// reached halfway between the starting at target tick rates )
+const TICK_INCREASE_MODIFIER: f64 = 10.;
+
+fn lerp_f64(a: f64, b: f64, t: f64) -> f64 {
+    a + t * (b - a)
+}
+
+/// computes target tick time based on score, getting faster as score increases
+fn tick_length(game: &SnakeGame) -> Duration {
+    let score = game.score() as f64;
+    let v = score / (TICK_INCREASE_MODIFIER + score);
+    let millis = lerp_f64(MAX_GAME_TICK_MS as f64, MIN_GAME_TICK_MS as f64, v);
+    Duration::from_millis(millis as u64)
 }
 
 fn render_border(canvas: &mut HalfCellCanvas) {

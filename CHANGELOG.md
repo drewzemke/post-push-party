@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.7](https://github.com/drewzemke/post-push-party/compare/v0.1.6...v0.1.7) - 2026-04-15
+
+### Added
+
+- *(snake)* lower cost
+- *(snake)* more improvements
+- *(snake)* improve ui and user flow
+- *(snake)* game improvements
+- *(dev)* run games directly in dev mode
+- *(packs)* slightly better pack depiction for game tokens
+- *(packs)* add game tokens as a pack item
+- *(tui)* initial impl of a transition when starting a game
+- *(games)* games can view and update party points
+- *(tui)* store/load game state
+- *(tui)* start games when they're selected in the games panel
+- *(tui)* add games view and infra for selecting and starting games
+- *(storage)* store game tokens
+- *(tui)* add games store
+
+### Fixed
+
+- tixel commit in cargo lock
+- *(packs)* games total count increases when game tokens are revealed, not before
+- remove local patch for `tixel`
+- *(games)* slightly-improved error handling
+
+### Other
+
+- *(deps)* bump tixel
+- *(snake)* split out renderering code into separate module
+- *(game)* extract `Wallet` trait
+- *(games)* change snake cost
+- *(tui)* enforce minimum terminal size for games globally
+- *(games)* add initial boilerplate for games trait (and starter snake impl)
+
 ## [0.1.6](https://github.com/drewzemke/post-push-party/compare/v0.1.5...v0.1.6) - 2026-04-01
 
 ### Added

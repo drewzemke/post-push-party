@@ -1813,7 +1813,7 @@ checksum = "7694e1cfe791f8d31026952abf09c69ca6f6fa4e1a1229e18988f06a04a12dca"
 [[package]]
 name = "tixel"
 version = "0.1.0"
-source = "git+https://github.com/drewzemke/tixel?branch=main#1e51ec5aaf4744a90b84d6132b0473c4b0cb8722"
+source = "git+https://github.com/drewzemke/tixel?branch=main#f2b7ef3b84cee6cdfc8e11531c82b6607d62e439"
 
 [[package]]
 name = "tui-scrollview"

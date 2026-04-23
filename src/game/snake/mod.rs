@@ -19,7 +19,7 @@ use crate::{
 mod game;
 mod render;
 
-const MAX_GAME_TICK_MS: u64 = 200;
+const MAX_GAME_TICK_MS: u64 = 150;
 const MIN_GAME_TICK_MS: u64 = 30;
 
 const TARGET_FRAME_TIME: Duration = Duration::from_millis(30);

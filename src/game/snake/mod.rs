@@ -167,10 +167,10 @@ fn update(scene: Scene, key: Option<KeyCode>, game: &mut SnakeGame) -> Scene {
         Scene::Running { last_tick } => {
             // snake control
             match key {
-                Some(KeyCode::Up) => game.turn(Dir::Up),
-                Some(KeyCode::Down) => game.turn(Dir::Down),
-                Some(KeyCode::Left) => game.turn(Dir::Left),
-                Some(KeyCode::Right) => game.turn(Dir::Right),
+                Some(KeyCode::Up | KeyCode::Char('w')) => game.turn(Dir::Up),
+                Some(KeyCode::Down | KeyCode::Char('s')) => game.turn(Dir::Down),
+                Some(KeyCode::Left | KeyCode::Char('a')) => game.turn(Dir::Left),
+                Some(KeyCode::Right | KeyCode::Char('d')) => game.turn(Dir::Right),
                 _ => {}
             };
 

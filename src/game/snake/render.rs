@@ -205,7 +205,7 @@ fn render_title(out: &mut String, width: usize, offset_x: usize, offset_y: usize
 
     render_centered(
         out,
-        "Use the arrow keys to move.",
+        "Use the arrow keys or WASD to change direction.",
         offset_y + 8,
         offset_x,
         width,

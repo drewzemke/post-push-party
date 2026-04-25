@@ -1,34 +1,37 @@
 use std::io::{Write, stdout};
 
 use crossterm::{
-    cursor::{Hide, MoveTo, Show},
+    cursor::{Hide, Show},
     event::{self, Event},
     execute,
     terminal::{Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use tixel::Color;
+use tixel::{BrailleCanvas, Color};
 
-use super::{renderer::Renderer, sim::Sim};
+use crate::party::fireworks::sim::Sim;
+
+const POLL_TIME: std::time::Duration = std::time::Duration::from_millis(10);
 
 pub fn run(colors: &[Color]) -> anyhow::Result<()> {
-    // HACK could probably smooth this out
-    let colors = colors.iter().map(|s| s.escape_fg()).collect::<Vec<_>>();
-
     // start terminal
     let mut stdout = stdout();
     execute!(stdout, Hide, EnterAlternateScreen)?;
     crossterm::terminal::enable_raw_mode()?;
     execute!(stdout, Clear(ClearType::All))?;
 
-    let (cols, rows) = crossterm::terminal::size().unwrap();
+    let (cols, rows) = crossterm::terminal::size()?;
 
-    let mut renderer = Renderer::new(rows as usize, cols as usize, colors);
-    let mut sim = Sim::new(cols as f64, rows as f64 * 2.);
+    let mut canvas = BrailleCanvas::new((rows as usize, cols as usize), (0, 0));
+    let height = canvas.height() as f64;
+    let width = canvas.width() as f64;
+
+    let mut sim = Sim::new(width, height);
+
     let mut time = std::time::Instant::now();
 
     loop {
         // bail on any key press
-        if event::poll(std::time::Duration::from_millis(10))? {
+        if event::poll(POLL_TIME)? {
             let event = event::read()?;
             if matches!(event, Event::Key(_)) {
                 break;
@@ -38,16 +41,19 @@ pub fn run(colors: &[Color]) -> anyhow::Result<()> {
         // update sim
         let dt = time.elapsed();
         time = std::time::Instant::now();
-        sim.update(dt.as_secs_f64());
+        let has_visible_particles = sim.update(dt.as_secs_f64());
 
-        // render
-        let output = renderer.render(&sim);
+        // render to canvas
+        for p in sim.particles() {
+            canvas.set_f(p.x, height - p.y, colors[p.color_idx % colors.len()]);
+        }
 
-        if let Some(output) = output {
-            execute!(stdout, MoveTo(0, 0)).unwrap();
-            stdout.write_all(output.as_bytes()).unwrap();
-        } else {
-            // nothing left on screen, so we're done
+        // render to screen
+        let output = canvas.render();
+        let _ = stdout.write_all(output.as_bytes());
+
+        // we're done once the screen is empty
+        if !has_visible_particles {
             break;
         }
     }

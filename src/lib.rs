@@ -2,7 +2,6 @@
 // the whole thing into a library
 pub mod party {
     pub mod fireworks {
-        mod renderer;
         mod runner;
         mod sim;
 

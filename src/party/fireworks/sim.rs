@@ -2,14 +2,14 @@ use std::f64::consts::PI;
 
 use rand::RngExt;
 
-const GRAVITY: f64 = -30.;
-const NUM_ROCKETS: usize = 5;
+const GRAVITY: f64 = -60.;
+const NUM_ROCKETS: usize = 8;
 
 const VEL_X_VARIANCE: f64 = 10.;
 const VEL_Y_VARIANCE_RATIO: f64 = 0.2;
 
-const NUM_EXPLOSION_PARTICLES: usize = 200;
-const EXPLOSION_VEL: f64 = 25.;
+const NUM_EXPLOSION_PARTICLES: usize = 300;
+const EXPLOSION_VEL: f64 = 50.;
 const EXPLOSION_VEL_RANGE: std::ops::Range<f64> = 0.2 * EXPLOSION_VEL..EXPLOSION_VEL;
 
 pub struct Particle {
@@ -96,7 +96,8 @@ impl Sim {
             .chain(self.particles.iter())
     }
 
-    pub fn update(&mut self, dt_secs: f64) {
+    /// returns true if there are still visible particles, false otherwise
+    pub fn update(&mut self, dt_secs: f64) -> bool {
         let mut rng = rand::rng();
 
         for (p, live) in &mut self.rockets {
@@ -124,8 +125,15 @@ impl Sim {
             }
         }
 
+        let mut has_visible_particles = self.rockets.iter().any(|(_, live)| *live);
+
         for p in &mut self.particles {
             p.update(dt_secs);
+            if p.y > 0. {
+                has_visible_particles = true;
+            }
         }
+
+        has_visible_particles
     }
 }

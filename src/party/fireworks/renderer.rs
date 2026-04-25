@@ -1,16 +1,16 @@
 use super::sim::Sim;
 
-pub struct Renderer<'a> {
+pub struct Renderer {
     /// (rows, cols)
     rows: usize,
     cols: usize,
 
-    colors: &'a [&'a str],
+    colors: Vec<String>,
     cell_data: Vec<(u8, usize)>,
 }
 
-impl<'a> Renderer<'a> {
-    pub fn new(rows: usize, cols: usize, colors: &'a [&'a str]) -> Self {
+impl Renderer {
+    pub fn new(rows: usize, cols: usize, colors: Vec<String>) -> Self {
         Self {
             rows,
             cols,
@@ -68,7 +68,7 @@ impl<'a> Renderer<'a> {
             if *b == 0 {
                 output.push(' ');
             } else {
-                output.push_str(self.colors[*color_idx % self.colors.len()]);
+                output.push_str(&self.colors[*color_idx % self.colors.len()]);
                 output.push(char::from_u32(0x2800 | *b as u32).unwrap());
             }
         }

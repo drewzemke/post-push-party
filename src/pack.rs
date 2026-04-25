@@ -103,8 +103,6 @@ impl Pack {
 
 #[cfg(test)]
 mod tests {
-    use crate::party::{BASE, Palette, Party};
-
     use super::*;
 
     struct MockUpgrader<'a> {

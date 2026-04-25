@@ -30,8 +30,8 @@ impl Party for Base {
 
     fn render(&self, ctx: &RenderContext, palette: &Palette) -> bool {
         let offset = palette.random_offset();
-        let color0 = palette.get_ansi_escape(offset);
-        let color1 = palette.get_ansi_escape(offset + 1);
+        let color0 = palette.get_color(offset);
+        let color1 = palette.get_color(offset + 1);
 
         let total = ctx.breakdown.total;
         if total > 0 {
@@ -44,7 +44,7 @@ impl Party for Base {
 
         // print some extra text if this push caused the player to earn packs
         if !ctx.pack_thresholds.is_empty() {
-            let color2 = palette.get_ansi_escape(offset + 2);
+            let color2 = palette.get_color(offset + 2);
             println!();
 
             for threshold in &ctx.pack_thresholds {

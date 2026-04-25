@@ -6,12 +6,13 @@ use crossterm::{
     execute,
     terminal::{Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use tixel::Color;
 
 use super::{renderer::Renderer, sim::Sim};
 
-pub fn run(colors: &[String]) -> anyhow::Result<()> {
+pub fn run(colors: &[Color]) -> anyhow::Result<()> {
     // HACK could probably smooth this out
-    let colors = colors.iter().map(|s| s.as_str()).collect::<Vec<_>>();
+    let colors = colors.iter().map(|s| s.escape_fg()).collect::<Vec<_>>();
 
     // start terminal
     let mut stdout = stdout();
@@ -21,7 +22,7 @@ pub fn run(colors: &[String]) -> anyhow::Result<()> {
 
     let (cols, rows) = crossterm::terminal::size().unwrap();
 
-    let mut renderer = Renderer::new(rows as usize, cols as usize, &colors);
+    let mut renderer = Renderer::new(rows as usize, cols as usize, colors);
     let mut sim = Sim::new(cols as f64, rows as f64 * 2.);
     let mut time = std::time::Instant::now();
 

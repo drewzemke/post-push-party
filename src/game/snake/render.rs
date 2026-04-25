@@ -1,17 +1,20 @@
 use std::fmt::Write as _;
-use tixel::{Color, HalfCellCanvas, write_bg_color, write_fg_color, write_move_to};
+use tixel::{
+    Color, HalfCellCanvas,
+    utils::{write_bg_color, write_fg_color, write_move_to},
+};
 
 use super::{FADE_DUR, Scene, SnakeGame, State};
 
 const BG_COLOR_U8: (u8, u8, u8) = (10, 10, 10);
-const BG_COLOR: Color = Color::new(BG_COLOR_U8.0, BG_COLOR_U8.1, BG_COLOR_U8.2);
+const BG_COLOR: Color = Color::Rgb(BG_COLOR_U8.0, BG_COLOR_U8.1, BG_COLOR_U8.2);
 const FG_COLOR_U8: (u8, u8, u8) = (200, 200, 200);
-const FG_COLOR: Color = Color::new(FG_COLOR_U8.0, FG_COLOR_U8.1, FG_COLOR_U8.2);
+const FG_COLOR: Color = Color::Rgb(FG_COLOR_U8.0, FG_COLOR_U8.1, FG_COLOR_U8.2);
 
 const BOARD_COLOR_U8: (u8, u8, u8) = (20, 20, 20);
-const BOARD_COLOR: Color = Color::new(20, 20, 20);
-const SNAKE_COLOR: Color = Color::new(140, 240, 140);
-const FRUIT_COLOR: Color = Color::new(240, 140, 140);
+const BOARD_COLOR: Color = Color::Rgb(20, 20, 20);
+const SNAKE_COLOR: Color = Color::Rgb(140, 240, 140);
+const FRUIT_COLOR: Color = Color::Rgb(240, 140, 140);
 
 pub fn render(
     scene: &Scene,
@@ -107,7 +110,7 @@ fn lerp_color(color: (u8, u8, u8), bg_color: (u8, u8, u8), opacity: f64) -> Colo
     let r = lerp_u8(color.0, bg_color.0, opacity);
     let g = lerp_u8(color.1, bg_color.1, opacity);
     let b = lerp_u8(color.2, bg_color.2, opacity);
-    Color::new(r, g, b)
+    Color::Rgb(r, g, b)
 }
 
 fn render_food(canvas: &mut HalfCellCanvas, game: &SnakeGame) {

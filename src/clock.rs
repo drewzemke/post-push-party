@@ -37,13 +37,13 @@ impl Clock {
         self.day_id_of(self.now)
     }
 
-    /// the timestamp at the start of the current day
-    pub fn day_start(self, day_id: i64) -> u64 {
-        (Self::SECONDS_PER_DAY * day_id) as u64
+    /// the timestamp at the start of a given day
+    pub fn day_start(&self, day_id: i64) -> u64 {
+        (Self::SECONDS_PER_DAY * day_id - self.tz_offset_secs as i64) as u64
     }
 
     /// the timestamp at the start of the current day
-    pub fn today_start(self) -> u64 {
+    pub fn today_start(&self) -> u64 {
         let today_id = (self.now as i64 + self.tz_offset_secs as i64) / Self::SECONDS_PER_DAY;
         self.day_start(today_id)
     }

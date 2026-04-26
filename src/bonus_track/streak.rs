@@ -203,6 +203,35 @@ mod tests {
     }
 
     #[test]
+    fn applies_with_negative_timezone_offset() {
+        let conn = DbConnection::create_in_memory().unwrap();
+
+        let bonus = Streak;
+        let push = Push::new(vec![Commit::default()]);
+
+        // UTC-6 (e.g. CDMX): 11pm local = 5am UTC the next day
+        let tz_offset: i32 = -21600;
+        let local_11pm = |day: u64| -> u64 {
+            let day_start_utc = (day as i64 * SECONDS_PER_DAY as i64 - tz_offset as i64) as u64;
+            day_start_utc + 23 * 3600
+        };
+
+        let history = PushHistory::new(&conn).with_entries([
+            PushEntry::at(local_11pm(100)),
+            PushEntry::at(local_11pm(101)),
+            PushEntry::at(local_11pm(102)),
+        ]);
+
+        let clock = Clock::with_offset(local_11pm(102), tz_offset);
+        let ctx = PushContext {
+            push: &push,
+            history: &history,
+            clock: &clock,
+        };
+        assert_eq!(bonus.applies(&ctx), 1);
+    }
+
+    #[test]
     fn does_not_apply_to_empty_pushes() {
         let conn = DbConnection::create_in_memory().unwrap();
 

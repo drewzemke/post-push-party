@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.8](https://github.com/drewzemke/post-push-party/compare/v0.1.7...v0.1.8) - 2026-04-26
+
+### Added
+
+- *(party)* show a message in stats party when points earned are most ever
+- *(snake)* enable WASD controls
+- *(snake)* increase initial game speed
+
+### Fixed
+
+- *(bonus-tracks)* fix streak not counting correctly
+
+### Other
+
+- *(fireworks)* use the braille renderer from `tixel`
+- remove internal colors, use those from `tixel`
+- *(deps)* tixel 0.2.0
+- remove obsolete tests
+
 ## [0.1.7](https://github.com/drewzemke/post-push-party/compare/v0.1.6...v0.1.7) - 2026-04-15
 
 ### Added

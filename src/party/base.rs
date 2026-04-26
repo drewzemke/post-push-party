@@ -50,7 +50,9 @@ impl Party for Base {
             for threshold in &ctx.pack_thresholds {
                 let a_pack = bold(format!("{color1}a pack{color0}"));
                 let lifetime_points = bold(format!("{color2}{threshold} lifetime points{color0}"));
-                println!("   {color0}You earned {a_pack} for reaching {lifetime_points}!");
+                println!(
+                    "   {color0}You earned {a_pack} for reaching {lifetime_points}{RESET_COLOR}!"
+                );
             }
         }
 

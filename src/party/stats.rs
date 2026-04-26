@@ -80,34 +80,40 @@ impl Party for Stats {
         ]);
 
         // helper function to print each row of output
-        let print_row = |header: &str, commits: u64, lines: u64, points: u64| {
-            let commit_word = if commits == 1 { "commit" } else { "commits" };
-            let point_word = if points == 1 { "point" } else { "points" };
-            let line_word = if lines == 1 { "line" } else { "lines" };
+        let print_row =
+            |header: &str, commits: u64, lines: u64, points: u64, extra: Option<String>| {
+                let commit_word = if commits == 1 { "commit" } else { "commits" };
+                let point_word = if points == 1 { "point" } else { "points" };
+                let line_word = if lines == 1 { "line" } else { "lines" };
 
-            let header = bold(format!("{header:>wh$}", wh = 10));
-            let commits = format!("{} {commit_word},", green(commits));
-            let lines = format!("{} {line_word} changed,", cyan(lines));
-            let points = format!("{} {point_word}", yellow(points));
+                let header = bold(format!("{header:>wh$}", wh = 10));
+                let commits = format!("{} {commit_word},", green(commits));
+                let lines = format!("{} {line_word} changed,", cyan(lines));
+                let points = format!("{} {point_word}", yellow(points));
 
-            println!(
-                "{header}: {commits:<wc$} {lines:<wl$} {points:<wp$}",
-                wc = w_commits + 19,
-                wl = w_lines + 24,
-                wp = w_points + 6
-            );
-        };
+                let extra = extra.unwrap_or_default();
+
+                println!(
+                    "{header}: {commits:<wc$} {lines:<wl$} {points:<wp$}{extra}",
+                    wc = w_commits + 19,
+                    wl = w_lines + 24,
+                    wp = w_points + 6
+                );
+            };
 
         println!(" Stats");
         println!(" {}", gray("─────"));
 
         // only show the "this push" row if there was more than one commit that counted
         if push_commit_count > 0 {
+            let most_pts_ever = (push_points >= all_time_stats.max_points)
+                .then_some(yellow(" (biggest push ever!)"));
             print_row(
                 "This Push",
                 push_commit_count as u64,
                 push_lines,
                 push_points,
+                most_pts_ever,
             );
         }
 
@@ -116,18 +122,21 @@ impl Party for Stats {
             today_stats.commits,
             today_stats.lines,
             today_stats.points,
+            None,
         );
         print_row(
             "Daily Avg",
             daily_avg_commit_count,
             daily_avg_lines,
             daily_avg_points,
+            None,
         );
         print_row(
             "All Time",
             all_time_stats.commits,
             all_time_stats.lines,
             all_time_stats.points,
+            None,
         );
 
         true

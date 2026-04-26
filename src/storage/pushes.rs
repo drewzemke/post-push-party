@@ -128,15 +128,19 @@ pub struct HistoryStats {
 
     /// how many separate days are represented in the data
     pub active_days: u64,
+
+    // the most points that were scored in a single commit
+    pub max_points: u64,
 }
 
 impl HistoryStats {
-    pub fn new(commits: u64, lines: u64, points: u64, active_days: u64) -> Self {
+    pub fn new(commits: u64, lines: u64, points: u64, active_days: u64, max_points: u64) -> Self {
         Self {
             commits,
             lines,
             points,
             active_days,
+            max_points,
         }
     }
 }
@@ -214,13 +218,14 @@ impl<'a> PushHistory<'a> {
     }
 
     pub fn stats_since(&self, timestamp: u64, tz_offset_secs: i32) -> Result<HistoryStats> {
-        let (commits, lines, points, days) = self.conn.query_one(
+        let (commits, lines, points, days, max_pts) = self.conn.query_one(
             "
                 SELECT 
                     COALESCE( SUM(commits), 0 ),
                     COALESCE( SUM(lines_changed), 0 ),
                     COALESCE( SUM(points_earned), 0 ),
-                    COUNT( DISTINCT (timestamp + ?2) / ?3 )
+                    COUNT( DISTINCT (timestamp + ?2) / ?3 ),
+                    COALESCE( MAX(points_earned), 0 )
                 FROM pushes
                 WHERE timestamp >= ?1
                 ",
@@ -231,6 +236,7 @@ impl<'a> PushHistory<'a> {
                     r.get::<_, i64>(1)?,
                     r.get::<_, i64>(2)?,
                     r.get::<_, i64>(3)?,
+                    r.get::<_, i64>(4)?,
                 ))
             },
         )?;
@@ -240,6 +246,7 @@ impl<'a> PushHistory<'a> {
             lines as u64,
             points as u64,
             days.max(1) as u64,
+            max_pts as u64,
         ))
     }
 
@@ -361,5 +368,6 @@ mod tests {
         assert_eq!(stats.lines, 15);
         assert_eq!(stats.points, 18);
         assert_eq!(stats.active_days, 1);
+        assert_eq!(stats.max_points, 9);
     }
 }

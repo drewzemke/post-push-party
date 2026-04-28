@@ -9,7 +9,7 @@ use crate::tui;
 const POLL_TIME: std::time::Duration = std::time::Duration::from_millis(10);
 
 pub fn run(mut parties: Vec<Box<dyn FullscreenPartyRenderer>>) -> anyhow::Result<()> {
-    tui::enter_tui()?;
+    let _guard = tui::enter_tui()?;
 
     // sort renderers by increasing z-index
     parties.sort_by_key(|party| party.z_index());
@@ -43,6 +43,5 @@ pub fn run(mut parties: Vec<Box<dyn FullscreenPartyRenderer>>) -> anyhow::Result
         }
     }
 
-    tui::leave_tui()?;
     Ok(())
 }

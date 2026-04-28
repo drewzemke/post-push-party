@@ -12,7 +12,7 @@ use crate::{
     scoring,
     state::{self, State},
     storage::{PushEntry, PushHistory},
-    tui::{self, clear_bg_color, enter_tui, leave_tui},
+    tui::{self, clear_bg_color, enter_tui},
 };
 
 pub fn cheat(amount: i64, state: &mut State) {
@@ -151,10 +151,11 @@ pub fn game(game_id: &str) -> Result<()> {
     let state = &mut None;
 
     let mut terminal = tui::get_terminal()?;
-    enter_tui()?;
-    clear_bg_color(game.clear_color())?;
-    game.run(&mut terminal, &mut wallet, state)?;
-    leave_tui()?;
+    {
+        let _guard = enter_tui()?;
+        clear_bg_color(game.clear_color())?;
+        game.run(&mut terminal, &mut wallet, state)?;
+    }
 
     println!("Game '{}' complete.", game.name());
     println!(

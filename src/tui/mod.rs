@@ -52,8 +52,17 @@ pub fn clear_bg_color(color: (u8, u8, u8)) -> Result<()> {
     )?)
 }
 
+/// used to gracefully exit the full screen TUI even in the event of an error
+pub struct TuiGuard;
+
+impl Drop for TuiGuard {
+    fn drop(&mut self) {
+        let _ = leave_tui();
+    }
+}
+
 /// does all the terminal setup to render fullscreen things
-pub fn enter_tui() -> io::Result<()> {
+pub fn enter_tui() -> io::Result<TuiGuard> {
     enable_raw_mode()?;
     execute!(
         io::stdout(),
@@ -61,18 +70,18 @@ pub fn enter_tui() -> io::Result<()> {
         Clear(ClearType::All),
         Hide
     )?;
-    Ok(())
+    Ok(TuiGuard)
 }
 
 /// tears down the fullscreen TUI setup and returns to normal terminal rendering
-pub fn leave_tui() -> io::Result<()> {
+fn leave_tui() -> io::Result<()> {
     execute!(io::stdout(), LeaveAlternateScreen, Show)?;
     disable_raw_mode()?;
     Ok(())
 }
 
 pub fn run(state: &mut State, conn: &DbConnection) -> anyhow::Result<()> {
-    enter_tui()?;
+    let _guard = enter_tui()?;
     let mut terminal = get_terminal()?;
 
     let mut app = App::new(state, conn, terminal.size()?);
@@ -128,6 +137,5 @@ pub fn run(state: &mut State, conn: &DbConnection) -> anyhow::Result<()> {
     }
 
     app.save();
-    leave_tui()?;
     Ok(())
 }

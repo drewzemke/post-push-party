@@ -1,6 +1,7 @@
 mod base;
 mod big_text;
 mod breakdown;
+pub mod compositor;
 mod context;
 mod exclamation;
 mod fireworks;
@@ -9,16 +10,11 @@ mod quotes;
 pub(crate) mod stats;
 mod style;
 
+use anyhow::Result;
 pub use context::RenderContext;
 pub use palette::Palette;
 
-use base::Base;
-use big_text::BigText;
-use breakdown::Breakdown;
-use exclamation::Exclamation;
-use fireworks::Fireworks;
-use quotes::Quotes;
-use stats::Stats;
+pub use fireworks::FIREWORKS_PARTY;
 
 use crate::{party::palette::ALL_PALETTES, state::PaletteSelection};
 
@@ -73,7 +69,7 @@ pub trait FullscreenPartyRenderer {
     /// renders the party to the screen based on its current animation
     /// state. parties should not clear the screen and should only render
     /// to cells that have content, leaving blank space otherwise
-    fn render(&self, buf: &mut String);
+    fn render(&mut self, buf: &mut String);
 }
 
 pub enum PartyRenderer {
@@ -87,7 +83,7 @@ pub enum PartyRenderer {
         /// factory function that's called per party run
         ///
         /// params are (width, height, palette)
-        create: fn(u16, u16, &Palette) -> Box<dyn FullscreenPartyRenderer>,
+        create: fn(u16, u16, &'static Palette) -> Box<dyn FullscreenPartyRenderer>,
     },
 }
 
@@ -97,15 +93,6 @@ pub struct PartyEntry {
     pub renderer: PartyRenderer,
 }
 
-// static instances
-pub static BASE: Base = Base;
-static BIG_TEXT: BigText = BigText;
-static BREAKDOWN: Breakdown = Breakdown;
-static EXCLAMATION: Exclamation = Exclamation;
-static QUOTES: Quotes = Quotes;
-static STATS: Stats = Stats;
-pub static FIREWORKS: Fireworks = Fireworks;
-
 // all parties in order
 pub static ALL_PARTIES: &[&PartyEntry] = &[
     &base::BASE_PARTY,
@@ -114,7 +101,7 @@ pub static ALL_PARTIES: &[&PartyEntry] = &[
     &exclamation::EXCLAMATION_PARTY,
     &big_text::BIG_TEXT_PARTY,
     &quotes::QUOTES_PARTY,
-    // &FIREWORKS,
+    &fireworks::FIREWORKS_PARTY,
 ];
 
 /// chooses a random element of a NONEMPTY list
@@ -132,6 +119,7 @@ pub fn display(ctx: &RenderContext) {
         .filter(|party| ctx.state.is_party_enabled(party.info.id))
         .copied();
 
+    let _ = render_fullscreen_parties(ctx, enabled_parties.clone());
     render_inline_parties(ctx, enabled_parties);
 }
 
@@ -156,6 +144,32 @@ fn render_inline_parties(
             println!();
         }
     }
+}
+
+fn render_fullscreen_parties(
+    ctx: &RenderContext<'_>,
+    enabled_parties: impl Iterator<Item = &'static PartyEntry>,
+) -> Result<()> {
+    let (cols, rows) = crossterm::terminal::size()?;
+
+    // for each fullscreen party, select a palette and create a renderer
+    let parties: Vec<Box<dyn FullscreenPartyRenderer>> = enabled_parties
+        .filter_map(|party| {
+            let PartyRenderer::Fullscreen { create } = party.renderer else {
+                return None;
+            };
+
+            let palette = get_palette(party, ctx);
+            let renderer = create(cols, rows, palette);
+            Some(renderer)
+        })
+        .collect();
+
+    if !parties.is_empty() {
+        compositor::run(parties)?;
+    }
+
+    Ok(())
 }
 
 /// resolves a color for this party based on the user's configuration

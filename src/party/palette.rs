@@ -64,7 +64,7 @@ pub struct Palette {
 }
 
 impl Palette {
-    const fn new(id: &'static str, name: &'static str, colors: &'static [Color]) -> Self {
+    pub const fn new(id: &'static str, name: &'static str, colors: &'static [Color]) -> Self {
         Self { id, name, colors }
     }
 

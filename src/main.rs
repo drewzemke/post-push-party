@@ -57,6 +57,8 @@ fn main() -> anyhow::Result<()> {
         Some(Command::Palette { id }) => dev::palette(&id, &mut state),
         #[cfg(feature = "dev")]
         Some(Command::Game { id }) => dev::game(&id)?,
+        #[cfg(feature = "dev")]
+        Some(Command::Demo { id }) => dev::demo(&id)?,
     }
 
     state.save(&conn)?;

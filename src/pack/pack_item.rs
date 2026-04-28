@@ -1,7 +1,7 @@
 use crate::{
     game::{GameRef, SNAKE},
     pack::Rarity,
-    party::{FIREWORKS, Palette, Party},
+    party::{FIREWORKS_PARTY, Palette},
     state::State,
 };
 
@@ -94,7 +94,7 @@ impl PackItem {
     pub(super) fn common_items(state: &State) -> Vec<Self> {
         state
             .unlocked_parties()
-            .filter(|party| party.info.supports_color && party.info.id != FIREWORKS.id())
+            .filter(|party| party.info.supports_color && party.info.id != FIREWORKS_PARTY.info.id)
             .flat_map(|party| {
                 COMMON_PALETTES
                     .iter()
@@ -119,7 +119,7 @@ impl PackItem {
     fn rare_items(state: &State) -> Vec<Self> {
         let iter = state
             .unlocked_parties()
-            .filter(|party| party.info.supports_color && party.info.id != FIREWORKS.id())
+            .filter(|party| party.info.supports_color && party.info.id != FIREWORKS_PARTY.info.id)
             .flat_map(|party| {
                 RARE_PALETTES
                     .iter()
@@ -139,13 +139,15 @@ impl PackItem {
                 rarity: Rarity::Rare,
             }]);
 
-        if state.is_party_unlocked(FIREWORKS.id()) {
+        if state.is_party_unlocked(FIREWORKS_PARTY.info.id) {
             iter.chain(
                 COMMON_PALETTES
                     .iter()
-                    .filter(|palette| !state.is_palette_unlocked(FIREWORKS.id(), palette.id()))
+                    .filter(|palette| {
+                        !state.is_palette_unlocked(FIREWORKS_PARTY.info.id, palette.id())
+                    })
                     .map(|palette| Self::PaletteUnlock {
-                        party_id: FIREWORKS.id(),
+                        party_id: FIREWORKS_PARTY.info.id,
                         palette_id: palette.id(),
                         rarity: Rarity::Rare,
                     }),
@@ -159,7 +161,7 @@ impl PackItem {
     fn epic_items(state: &State) -> Vec<Self> {
         let iter = state
             .unlocked_parties()
-            .filter(|party| party.info.supports_color && party.info.id != FIREWORKS.id())
+            .filter(|party| party.info.supports_color && party.info.id != FIREWORKS_PARTY.info.id)
             .flat_map(|party| {
                 EPIC_PALETTES
                     .iter()
@@ -179,13 +181,15 @@ impl PackItem {
                 rarity: Rarity::Epic,
             }]);
 
-        if state.is_party_unlocked(FIREWORKS.id()) {
+        if state.is_party_unlocked(FIREWORKS_PARTY.info.id) {
             iter.chain(
                 RARE_PALETTES
                     .iter()
-                    .filter(|palette| !state.is_palette_unlocked(FIREWORKS.id(), palette.id()))
+                    .filter(|palette| {
+                        !state.is_palette_unlocked(FIREWORKS_PARTY.info.id, palette.id())
+                    })
                     .map(|palette| Self::PaletteUnlock {
-                        party_id: FIREWORKS.id(),
+                        party_id: FIREWORKS_PARTY.info.id,
                         palette_id: palette.id(),
                         rarity: Rarity::Epic,
                     }),
@@ -197,12 +201,12 @@ impl PackItem {
     }
 
     fn legendary_items(state: &State) -> Vec<Self> {
-        if state.is_party_unlocked(FIREWORKS.id()) {
+        if state.is_party_unlocked(FIREWORKS_PARTY.info.id) {
             EPIC_PALETTES
                 .iter()
-                .filter(|palette| !state.is_palette_unlocked(FIREWORKS.id(), palette.id()))
+                .filter(|palette| !state.is_palette_unlocked(FIREWORKS_PARTY.info.id, palette.id()))
                 .map(|palette| Self::PaletteUnlock {
-                    party_id: FIREWORKS.id(),
+                    party_id: FIREWORKS_PARTY.info.id,
                     palette_id: palette.id(),
                     rarity: Rarity::Legendary,
                 })

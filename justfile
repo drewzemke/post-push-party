@@ -32,4 +32,4 @@ install:
 
 # tests fireworks party
 fireworks:
-    @cargo run --example fireworks
+    @cargo run --quiet --features dev -- demo fireworks

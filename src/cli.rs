@@ -85,4 +85,11 @@ pub enum Command {
         /// game id
         id: String,
     },
+
+    /// Runs a party (only supports fullscreen parties)
+    #[cfg(feature = "dev")]
+    Demo {
+        /// party id
+        id: String,
+    },
 }

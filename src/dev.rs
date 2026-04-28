@@ -1,4 +1,5 @@
 use anyhow::{Result, anyhow};
+use tixel::Color;
 
 use crate::{
     clock::Clock,
@@ -7,7 +8,7 @@ use crate::{
         wallet::{MemoryWallet, Wallet},
     },
     git::{Commit, Push},
-    party::{self, RenderContext},
+    party::{self, ALL_PARTIES, Palette, PartyRenderer, RenderContext, compositor},
     scoring,
     state::{self, State},
     storage::{PushEntry, PushHistory},
@@ -163,6 +164,39 @@ pub fn game(game_id: &str) -> Result<()> {
     if let Some(state) = state {
         println!("Final game state: {state}");
     }
+
+    Ok(())
+}
+
+pub fn demo(party_id: &str) -> Result<()> {
+    static DEMO_PALETTE: &Palette = &Palette::new(
+        "demo",
+        "Demo",
+        &[
+            Color::Rgb(240, 80, 240),
+            Color::Rgb(80, 240, 240),
+            Color::Rgb(240, 240, 240),
+            Color::Rgb(240, 240, 80),
+        ],
+    );
+
+    let Some(party) = ALL_PARTIES.iter().find(|p| p.info.id == party_id) else {
+        eprintln!("unknown party: {}", party_id);
+        eprintln!(
+            "available: {:?}",
+            ALL_PARTIES.iter().map(|p| p.info.id).collect::<Vec<_>>()
+        );
+        std::process::exit(1);
+    };
+
+    let PartyRenderer::Fullscreen { create } = party.renderer else {
+        eprintln!("only fullscreen parties can be demo'd");
+        std::process::exit(1);
+    };
+
+    let (cols, rows) = crossterm::terminal::size()?;
+    let renderer = create(cols, rows, DEMO_PALETTE);
+    compositor::run(vec![renderer])?;
 
     Ok(())
 }

@@ -8,7 +8,7 @@ use crossterm::{
 };
 use tixel::{BrailleCanvas, Color};
 
-use crate::party::fireworks::sim::Sim;
+use crate::party::fireworks::sim::FireworksSim;
 
 const POLL_TIME: std::time::Duration = std::time::Duration::from_millis(10);
 
@@ -25,7 +25,7 @@ pub fn run(colors: &[Color]) -> anyhow::Result<()> {
     let height = canvas.height() as f64;
     let width = canvas.width() as f64;
 
-    let mut sim = Sim::new(width, height);
+    let mut sim = FireworksSim::new(width, height);
 
     let mut time = std::time::Instant::now();
 

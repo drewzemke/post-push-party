@@ -41,7 +41,7 @@ impl Particle {
     }
 }
 
-pub struct Sim {
+pub struct FireworksSim {
     /// (width, height)
     #[expect(dead_code)]
     dims: (f64, f64),
@@ -54,7 +54,7 @@ pub struct Sim {
     particles: Vec<Particle>,
 }
 
-impl Sim {
+impl FireworksSim {
     pub fn new(width: f64, height: f64) -> Self {
         // how high we want the particles to go before stopping
         let max_height = (2. / 3.) * height;

@@ -52,6 +52,7 @@ pub fn clear_bg_color(color: (u8, u8, u8)) -> Result<()> {
     )?)
 }
 
+/// does all the terminal setup to render fullscreen things
 pub fn enter_tui() -> io::Result<()> {
     enable_raw_mode()?;
     execute!(
@@ -63,6 +64,7 @@ pub fn enter_tui() -> io::Result<()> {
     Ok(())
 }
 
+/// tears down the fullscreen TUI setup and returns to normal terminal rendering
 pub fn leave_tui() -> io::Result<()> {
     execute!(io::stdout(), LeaveAlternateScreen, Show)?;
     disable_raw_mode()?;

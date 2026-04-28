@@ -143,7 +143,7 @@ impl View for PackRevealView {
                 ) => {
                     let party = ALL_PARTIES
                         .iter()
-                        .find(|p| p.id() == *party_id)
+                        .find(|p| p.info.id == *party_id)
                         .expect("party should exist");
                     let palette = ALL_PALETTES
                         .iter()
@@ -153,7 +153,7 @@ impl View for PackRevealView {
                         "You unlocked the ".dim(),
                         palette.name().bold(),
                         " palette for the ".dim(),
-                        party.name().bold(),
+                        party.info.name.bold(),
                         "!".dim(),
                     ])
                 }

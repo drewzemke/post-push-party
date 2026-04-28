@@ -1,3 +1,5 @@
+use crate::party::{PartyEntry, PartyInfo, PartyRenderer};
+
 use super::{
     Palette, Party, RenderContext, random_pick,
     style::{RESET_COLOR, italic, white},
@@ -118,4 +120,31 @@ impl Party for Quotes {
 
         true
     }
+}
+
+pub static QUOTES_PARTY: PartyEntry = PartyEntry {
+    info: PartyInfo {
+        id: "quotes",
+        name: "Quotes Party",
+        description: "Shares a nerdy quote after you push.",
+        cost: 1000,
+        supports_color: true,
+    },
+    renderer: PartyRenderer::Inline { render },
+};
+
+fn render(ctx: &RenderContext, palette: &Palette) -> bool {
+    let offset = palette.random_offset();
+    let color0 = palette.get_color(offset);
+    let color1 = palette.get_color(offset + 1);
+
+    let (quote, author) = random_pick(QUOTES);
+
+    // FIXME: print this out more intelligently so that it word-wraps
+    // in the terminal
+    let quote = italic(format!("\"{quote}\""));
+    let hyphen = white('—');
+    println!("{color0}{quote} {hyphen} {color1}{author}{RESET_COLOR}");
+
+    true
 }

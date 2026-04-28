@@ -94,13 +94,13 @@ impl PackItem {
     pub(super) fn common_items(state: &State) -> Vec<Self> {
         state
             .unlocked_parties()
-            .filter(|party| party.supports_color() && party.id() != FIREWORKS.id())
+            .filter(|party| party.info.supports_color && party.info.id != FIREWORKS.id())
             .flat_map(|party| {
                 COMMON_PALETTES
                     .iter()
-                    .filter(|palette| !state.is_palette_unlocked(party.id(), palette.id()))
+                    .filter(|palette| !state.is_palette_unlocked(party.info.id, palette.id()))
                     .map(|palette| Self::PaletteUnlock {
-                        party_id: party.id(),
+                        party_id: party.info.id,
                         palette_id: palette.id(),
                         rarity: Rarity::Common,
                     })
@@ -119,13 +119,13 @@ impl PackItem {
     fn rare_items(state: &State) -> Vec<Self> {
         let iter = state
             .unlocked_parties()
-            .filter(|party| party.supports_color() && party.id() != FIREWORKS.id())
+            .filter(|party| party.info.supports_color && party.info.id != FIREWORKS.id())
             .flat_map(|party| {
                 RARE_PALETTES
                     .iter()
-                    .filter(|palette| !state.is_palette_unlocked(party.id(), palette.id()))
+                    .filter(|palette| !state.is_palette_unlocked(party.info.id, palette.id()))
                     .map(|palette| Self::PaletteUnlock {
-                        party_id: party.id(),
+                        party_id: party.info.id,
                         palette_id: palette.id(),
                         rarity: Rarity::Rare,
                     })
@@ -159,13 +159,13 @@ impl PackItem {
     fn epic_items(state: &State) -> Vec<Self> {
         let iter = state
             .unlocked_parties()
-            .filter(|party| party.supports_color() && party.id() != FIREWORKS.id())
+            .filter(|party| party.info.supports_color && party.info.id != FIREWORKS.id())
             .flat_map(|party| {
                 EPIC_PALETTES
                     .iter()
-                    .filter(|palette| !state.is_palette_unlocked(party.id(), palette.id()))
+                    .filter(|palette| !state.is_palette_unlocked(party.info.id, palette.id()))
                     .map(|palette| Self::PaletteUnlock {
-                        party_id: party.id(),
+                        party_id: party.info.id,
                         palette_id: palette.id(),
                         rarity: Rarity::Epic,
                     })

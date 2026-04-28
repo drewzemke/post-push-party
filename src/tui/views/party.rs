@@ -4,7 +4,7 @@ use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Padding, Paragraph, Wrap};
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
-use crate::party::Party;
+use crate::party::PartyEntry;
 use crate::state::State;
 use crate::tui::widgets::{PaletteSelector, ShimmerBlock};
 
@@ -16,7 +16,7 @@ const PALETTE_SELECTOR_WIDTH: u16 = 22;
 
 struct PartyItem<'a> {
     /// the party being detailed
-    party: &'static dyn Party,
+    party: &'static PartyEntry,
 
     /// whether this party is enabled in user's state
     enabled: bool,
@@ -39,7 +39,7 @@ struct PartyItem<'a> {
 
 impl<'a> PartyItem<'a> {
     fn new(
-        party: &'static dyn Party,
+        party: &'static PartyEntry,
         enabled: bool,
         selected: bool,
         selecting_palette: bool,
@@ -99,7 +99,7 @@ impl<'a> Widget for PartyItem<'a> {
             ("✗".fg(Color::Red).dim(), "Disabled".dark_gray())
         };
         let title_and_status = Line::from(vec![
-            self.party.name().reset().bold(),
+            self.party.info.name.reset().bold(),
             " (".dark_gray().dim(),
             status_symbol,
             " ".into(),
@@ -110,7 +110,8 @@ impl<'a> Widget for PartyItem<'a> {
         title_and_status.render(top, buf);
 
         // description
-        let desc = Paragraph::new(self.party.description().reset().dim()).wrap(Wrap { trim: true });
+        let desc =
+            Paragraph::new(self.party.info.description.reset().dim()).wrap(Wrap { trim: true });
         desc.render(bottom, buf);
 
         //
@@ -119,7 +120,7 @@ impl<'a> Widget for PartyItem<'a> {
         let Some(palettes) = self.palettes else {
             return;
         };
-        if !self.party.supports_color() || palettes.len() == 1 {
+        if !self.party.info.supports_color || palettes.len() == 1 {
             return;
         }
 
@@ -159,7 +160,7 @@ impl PartyView {
         state.unlocked_parties().count()
     }
 
-    fn selected_party(&self, state: &State) -> Option<&'static dyn Party> {
+    fn selected_party(&self, state: &State) -> Option<&'static PartyEntry> {
         state.unlocked_parties().nth(self.selection)
     }
 
@@ -183,7 +184,7 @@ impl PartyView {
 
     fn palettes_for_selected_party<'b>(&'_ self, state: &'b State) -> Option<&'b Vec<String>> {
         self.selected_party(state)
-            .map(|party| party.id())
+            .map(|party| party.info.id)
             .and_then(|id| state.unlocked_palettes(id))
     }
 }
@@ -200,13 +201,13 @@ impl View for PartyView {
             .horizontal_scrollbar_visibility(ScrollbarVisibility::Never);
 
         for (i, party) in state.unlocked_parties().enumerate() {
-            let enabled = state.is_party_enabled(party.id());
+            let enabled = state.is_party_enabled(party.info.id);
             let selected = self.selection == i;
 
             let (selecting_palette, palette_idx) = match self.mode {
-                Mode::SelectingParty => (false, state.selected_palette_idx(party.id())),
+                Mode::SelectingParty => (false, state.selected_palette_idx(party.info.id)),
                 Mode::SelectingPalette { palette_idx } if selected => (true, palette_idx),
-                Mode::SelectingPalette { .. } => (false, state.selected_palette_idx(party.id())),
+                Mode::SelectingPalette { .. } => (false, state.selected_palette_idx(party.info.id)),
             };
 
             let item = PartyItem::new(
@@ -215,7 +216,7 @@ impl View for PartyView {
                 selected,
                 selecting_palette,
                 palette_idx,
-                state.unlocked_palettes(party.id()),
+                state.unlocked_palettes(party.info.id),
                 tick,
             );
             let item_rect = Rect::new(0, i as u16 * ITEM_HEIGHT, content_width, ITEM_HEIGHT);
@@ -260,13 +261,13 @@ impl View for PartyView {
             }
             (Action::Select, Mode::SelectingParty) => {
                 if let Some(party) = self.selected_party(state) {
-                    state.toggle_party(party.id());
+                    state.toggle_party(party.info.id);
                 }
                 ViewResult::Redraw
             }
             (Action::Select, Mode::SelectingPalette { palette_idx }) => {
                 if let Some(party) = self.selected_party(state) {
-                    state.set_selected_palette(party.id(), palette_idx);
+                    state.set_selected_palette(party.info.id, palette_idx);
                 }
                 self.mode = Mode::SelectingParty;
                 ViewResult::Redraw
@@ -277,11 +278,11 @@ impl View for PartyView {
             }
             (Action::Palette, Mode::SelectingParty) => {
                 if let Some(party) = self.selected_party(state)
-                    && party.supports_color()
-                    && let Some(palettes) = state.unlocked_palettes(party.id())
+                    && party.info.supports_color
+                    && let Some(palettes) = state.unlocked_palettes(party.info.id)
                     && palettes.len() > 1
                 {
-                    let palette_idx = state.selected_palette_idx(party.id());
+                    let palette_idx = state.selected_palette_idx(party.info.id);
                     self.mode = Mode::SelectingPalette { palette_idx };
                 }
                 ViewResult::Redraw

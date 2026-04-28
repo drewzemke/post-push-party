@@ -4,7 +4,7 @@ use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Padding, Paragraph};
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
-use crate::party::{ALL_PARTIES, Party};
+use crate::party::{ALL_PARTIES, PartyEntry};
 use crate::state::State;
 use crate::tui::action::{Action, Route, StoreRoute};
 use crate::tui::views::{MessageType, View, ViewResult};
@@ -14,7 +14,7 @@ const ITEM_HEIGHT: u16 = 4;
 const SCROLL_PADDING: u16 = ITEM_HEIGHT; // keep one item of padding when scrolling
 
 struct PartyListItem {
-    party: &'static dyn Party,
+    party: &'static PartyEntry,
     unlocked: bool,
     affordable: bool,
     selected: bool,
@@ -23,7 +23,7 @@ struct PartyListItem {
 
 impl PartyListItem {
     fn new(
-        party: &'static dyn Party,
+        party: &'static PartyEntry,
         unlocked: bool,
         affordable: bool,
         selected: bool,
@@ -64,7 +64,7 @@ impl Widget for PartyListItem {
         let top_chunks =
             Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).split(chunks[0]);
 
-        let title_text = Text::from(self.party.name()).reset().bold();
+        let title_text = Text::from(self.party.info.name).reset().bold();
         title_text.render(top_chunks[0], buf);
 
         let price_style = if self.unlocked {
@@ -78,7 +78,7 @@ impl Widget for PartyListItem {
         let price_str = if self.unlocked {
             "✓ Owned".to_string()
         } else {
-            format!("{} P", self.party.cost())
+            format!("{} P", self.party.info.cost)
         };
 
         let price_text = Text::from(price_str)
@@ -87,7 +87,7 @@ impl Widget for PartyListItem {
         price_text.render(top_chunks[1], buf);
 
         // bottom line -- just the description
-        let desc_text = Text::from(self.party.description()).reset();
+        let desc_text = Text::from(self.party.info.description).reset();
         desc_text.render(chunks[1], buf);
     }
 }
@@ -101,7 +101,7 @@ pub struct UpgradesView {
 }
 
 impl UpgradesView {
-    fn selected_party(&self) -> Option<&'static dyn Party> {
+    fn selected_party(&self) -> Option<&'static PartyEntry> {
         ALL_PARTIES.get(self.selection).copied()
     }
 
@@ -157,9 +157,9 @@ impl View for UpgradesView {
 
         // render items into scroll view
         for (i, &party) in ALL_PARTIES.iter().enumerate() {
-            let affordable = state.party_points >= party.cost();
+            let affordable = state.party_points >= party.info.cost;
             let selected = self.selection == i;
-            let unlocked = state.is_party_unlocked(party.id());
+            let unlocked = state.is_party_unlocked(party.info.id);
 
             let item = PartyListItem::new(party, unlocked, affordable, selected, tick);
             let item_rect = Rect::new(0, i as u16 * ITEM_HEIGHT, content_width, ITEM_HEIGHT);
@@ -185,19 +185,19 @@ impl View for UpgradesView {
             }
             Action::Select => {
                 if let Some(party) = self.selected_party() {
-                    if state.is_party_unlocked(party.id()) {
+                    if state.is_party_unlocked(party.info.id) {
                         ViewResult::Message(
                             MessageType::Normal,
-                            format!("You already own {}.", party.name()),
+                            format!("You already own {}.", party.info.name),
                         )
                     } else {
-                        let cost = party.cost();
+                        let cost = party.info.cost;
                         if state.party_points >= cost {
                             state.party_points -= cost;
-                            state.unlock_party(party.id());
+                            state.unlock_party(party.info.id);
                             ViewResult::Message(
                                 MessageType::Success,
-                                format!("Unlocked {}!", party.name()),
+                                format!("Unlocked {}!", party.info.name),
                             )
                         } else {
                             ViewResult::Message(

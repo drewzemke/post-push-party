@@ -1,4 +1,7 @@
-use crate::scoring::AppliedBonus;
+use crate::{
+    party::{PartyEntry, PartyInfo, PartyRenderer},
+    scoring::AppliedBonus,
+};
 
 use super::{
     Palette, Party, RenderContext,
@@ -90,4 +93,77 @@ impl Party for Breakdown {
 
         true
     }
+}
+
+pub static BREAKDOWN_PARTY: PartyEntry = PartyEntry {
+    info: PartyInfo {
+        id: "breakdown",
+        name: "Points Breakdown Party",
+        description: "Shows which bonuses applied to your push and how your total was calculated.",
+        cost: 50,
+        supports_color: false,
+    },
+    renderer: PartyRenderer::Inline { render },
+};
+
+fn render(ctx: &RenderContext, palette: &Palette) -> bool {
+    let breakdown = ctx.breakdown;
+
+    // if no points were earned, just say so
+    if breakdown.total == 0 {
+        println!("   {}", dim("(No points earned.)"));
+        return true;
+    }
+
+    let commits = breakdown.commits;
+    let points_per_commit = breakdown.points_per_commit;
+
+    let plus = dim(magenta("+"));
+    let times = dim(magenta("×"));
+
+    //  N commits × M points per commit
+    let commit_word = if commits == 1 { "commit" } else { "commits" };
+    let point_word = if points_per_commit == 1 {
+        "point"
+    } else {
+        "points"
+    };
+
+    let commits = bold(green(commits));
+    let points_per_commit = bold(bright_magenta(points_per_commit));
+    println!("  {commits} {commit_word} {times} {points_per_commit} {point_word} per commit",);
+
+    // flat bonuses first (they add to base)
+    for bonus in &breakdown.applied {
+        if let AppliedBonus::FlatBonus {
+            name,
+            points,
+            count,
+        } = bonus
+        {
+            let extra_words = if *count > 1 {
+                dim(format!(" (applied {count} times)"))
+            } else {
+                String::new()
+            };
+            let points = bold(bright_magenta(points));
+            println!("   {plus} {points} {name}{extra_words}");
+        }
+    }
+
+    // multiplier bonuses (multiply the total)
+    for bonus in &breakdown.applied {
+        if let AppliedBonus::Multiplier { name, value } = bonus {
+            let value = bold(bright_magenta(value));
+            println!("   {times} {value} {name}");
+        }
+    }
+
+    // total
+    let equals = dim("=");
+    let total = bold(bright_yellow(breakdown.total));
+    let p = yellow("P");
+    println!("   {equals} {total} {p}");
+
+    true
 }

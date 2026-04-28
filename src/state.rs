@@ -4,7 +4,7 @@ use crate::{
     bonus_track::{ALL_TRACKS, Reward},
     game::GameRef,
     pack::{Pack, PackItem},
-    party::{ALL_PARTIES, Palette, Party},
+    party::{ALL_PARTIES, Palette, Party, PartyEntry},
     storage::PushHistory,
 };
 
@@ -177,11 +177,11 @@ impl State {
         1
     }
 
-    pub fn unlocked_parties(&self) -> impl Iterator<Item = &'static dyn Party> + use<'_> {
+    pub fn unlocked_parties(&self) -> impl Iterator<Item = &'static PartyEntry> + use<'_> {
         ALL_PARTIES
             .iter()
             .copied()
-            .filter(|&party| self.is_party_unlocked(party.id()))
+            .filter(|&party| self.is_party_unlocked(party.info.id))
     }
 
     pub fn is_party_unlocked(&self, id: &str) -> bool {

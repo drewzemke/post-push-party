@@ -97,13 +97,13 @@ pub fn palette(party_id: &str, state: &mut State) {
     use crate::party::{ALL_PARTIES, palette::ALL_PALETTES};
 
     let ids: Vec<&str> = if party_id == "all" {
-        ALL_PARTIES.iter().map(|p| p.id()).collect()
+        ALL_PARTIES.iter().map(|p| p.info.id).collect()
     } else {
-        if !ALL_PARTIES.iter().any(|p| p.id() == party_id) {
+        if !ALL_PARTIES.iter().any(|p| p.info.id == party_id) {
             eprintln!("unknown party: {}", party_id);
             eprintln!(
                 "available: {:?} (or \"all\")",
-                ALL_PARTIES.iter().map(|p| p.id()).collect::<Vec<_>>()
+                ALL_PARTIES.iter().map(|p| p.info.id).collect::<Vec<_>>()
             );
             std::process::exit(1);
         }
@@ -124,12 +124,12 @@ pub fn party(party_id: &str, state: &mut State) {
     use crate::party::ALL_PARTIES;
 
     // verify party exists
-    let p = ALL_PARTIES.iter().find(|p| p.id() == party_id);
+    let p = ALL_PARTIES.iter().find(|p| p.info.id == party_id);
     if p.is_none() {
         eprintln!("unknown party: {}", party_id);
         eprintln!(
             "available: {:?}",
-            ALL_PARTIES.iter().map(|p| p.id()).collect::<Vec<_>>()
+            ALL_PARTIES.iter().map(|p| p.info.id).collect::<Vec<_>>()
         );
         std::process::exit(1);
     }

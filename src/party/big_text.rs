@@ -1,3 +1,5 @@
+use crate::party::{PartyEntry, PartyInfo, PartyRenderer};
+
 use super::{Palette, Party, RenderContext, random_pick};
 
 /// Prints a random word in large ASCII art letters.
@@ -54,6 +56,43 @@ impl Party for BigText {
 
         true
     }
+}
+
+pub static BIG_TEXT_PARTY: PartyEntry = PartyEntry {
+    info: PartyInfo {
+        id: "big_text",
+        name: "Big Text Party",
+        description: "Shows a random word in big ASCII art letters.",
+        cost: 2000,
+        supports_color: true,
+    },
+    renderer: PartyRenderer::Inline { render },
+};
+
+fn render(ctx: &RenderContext, palette: &Palette) -> bool {
+    let word = random_pick(WORDS);
+    let offset = palette.random_offset();
+
+    // gather lines by scanning through each letter
+    // NOTE: adds a extra space before the word
+    let mut lines = vec![String::from(" "); LETTER_HEIGHT];
+
+    for (idx, ch) in word.chars().enumerate() {
+        let color = palette.get_color(offset + idx);
+        if let Some(letter) = get_letter(ch) {
+            for (i, letter_line) in letter.iter().enumerate() {
+                let segment = format!("{color}{letter_line}{}", &" ".repeat(LETTER_SPACING));
+                lines[i].push_str(&segment);
+            }
+        }
+    }
+
+    // print each line
+    for line in lines {
+        println!("{}", line);
+    }
+
+    true
 }
 
 fn get_letter(ch: char) -> Option<&'static [&'static str; LETTER_HEIGHT]> {

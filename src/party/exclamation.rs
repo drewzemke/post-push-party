@@ -1,7 +1,7 @@
 use crate::party::{PartyEntry, PartyInfo, PartyRenderer};
 
 use super::{
-    Palette, Party, RenderContext, random_pick,
+    Palette, RenderContext, random_pick,
     style::{RESET_COLOR, bold},
 };
 
@@ -18,48 +18,6 @@ const EXCLAMATIONS: &[&str] = &[
 ];
 
 /// prints an emphatic message in all caps
-pub struct Exclamation;
-
-impl Party for Exclamation {
-    fn id(&self) -> &'static str {
-        "exclamation"
-    }
-
-    fn name(&self) -> &'static str {
-        "Exclamation Party"
-    }
-
-    fn description(&self) -> &'static str {
-        "Prints an emphatic all-caps message to celebrate the push."
-    }
-
-    fn cost(&self) -> u64 {
-        200
-    }
-
-    fn supports_color(&self) -> bool {
-        true
-    }
-
-    fn render(&self, _ctx: &RenderContext, palette: &Palette) -> bool {
-        let offset = palette.random_offset();
-        let exclaim = random_pick(EXCLAMATIONS);
-
-        // NOTE: adds a extra space before the word
-        let mut str = String::from(" ");
-
-        for (idx, c) in exclaim.chars().enumerate() {
-            let color = palette.get_color(offset + idx);
-            color.write_fg(&mut str);
-            str.push(c);
-        }
-
-        println!("{}{RESET_COLOR}", bold(str));
-
-        true
-    }
-}
-
 pub static EXCLAMATION_PARTY: PartyEntry = PartyEntry {
     info: PartyInfo {
         id: "exclamation",
@@ -71,7 +29,7 @@ pub static EXCLAMATION_PARTY: PartyEntry = PartyEntry {
     renderer: PartyRenderer::Inline { render },
 };
 
-fn render(ctx: &RenderContext, palette: &Palette) -> bool {
+fn render(_ctx: &RenderContext, palette: &Palette) -> bool {
     let offset = palette.random_offset();
     let exclaim = random_pick(EXCLAMATIONS);
 

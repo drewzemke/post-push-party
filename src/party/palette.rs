@@ -85,10 +85,6 @@ impl Palette {
         rand::rng().random_range(0..self.colors.len())
     }
 
-    pub fn colors(&self) -> &[Color] {
-        self.colors
-    }
-
     pub fn all_ratatui(&self) -> Vec<RatatuiColor> {
         self.colors.iter().map(tixel_to_ratatui).collect()
     }

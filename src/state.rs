@@ -4,7 +4,7 @@ use crate::{
     bonus_track::{ALL_TRACKS, Reward},
     game::GameRef,
     pack::{Pack, PackItem},
-    party::{ALL_PARTIES, Palette, Party, PartyEntry},
+    party::{ALL_PARTIES, Palette, PartyEntry},
     storage::PushHistory,
 };
 
@@ -344,7 +344,7 @@ pub fn stats(state: &State, history: &PushHistory) {
 
     let ctx =
         crate::party::RenderContext::new(&push, history, &breakdown, state, &clock, Vec::new());
-    crate::party::stats::Stats.render(&ctx, &crate::party::Palette::WHITE_ANSI);
+    crate::party::stats::render(&ctx, &crate::party::Palette::WHITE_ANSI);
 }
 
 pub fn dump(state: &State) {

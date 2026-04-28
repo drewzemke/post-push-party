@@ -1,7 +1,7 @@
 use crate::party::{PartyEntry, PartyInfo, PartyRenderer};
 
 use super::{
-    Palette, Party, RenderContext, random_pick,
+    Palette, RenderContext, random_pick,
     style::{RESET_COLOR, italic, white},
 };
 
@@ -81,47 +81,7 @@ const QUOTES: &[(&str, &str)] = &[
     ),
 ];
 
-/// the most basic party that shows how many points were earned
-pub struct Quotes;
-
-impl Party for Quotes {
-    fn id(&self) -> &'static str {
-        "quotes"
-    }
-
-    fn name(&self) -> &'static str {
-        "Quotes Party"
-    }
-
-    fn description(&self) -> &'static str {
-        "Shares a nerdy quote after you push."
-    }
-
-    fn cost(&self) -> u64 {
-        1000
-    }
-
-    fn supports_color(&self) -> bool {
-        true
-    }
-
-    fn render(&self, _ctx: &RenderContext, palette: &Palette) -> bool {
-        let offset = palette.random_offset();
-        let color0 = palette.get_color(offset);
-        let color1 = palette.get_color(offset + 1);
-
-        let (quote, author) = random_pick(QUOTES);
-
-        // FIXME: print this out more intelligently so that it word-wraps
-        // in the terminal
-        let quote = italic(format!("\"{quote}\""));
-        let hyphen = white('—');
-        println!("{color0}{quote} {hyphen} {color1}{author}{RESET_COLOR}");
-
-        true
-    }
-}
-
+/// shows a random quote
 pub static QUOTES_PARTY: PartyEntry = PartyEntry {
     info: PartyInfo {
         id: "quotes",
@@ -133,7 +93,7 @@ pub static QUOTES_PARTY: PartyEntry = PartyEntry {
     renderer: PartyRenderer::Inline { render },
 };
 
-fn render(ctx: &RenderContext, palette: &Palette) -> bool {
+fn render(_ctx: &RenderContext, palette: &Palette) -> bool {
     let offset = palette.random_offset();
     let color0 = palette.get_color(offset);
     let color1 = palette.get_color(offset + 1);

@@ -18,28 +18,7 @@ pub use fireworks::FIREWORKS_PARTY;
 
 use crate::{party::palette::ALL_PALETTES, state::PaletteSelection};
 
-pub trait Party: Sync {
-    /// unique identifier for state storage
-    fn id(&self) -> &'static str;
-
-    /// display name for the UI
-    fn name(&self) -> &'static str;
-
-    /// description for the UI
-    fn description(&self) -> &'static str;
-
-    /// unlock cost
-    fn cost(&self) -> u64;
-
-    /// whether or not the color palette of the output of this party is configurable
-    fn supports_color(&self) -> bool;
-
-    /// prints the output of this party to stdout
-    /// returns whether or not permanent content was printed to the terminal
-    fn render(&self, ctx: &RenderContext, palette: &Palette) -> bool;
-}
-
-/// Metadata about a party
+/// metadata about a party
 pub struct PartyInfo {
     /// unlock cost
     pub cost: u64,

@@ -4,41 +4,12 @@ use crate::party::{
     FullscreenPartyRenderer, PartyEntry, PartyInfo, PartyRenderer, fireworks::sim::FireworksSim,
 };
 
-use super::{Palette, Party, RenderContext};
+use super::Palette;
 
-mod runner;
+// TODO: collapse this into a single module
 mod sim;
 
 /// a full-screen fireworks display
-pub struct Fireworks;
-
-impl Party for Fireworks {
-    fn id(&self) -> &'static str {
-        "fireworks"
-    }
-
-    fn name(&self) -> &'static str {
-        "Fireworks Party"
-    }
-
-    fn description(&self) -> &'static str {
-        "A full-screen fireworks display."
-    }
-
-    fn cost(&self) -> u64 {
-        10_000
-    }
-
-    fn supports_color(&self) -> bool {
-        true
-    }
-
-    fn render(&self, _ctx: &RenderContext, palette: &Palette) -> bool {
-        let _ = runner::run(palette.colors());
-        false
-    }
-}
-
 pub static FIREWORKS_PARTY: PartyEntry = PartyEntry {
     info: PartyInfo {
         id: "fireworks",

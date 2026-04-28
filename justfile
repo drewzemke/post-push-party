@@ -30,6 +30,6 @@ game id:
 install:
     cargo install --path .
 
-# tests fireworks party
-fireworks:
-    @cargo run --quiet --features dev -- demo fireworks
+# tests a fullscreen party
+demo id:
+    @cargo run --quiet --features dev -- demo {{id}}

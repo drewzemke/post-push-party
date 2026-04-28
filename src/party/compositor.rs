@@ -1,6 +1,10 @@
-use std::io::Write;
+use std::io::Write as _;
 
-use crossterm::event::{self, Event};
+use crossterm::{
+    event::{self, Event},
+    execute,
+    terminal::{BeginSynchronizedUpdate, EndSynchronizedUpdate},
+};
 
 use super::FullscreenPartyRenderer;
 use crate::tui;
@@ -24,21 +28,33 @@ pub fn run(mut parties: Vec<Box<dyn FullscreenPartyRenderer>>) -> anyhow::Result
             }
         }
 
-        // update each party
         let dt = time.elapsed();
         time = std::time::Instant::now();
-        let still_going = parties.iter_mut().any(|p| p.update(dt));
+
+        // update each party
+        let mut all_done = true;
+        for party in &mut parties {
+            let still_going = party.update(dt);
+            all_done = all_done && !still_going;
+        }
 
         // create an output string, render each party to it, and print
         // that to the screen
         let mut buf = String::new();
+
+        execute!(std::io::stdout(), BeginSynchronizedUpdate)?;
+
         for party in &mut parties {
             party.render(&mut buf);
         }
-        let _ = std::io::stdout().write_all(buf.as_bytes());
+
+        execute!(std::io::stdout(), EndSynchronizedUpdate)?;
+
+        std::io::stdout().write_all(buf.as_bytes())?;
+        std::io::stdout().flush()?;
 
         // bail if every party is done animating
-        if !still_going {
+        if all_done {
             break;
         }
     }

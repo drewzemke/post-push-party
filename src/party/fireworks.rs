@@ -63,19 +63,17 @@ impl FullscreenPartyRenderer for FireworksRenderer {
             );
         }
 
-        // render to screen
-        // FIXME: need to render without replacing entire string
-        *buf = self.canvas.render();
+        self.canvas.render_to(buf);
     }
 }
 
 const GRAVITY: f64 = -60.;
-const NUM_ROCKETS: usize = 8;
+const NUM_ROCKETS: usize = 7;
 
 const VEL_X_VARIANCE: f64 = 10.;
 const VEL_Y_VARIANCE_RATIO: f64 = 0.2;
 
-const NUM_EXPLOSION_PARTICLES: usize = 300;
+const NUM_EXPLOSION_PARTICLES: usize = 200;
 const EXPLOSION_VEL: f64 = 50.;
 const EXPLOSION_VEL_RANGE: std::ops::Range<f64> = 0.2 * EXPLOSION_VEL..EXPLOSION_VEL;
 

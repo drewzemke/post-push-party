@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.9](https://github.com/drewzemke/post-push-party/compare/v0.1.8...v0.1.9) - 2026-04-29
+
+### Added
+
+- *(party)* big text party now renders full screen
+
+### Fixed
+
+- *(tui)* better error tui management wrt error handling
+
+### Other
+
+- *(party)* move all fireworks code into a single module
+- clean up dead code after party refactor
+- *(party)* implement new party structure for fireworks party
+- *(party)* implement new party structure for inline parties
+
 ## [0.1.8](https://github.com/drewzemke/post-push-party/compare/v0.1.7...v0.1.8) - 2026-04-26
 
 ### Added

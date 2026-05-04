@@ -27,7 +27,7 @@ pub const BASIC_PACK_TEMPLATE: PackTemplate = PackTemplate(&[
 ]);
 
 pub const PREMIUM_PACK_TEMPLATE: PackTemplate =
-    PackTemplate(&[Rarity::Common, Rarity::Rare, Rarity::Epic]);
+    PackTemplate(&[Rarity::Rare, Rarity::Rare, Rarity::Epic]);
 
 impl Pack {
     pub fn cost(&self) -> u64 {

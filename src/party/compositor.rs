@@ -1,4 +1,4 @@
-use std::io::Write as _;
+use std::io::{IsTerminal, Write as _};
 
 use crossterm::{
     event::{self, Event},
@@ -13,6 +13,12 @@ use crate::tui;
 const POLL_TIME: std::time::Duration = std::time::Duration::from_millis(10);
 
 pub fn run(mut parties: Vec<Box<dyn FullscreenPartyRenderer>>) -> anyhow::Result<()> {
+    // make sure if stdout is a TTY. if it isn't (eg. the output of party
+    // is being piped into something), just silently return
+    if !std::io::stdout().is_terminal() {
+        return Ok(());
+    }
+
     let _guard = tui::enter_tui()?;
 
     // sort renderers by increasing z-index

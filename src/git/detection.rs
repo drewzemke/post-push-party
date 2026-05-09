@@ -40,9 +40,12 @@ pub fn get_pushed_commits(branch_refs: &BranchRefsStore, patch_ids: &PatchIdStor
     let mut first_time_branches = Vec::new();
     let mut pushed_branches = Vec::new();
 
+    // get all local branch refs and their shas
+    let local_refs = git::commands::get_all_local_refs(&repo_path);
+
     for (branch, new_sha) in &current_refs {
-        let local_sha = git::commands::get_local_ref(&repo_path, branch);
-        if local_sha.as_ref() != Some(new_sha) {
+        let local_sha = local_refs.get(branch);
+        if local_sha != Some(new_sha) {
             continue; // fetch, not push
         }
         let old_sha = branch_refs.get_ref(&remote_url, branch).ok()?;

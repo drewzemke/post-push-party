@@ -17,42 +17,60 @@ pub fn get_all_remote_refs(repo_path: &Path) -> HashMap<String, String> {
 
     let mut refs = HashMap::new();
     if let Some(output) = output
-        && output.status.success() {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            for line in stdout.lines() {
-                // format: "origin/main abc123..."
-                let parts: Vec<&str> = line.split_whitespace().collect();
-                if parts.len() >= 2 {
-                    // strip "origin/" prefix
-                    if let Some(branch) = parts[0].strip_prefix("origin/") {
-                        // skip HEAD
-                        if branch != "HEAD" {
-                            refs.insert(branch.to_string(), parts[1].to_string());
-                        }
+        && output.status.success()
+    {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        for line in stdout.lines() {
+            // format: "origin/main abc123..."
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() >= 2 {
+                // strip "origin/" prefix
+                if let Some(branch) = parts[0].strip_prefix("origin/") {
+                    // skip HEAD
+                    if branch != "HEAD" {
+                        refs.insert(branch.to_string(), parts[1].to_string());
                     }
                 }
             }
         }
+    }
+    refs
+}
+
+/// Returns all local tracking branches and their SHAs.
+/// e.g., {"main" => "abc123", "feature" => "def456"}
+pub fn get_all_local_refs(repo_path: &Path) -> HashMap<String, String> {
+    let output = Command::new("git")
+        .args([
+            "for-each-ref",
+            "--format=%(refname:short) %(objectname)",
+            "refs/heads",
+        ])
+        .current_dir(repo_path)
+        .output()
+        .ok();
+
+    let mut refs = HashMap::new();
+    if let Some(output) = output
+        && output.status.success()
+    {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        for line in stdout.lines() {
+            // format: "branch-name abc123..."
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() >= 2 {
+                let branch = parts[0];
+                let sha = parts[1];
+                refs.insert(branch.to_string(), sha.to_string());
+            }
+        }
+    }
     refs
 }
 
 pub fn get_remote_url(repo_path: &Path) -> Option<String> {
     let output = Command::new("git")
         .args(["remote", "get-url", "origin"])
-        .current_dir(repo_path)
-        .output()
-        .ok()?;
-
-    if output.status.success() {
-        Some(String::from_utf8_lossy(&output.stdout).trim().to_string())
-    } else {
-        None
-    }
-}
-
-pub fn get_local_ref(repo_path: &Path, branch: &str) -> Option<String> {
-    let output = Command::new("git")
-        .args(["rev-parse", &format!("refs/heads/{branch}")])
         .current_dir(repo_path)
         .output()
         .ok()?;
@@ -124,9 +142,10 @@ pub fn is_reachable_from_other_remote(
             .output();
 
         if let Ok(o) = result
-            && o.status.success() {
-                return true;
-            }
+            && o.status.success()
+        {
+            return true;
+        }
     }
 
     false
@@ -237,6 +256,7 @@ pub fn get_patch_id(repo_path: &Path, sha: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
     use std::fs;
     use std::process::Command;
     use std::sync::atomic::{AtomicU64, Ordering};
@@ -301,6 +321,14 @@ mod tests {
                 .unwrap();
 
             String::from_utf8_lossy(&output.stdout).trim().to_string()
+        }
+
+        fn checkout(&self, branch: &str) {
+            Command::new("git")
+                .args(["checkout", "-b", branch])
+                .current_dir(&self.path)
+                .output()
+                .unwrap();
         }
     }
 
@@ -368,5 +396,31 @@ mod tests {
 
         let lines = get_lines_changed(&repo.path, "invalid-sha");
         assert_eq!(lines, None);
+    }
+
+    #[test]
+    fn test_get_all_local_refs() {
+        let repo = TestRepo::new();
+
+        repo.write_file("test0.txt", "content\n");
+        repo.commit("commit0");
+
+        repo.checkout("test-branch1");
+        repo.write_file("test1.txt", "content\n");
+        repo.commit("commit1");
+
+        repo.checkout("test-branch2");
+        repo.write_file("test2.txt", "content\n");
+        repo.commit("commit2");
+
+        let local_refs = get_all_local_refs(&repo.path);
+        assert_eq!(
+            local_refs.keys().collect::<HashSet<_>>(),
+            HashSet::from([
+                &"main".to_string(),
+                &"test-branch1".to_string(),
+                &"test-branch2".to_string()
+            ])
+        )
     }
 }

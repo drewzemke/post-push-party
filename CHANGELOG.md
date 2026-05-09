@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.10](https://github.com/drewzemke/post-push-party/compare/v0.1.9...v0.1.10) - 2026-05-09
+
+### Added
+
+- *(pack)* better rarity template in premium pack
+
+### Fixed
+
+- *(hook)* adjust test to accomodate different default branch names
+- *(hook)* get local git refs all at once rather than one git call per each
+- *(party)* don't show full-screen parties if stdout is not a TTY
+
 ## [0.1.9](https://github.com/drewzemke/post-push-party/compare/v0.1.8...v0.1.9) - 2026-04-29
 
 ### Added

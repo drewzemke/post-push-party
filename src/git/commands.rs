@@ -323,6 +323,16 @@ mod tests {
             String::from_utf8_lossy(&output.stdout).trim().to_string()
         }
 
+        fn current_branch_name(&self) -> String {
+            let output = Command::new("git")
+                .args(["rev-parse", "--abbrev-ref", "HEAD"])
+                .current_dir(&self.path)
+                .output()
+                .unwrap();
+
+            String::from_utf8_lossy(&output.stdout).trim().to_string()
+        }
+
         fn checkout(&self, branch: &str) {
             Command::new("git")
                 .args(["checkout", "-b", branch])
@@ -405,6 +415,9 @@ mod tests {
         repo.write_file("test0.txt", "content\n");
         repo.commit("commit0");
 
+        // we have to do this after the first commit otherwise we get nothing
+        let default_branch_name = repo.current_branch_name();
+
         repo.checkout("test-branch1");
         repo.write_file("test1.txt", "content\n");
         repo.commit("commit1");
@@ -417,7 +430,7 @@ mod tests {
         assert_eq!(
             local_refs.keys().collect::<HashSet<_>>(),
             HashSet::from([
-                &"main".to_string(),
+                &default_branch_name,
                 &"test-branch1".to_string(),
                 &"test-branch2".to_string()
             ])

@@ -149,15 +149,19 @@ mod tests {
         let history = PushHistory::new(&conn);
 
         let mut state = State::default();
-        state.set_bonus_level("first_push", 1);
-        state.set_bonus_level("one_line_change", 1);
+        state.set_bonus_level("weekend_push", 1); // multiplier
+        state.set_bonus_level("one_line_change", 1); // flat bonus
 
         // 2 commits, 1 qualifies for sniper
         let push = Push::new(vec![Commit::with_lines(1), Commit::with_lines(10)]);
 
-        let result = calculate_points(&push, &state, &history, &Clock::at(1000));
+        // push qualifies for weekend warrior
+        const SUN_11PM_LOCAL: u64 = 1770015600;
+        const UTC_MINUS_8: i32 = -8 * 3600; // PST
+        let clock = Clock::with_offset(SUN_11PM_LOCAL, UTC_MINUS_8);
+        let result = calculate_points(&push, &state, &history, &clock);
 
-        let mult = get_multiplier("first_push", 1);
+        let mult = get_multiplier("weekend_push", 1);
         let flat = get_flat("one_line_change", 1);
         assert_eq!(result.total, (2 + flat) * mult);
     }

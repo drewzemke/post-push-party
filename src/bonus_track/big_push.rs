@@ -1,6 +1,5 @@
 use super::{BonusTrack, PushContext, Reward, Tier};
 
-/// bonus for pushing a lot of commits at once
 pub struct BigPush;
 
 /// how many commits is considered "big"
@@ -9,23 +8,23 @@ const BIG_PUSH_COMMIT_COUNT: usize = 10;
 static TIERS: &[Tier] = &[
     Tier {
         cost: 50,
-        reward: Reward::Multiplier(2),
+        reward: Reward::FlatPoints(10),
     },
     Tier {
         cost: 500,
-        reward: Reward::Multiplier(3),
+        reward: Reward::FlatPoints(20),
     },
     Tier {
         cost: 3000,
-        reward: Reward::Multiplier(4),
+        reward: Reward::FlatPoints(50),
     },
     Tier {
         cost: 20000,
-        reward: Reward::Multiplier(5),
+        reward: Reward::FlatPoints(100),
     },
     Tier {
         cost: 120000,
-        reward: Reward::Multiplier(6),
+        reward: Reward::FlatPoints(200),
     },
 ];
 
@@ -40,7 +39,7 @@ impl BonusTrack for BigPush {
 
     fn description(&self) -> &'static str {
         // NOTE: gotta keep this in sync with BIG_PUSH_COMMIT_COUNT above
-        "Multiplier for pushing 10+ commits at once."
+        "More points for pushing 10+ commits at once."
     }
 
     fn tiers(&self) -> &'static [Tier] {

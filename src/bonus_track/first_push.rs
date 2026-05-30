@@ -1,28 +1,27 @@
 use super::{BonusTrack, PushContext, Reward, Tier};
 
-/// bonus for the first push of each calendar day
 pub struct FirstPush;
 
 static TIERS: &[Tier] = &[
     Tier {
         cost: 50,
-        reward: Reward::Multiplier(2),
+        reward: Reward::FlatPoints(5),
     },
     Tier {
         cost: 500,
-        reward: Reward::Multiplier(3),
+        reward: Reward::FlatPoints(10),
     },
     Tier {
         cost: 3000,
-        reward: Reward::Multiplier(4),
+        reward: Reward::FlatPoints(20),
     },
     Tier {
         cost: 20000,
-        reward: Reward::Multiplier(5),
+        reward: Reward::FlatPoints(50),
     },
     Tier {
         cost: 120000,
-        reward: Reward::Multiplier(6),
+        reward: Reward::FlatPoints(100),
     },
 ];
 
@@ -36,7 +35,7 @@ impl BonusTrack for FirstPush {
     }
 
     fn description(&self) -> &'static str {
-        "Multiplier for your first push each day."
+        "Some bonus points for your first push each day."
     }
 
     fn tiers(&self) -> &'static [Tier] {

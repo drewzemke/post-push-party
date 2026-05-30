@@ -1,6 +1,7 @@
 mod big_push;
 mod commit_value;
 mod context;
+mod early_push;
 mod first_push;
 mod friday_afternoon_push;
 mod many_lines_changed;
@@ -15,6 +16,7 @@ pub use context::PushContext;
 
 use big_push::BigPush;
 use commit_value::CommitValue;
+use early_push::EarlyPush;
 use first_push::FirstPush;
 use friday_afternoon_push::FridayAfternoon;
 use many_lines_changed::ManyLinesChanged;
@@ -71,6 +73,7 @@ pub trait BonusTrack: Sync {
 // static instances for ALL_TRACKS
 static BIG_PUSH: BigPush = BigPush;
 pub static COMMIT_VALUE: CommitValue = CommitValue;
+static EARLY_PUSH: EarlyPush = EarlyPush;
 static FIRST_PUSH: FirstPush = FirstPush;
 static FRIDAY_AFTERNOON: FridayAfternoon = FridayAfternoon;
 static MANY_LINES_CHANGED: ManyLinesChanged = ManyLinesChanged;
@@ -90,6 +93,7 @@ pub static ALL_TRACKS: &[&'static dyn BonusTrack] = &[
     &ONE_LINE_CHANGE,
     &MANY_LINES_CHANGED,
     &STREAK,
+    &EARLY_PUSH,
     &WEEKEND_PUSH,
     &FRIDAY_AFTERNOON,
 ];

@@ -1,4 +1,4 @@
-pub struct FridayAfternoon;
+pub struct EarlyPush;
 
 use super::{BonusTrack, PushContext, Reward, Tier};
 
@@ -25,17 +25,17 @@ static TIERS: &[Tier] = &[
     },
 ];
 
-impl BonusTrack for FridayAfternoon {
+impl BonusTrack for EarlyPush {
     fn id(&self) -> &'static str {
-        "friday_afternoon"
+        "early_push"
     }
 
     fn name(&self) -> &'static str {
-        "Friday Afternoon Deploy"
+        "Early Bird"
     }
 
     fn description(&self) -> &'static str {
-        "Multiplier for daring to push code on Friday after 3pm."
+        "Multiplier for waking up and pushing code before 9am."
     }
 
     fn tiers(&self) -> &'static [Tier] {
@@ -43,13 +43,13 @@ impl BonusTrack for FridayAfternoon {
     }
 
     fn applies(&self, ctx: &PushContext) -> u32 {
-        const FRIDAY: i64 = 1;
-        const THREE_PM: i64 = 15 * 3600;
+        const SIX_AM: i64 = 6 * 3600;
+        const NINE_AM: i64 = 9 * 3600;
 
-        let is_friday = ctx.clock.day_of_week() == FRIDAY;
-        let is_afternoon = ctx.clock.local_seconds_since_midnight() >= THREE_PM;
+        let after_six = ctx.clock.local_seconds_since_midnight() >= SIX_AM;
+        let before_nine = ctx.clock.local_seconds_since_midnight() <= NINE_AM;
 
-        if is_friday && is_afternoon && !ctx.push.commits().is_empty() {
+        if after_six && before_nine && !ctx.push.commits().is_empty() {
             1
         } else {
             0
@@ -68,25 +68,24 @@ mod tests {
 
     const UTC_MINUS_8: i32 = -8 * 3600; // PST
 
-    // day 20483 is a Friday (20483 % 7 = 1)
     // day 20483 midnight UTC = 1769731200
-    // Friday midnight PST = Friday 8am UTC = 1769731200 + 28800 = 1769760000
-    const FRIDAY_MIDNIGHT_PST_AS_UTC: u64 = 1769760000;
+    // day 20483 PST = 1769731200 + 28800 = 1769760000
+    const MIDNIGHT_PST_AS_UTC: u64 = 1769760000;
 
     fn clock_at_hour(hour: u64) -> Clock {
-        Clock::with_offset(FRIDAY_MIDNIGHT_PST_AS_UTC + hour * 3600, UTC_MINUS_8)
+        Clock::with_offset(MIDNIGHT_PST_AS_UTC + hour * 3600, UTC_MINUS_8)
     }
 
     #[test]
-    fn applies_on_friday_after_3pm() {
+    fn applies_between_6_and_9am() {
         let conn = DbConnection::create_in_memory().unwrap();
 
-        let bonus = FridayAfternoon;
+        let bonus = EarlyPush;
         let history = PushHistory::new(&conn);
 
-        // exactly 3pm
+        // exactly 6am
         let push = Push::new(vec![Commit::default()]);
-        let clock = clock_at_hour(15);
+        let clock = clock_at_hour(6);
         let ctx = PushContext {
             push: &push,
             history: &history,
@@ -94,8 +93,8 @@ mod tests {
         };
         assert_eq!(bonus.applies(&ctx), 1);
 
-        // 4pm
-        let clock = clock_at_hour(16);
+        // 7am
+        let clock = clock_at_hour(7);
         let ctx = PushContext {
             push: &push,
             history: &history,
@@ -103,8 +102,8 @@ mod tests {
         };
         assert_eq!(bonus.applies(&ctx), 1);
 
-        // 11pm
-        let clock = clock_at_hour(23);
+        // 9am
+        let clock = clock_at_hour(9);
         let ctx = PushContext {
             push: &push,
             history: &history,
@@ -114,15 +113,15 @@ mod tests {
     }
 
     #[test]
-    fn does_not_apply_before_3pm() {
+    fn does_not_apply_outside_6_to_9am() {
         let conn = DbConnection::create_in_memory().unwrap();
 
-        let bonus = FridayAfternoon;
+        let bonus = EarlyPush;
         let push = Push::new(vec![Commit::default()]);
         let history = PushHistory::new(&conn);
 
-        // midnight
-        let clock = clock_at_hour(0);
+        // 5am
+        let clock = clock_at_hour(5);
         let ctx = PushContext {
             push: &push,
             history: &history,
@@ -130,45 +129,12 @@ mod tests {
         };
         assert_eq!(bonus.applies(&ctx), 0);
 
-        // 2pm (just before cutoff)
-        let clock = clock_at_hour(14);
+        // 10am
+        let clock = clock_at_hour(10);
         let ctx = PushContext {
             push: &push,
             history: &history,
             clock: &clock,
-        };
-        assert_eq!(bonus.applies(&ctx), 0);
-    }
-
-    #[test]
-    fn does_not_apply_on_other_days() {
-        let conn = DbConnection::create_in_memory().unwrap();
-
-        let bonus = FridayAfternoon;
-        let push = Push::new(vec![Commit::default()]);
-        let history = PushHistory::new(&conn);
-
-        // Saturday 4pm (day after)
-        let saturday_4pm = Clock::with_offset(
-            FRIDAY_MIDNIGHT_PST_AS_UTC + 24 * 3600 + 16 * 3600,
-            UTC_MINUS_8,
-        );
-        let ctx = PushContext {
-            push: &push,
-            history: &history,
-            clock: &saturday_4pm,
-        };
-        assert_eq!(bonus.applies(&ctx), 0);
-
-        // Thursday 4pm (day before)
-        let thursday_4pm = Clock::with_offset(
-            FRIDAY_MIDNIGHT_PST_AS_UTC - 24 * 3600 + 16 * 3600,
-            UTC_MINUS_8,
-        );
-        let ctx = PushContext {
-            push: &push,
-            history: &history,
-            clock: &thursday_4pm,
         };
         assert_eq!(bonus.applies(&ctx), 0);
     }
@@ -177,10 +143,10 @@ mod tests {
     fn does_not_apply_to_empty_pushes() {
         let conn = DbConnection::create_in_memory().unwrap();
 
-        let bonus = FridayAfternoon;
+        let bonus = EarlyPush;
         let push = Push::new(vec![]);
         let history = PushHistory::new(&conn);
-        let clock = clock_at_hour(16);
+        let clock = clock_at_hour(8);
         let ctx = PushContext {
             push: &push,
             history: &history,

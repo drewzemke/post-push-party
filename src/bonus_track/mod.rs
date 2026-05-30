@@ -4,6 +4,7 @@ mod context;
 mod early_push;
 mod first_push;
 mod friday_afternoon_push;
+mod late_push;
 mod many_lines_changed;
 mod multiple_repos;
 mod one_line_change;
@@ -19,6 +20,7 @@ use commit_value::CommitValue;
 use early_push::EarlyPush;
 use first_push::FirstPush;
 use friday_afternoon_push::FridayAfternoon;
+use late_push::LatePush;
 use many_lines_changed::ManyLinesChanged;
 use multiple_repos::MultipleRepos;
 use one_line_change::OneLineChange;
@@ -76,6 +78,7 @@ pub static COMMIT_VALUE: CommitValue = CommitValue;
 static EARLY_PUSH: EarlyPush = EarlyPush;
 static FIRST_PUSH: FirstPush = FirstPush;
 static FRIDAY_AFTERNOON: FridayAfternoon = FridayAfternoon;
+static LATE_PUSH: LatePush = LatePush;
 static MANY_LINES_CHANGED: ManyLinesChanged = ManyLinesChanged;
 static MULTIPLE_REPOS: MultipleRepos = MultipleRepos;
 static ONE_LINE_CHANGE: OneLineChange = OneLineChange;
@@ -94,6 +97,7 @@ pub static ALL_TRACKS: &[&'static dyn BonusTrack] = &[
     &MANY_LINES_CHANGED,
     &STREAK,
     &EARLY_PUSH,
-    &WEEKEND_PUSH,
+    &LATE_PUSH,
     &FRIDAY_AFTERNOON,
+    &WEEKEND_PUSH,
 ];

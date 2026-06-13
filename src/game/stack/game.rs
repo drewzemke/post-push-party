@@ -10,6 +10,11 @@ pub const HUE_STEP: f64 = 10.;
 const FLASH_COUNT: usize = 6;
 const FLASH_DURATION: Duration = Duration::from_millis(800);
 
+/// how far (in cells) the bar can be from a perfect alignment and still snap
+/// to one, measured at the full initial bar width. the tolerance scales down
+/// with the bar's width so late-game perfects are still hard.
+const PERFECT_THRESHOLD: f64 = 1.0;
+
 /// computes the left and right column bounds of the game area, centered in `cols`
 pub fn game_bounds(cols: usize) -> (usize, usize) {
     let left = cols.saturating_sub(GAME_WIDTH) / 2;
@@ -177,6 +182,18 @@ impl StackGame {
             .last()
             .cloned()
             .unwrap_or_else(|| self.default_bar(0));
+
+        // forgiveness: if we're close enough to a perfect alignment, snap the
+        // bar exactly onto the one below so the cut lands clean. the moving bar
+        // and the top bar always share a width, so the misalignment is just the
+        // gap between their left edges. the tolerance scales with the bar width
+        // so the slop stays proportional as bars get narrower
+        let tolerance = PERFECT_THRESHOLD * (top_bar.width / INITIAL_BAR_WIDTH);
+        let offset = self.current.quantized_left() - top_bar.quantized_left();
+        if offset.abs() <= tolerance {
+            self.current.pos = top_bar.pos;
+            self.current.width = top_bar.width;
+        }
 
         let Some(intersection) = self.current.intersect(&top_bar) else {
             return CutResult::Miss;

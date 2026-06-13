@@ -75,10 +75,10 @@ impl Bar {
     /// returns None if there's no intersection
     /// takes the hue of self
     pub fn intersect(&self, other: &Self) -> Option<Self> {
-        if self.quantized_right() < other.quantized_left()
-            || self.quantized_left() > other.quantized_right()
+        if self.quantized_right() <= other.quantized_left()
+            || self.quantized_left() >= other.quantized_right()
         {
-            // no overlap
+            // no overlap (edges merely touching count as a miss, not a zero-width bar)
             return None;
         }
 

@@ -3,9 +3,11 @@ use serde::{Serialize, de::DeserializeOwned};
 use crate::tui::Terminal;
 
 mod snake;
+mod stack;
 pub mod wallet;
 
 pub use snake::Snake;
+pub use stack::Stack;
 use wallet::Wallet;
 
 pub trait Game: Sync {
@@ -131,6 +133,7 @@ impl<G: Game> GameObject for G {
 
 // static instances
 pub static SNAKE: Snake = Snake;
+pub static STACK: Stack = Stack;
 
 // all parties in order
-pub static ALL_GAMES: &[GameRef] = &[&SNAKE];
+pub static ALL_GAMES: &[GameRef] = &[&SNAKE, &STACK];

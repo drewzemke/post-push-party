@@ -4,10 +4,12 @@ use crate::tui::Terminal;
 
 mod snake;
 mod stack;
+mod treasure_depths;
 pub mod wallet;
 
 pub use snake::Snake;
 pub use stack::Stack;
+pub use treasure_depths::TreasureDepths;
 use wallet::Wallet;
 
 pub trait Game: Sync {
@@ -134,6 +136,7 @@ impl<G: Game> GameObject for G {
 // static instances
 pub static SNAKE: Snake = Snake;
 pub static STACK: Stack = Stack;
+pub static TREASURE_DEPTHS: TreasureDepths = TreasureDepths;
 
 // all parties in order
-pub static ALL_GAMES: &[GameRef] = &[&SNAKE, &STACK];
+pub static ALL_GAMES: &[GameRef] = &[&SNAKE, &STACK, &TREASURE_DEPTHS];

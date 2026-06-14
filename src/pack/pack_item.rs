@@ -1,5 +1,5 @@
 use crate::{
-    game::{GameRef, SNAKE, STACK},
+    game::{GameRef, SNAKE, STACK, TREASURE_DEPTHS},
     pack::Rarity,
     party::{FIREWORKS_PARTY, Palette},
     state::State,
@@ -66,7 +66,7 @@ const EPIC_PALETTES: &[Palette] = &[
     Palette::SYNTHWAVE,
 ];
 
-const COMMON_GAMES: &[GameRef] = &[&SNAKE, &STACK];
+const COMMON_GAMES: &[GameRef] = &[&SNAKE, &STACK, &TREASURE_DEPTHS];
 const RARE_GAMES: &[GameRef] = &[];
 const EPIC_GAMES: &[GameRef] = &[];
 

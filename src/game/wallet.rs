@@ -3,12 +3,10 @@ use anyhow::Result;
 use crate::storage::DbConnection;
 
 pub trait Wallet {
-    #[cfg(feature = "dev")]
     fn balance(&self) -> Result<u64>;
 
     fn earn(&mut self, points: u64) -> Result<()>;
 
-    #[expect(dead_code)]
     fn spend(&mut self, points: u64) -> Result<()>;
 }
 
@@ -23,7 +21,6 @@ impl<'a> UserWallet<'a> {
 }
 
 impl<'a> Wallet for UserWallet<'a> {
-    #[cfg(feature = "dev")]
     fn balance(&self) -> Result<u64> {
         let points: i64 =
             self.conn

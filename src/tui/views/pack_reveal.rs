@@ -209,7 +209,7 @@ impl View for PackRevealView {
                 } else {
                     Block::default()
                         .borders(Borders::ALL)
-                        .border_set(border::PROPORTIONAL_TALL)
+                        .border_set(border::DOUBLE)
                         .style(Style::default().dark_gray())
                 };
 

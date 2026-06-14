@@ -322,23 +322,23 @@ impl Vcs for Jj<'_> {
     }
 
     fn push(&self) {
-        self.cmd(&["push", "--allow-new", "-b", "main"]);
+        self.cmd(&["push", "-b", "main"]);
         self.cmd(&["git", "fetch"]);
     }
 
     fn try_push(&self) -> Result<()> {
-        self.try_cmd(&["push", "--allow-new", "-b", "main"])?;
+        self.try_cmd(&["push", "-b", "main"])?;
         self.cmd(&["git", "fetch"]);
         Ok(())
     }
 
     /// used to push before the party hook is installed
     fn raw_push(&self) {
-        self.cmd(&["git", "push", "--allow-new", "-b", "main"]);
+        self.cmd(&["git", "push", "-b", "main"]);
     }
 
     fn push_branch(&self, branch: &str) {
-        self.cmd(&["push", "--allow-new", "-b", branch]);
+        self.cmd(&["push", "-b", branch]);
         self.cmd(&["git", "fetch"]);
     }
 

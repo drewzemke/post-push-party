@@ -12,8 +12,7 @@ fn pushing_main_and_feature_together_awards_points_for_all() {
         .commit_file("feature.rs", "// feature", "feature work");
     env.vcs.cmd(&["bookmark", "create", "feature", "-r", "@-"]);
 
-    env.vcs
-        .cmd(&["push", "--allow-new", "-b", "main", "-b", "feature"]);
+    env.vcs.cmd(&["push", "-b", "main", "-b", "feature"]);
 
     // 10 starter + 2 for both commits (new content, regardless of branch)
     assert_eq!(

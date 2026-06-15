@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.11](https://github.com/drewzemke/post-push-party/compare/v0.1.10...v0.1.11) - 2026-06-15
+
+### Added
+
+- *(depths)* bring in treasure depths game
+- *(stack)* slightly-easier perfects
+- *(stack)* bring the game into party
+- *(bonus-tracks)* "Big Push" and "First Push" changed to flat-bonus rewards
+- *(bonus-tracks)* add "Night Owl" bonus
+- *(bonus-tracks)* add "Early Bird" bonus
+
+### Fixed
+
+- *(packs)* make it easier to tell which pack item is selected in pack reveal
+- update jj tests for new version
+- *(stack)* avoid zero-width bar intersections
+
+### Other
+
+- tixel v0.3.0
+
 ## [0.1.10](https://github.com/drewzemke/post-push-party/compare/v0.1.9...v0.1.10) - 2026-05-09
 
 ### Added

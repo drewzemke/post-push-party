@@ -126,7 +126,7 @@ impl FullscreenPartyRenderer for BigTextRenderer {
 
         // print chars to the screen based on the mask
         for row_idx in 0..self.text_dims.1 {
-            write_move_to(buf, row_idx + offset_y, offset_x);
+            write_move_to(buf, offset_x, row_idx + offset_y);
 
             let mut current_color = self.colors[0];
             write_fg_color(buf, current_color);
@@ -140,7 +140,7 @@ impl FullscreenPartyRenderer for BigTextRenderer {
                 if will_draw {
                     if skipping {
                         skipping = false;
-                        write_move_to(buf, row_idx + offset_y, col_idx + offset_x);
+                        write_move_to(buf, col_idx + offset_x, row_idx + offset_y);
                     }
                     if self.colors[col_idx] != current_color {
                         current_color = self.colors[col_idx];

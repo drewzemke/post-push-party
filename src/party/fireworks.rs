@@ -33,7 +33,7 @@ impl FireworksRenderer {
         height: u16,
         palette: &'static Palette,
     ) -> Box<dyn FullscreenPartyRenderer> {
-        let canvas = BrailleCanvas::new((height as usize, width as usize), (0, 0));
+        let canvas = BrailleCanvas::new((width as usize, height as usize), (0, 0));
         let sim = FireworksSim::new(canvas.width() as f64, canvas.height() as f64);
 
         Box::new(Self {

@@ -21,22 +21,22 @@ pub fn draw_box(buf: &mut String, offset: (usize, usize), inner_width: usize, in
     write_bg_color(buf, BG_COLOR);
     write_fg_color(buf, BORDER_COLOR);
 
-    write_move_to(buf, offset.1, offset.0);
+    write_move_to(buf, offset.0, offset.1);
     let _ = write!(buf, "▛{}▜", "▀".repeat(inner_width));
 
     for row in 1..=inner_height {
-        write_move_to(buf, offset.1 + row, offset.0);
+        write_move_to(buf, offset.0, offset.1 + row);
         let _ = write!(buf, "▌{}▐", " ".repeat(inner_width));
     }
 
-    write_move_to(buf, offset.1 + inner_height + 1, offset.0);
+    write_move_to(buf, offset.0, offset.1 + inner_height + 1);
     let _ = write!(buf, "▙{}▟", "▄".repeat(inner_width));
 }
 
 /// writes text at a terminal position in the given color; assumes the
 /// background color was already set (e.g. by `draw_box`)
 pub fn write_text(buf: &mut String, row: usize, col: usize, text: &str, color: Color) {
-    write_move_to(buf, row, col);
+    write_move_to(buf, col, row);
     write_fg_color(buf, color);
     let _ = write!(buf, "{text}");
 }
@@ -73,7 +73,11 @@ impl Menu {
         rows.push(("", TEXT_COLOR));
         rows.push((footer, FOOTER_COLOR));
 
-        let widest = rows.iter().map(|(t, _)| t.chars().count()).max().unwrap_or(0);
+        let widest = rows
+            .iter()
+            .map(|(t, _)| t.chars().count())
+            .max()
+            .unwrap_or(0);
         let inner_width = (widest + 2 * H_PADDING).max(MIN_INNER_WIDTH);
         let inner_height = rows.len();
 

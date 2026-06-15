@@ -143,16 +143,16 @@ fn render_score_line(
 
     write_move_to(
         out,
-        offset_y + (game.height as usize).div_ceil(2) + 1,
         offset_x + 1,
+        offset_y + (game.height as usize).div_ceil(2) + 1,
     );
     let _ = write!(out, "Score: {}", game.score());
 
     let high_score_str = format!("High Score: {}", state.high_score);
     write_move_to(
         out,
-        offset_y + (game.height as usize).div_ceil(2) + 1,
         offset_x + game.width as usize - high_score_str.len() + 1,
+        offset_y + (game.height as usize).div_ceil(2) + 1,
     );
     let _ = write!(out, "{high_score_str}");
 }
@@ -164,8 +164,8 @@ fn clear_message_line(out: &mut String, game: &SnakeGame, offset_x: usize, offse
 
     write_move_to(
         out,
-        offset_y + (game.height as usize).div_ceil(2) + 1,
         offset_x + 1,
+        offset_y + (game.height as usize).div_ceil(2) + 1,
     );
     let _ = write!(out, "{}", " ".repeat(game.width as usize));
 }
@@ -187,7 +187,7 @@ fn render_paused_line(out: &mut String, game: &SnakeGame, offset_x: usize, offse
 
 fn render_centered(out: &mut String, text: &str, row: usize, offset_x: usize, width: usize) {
     let col = offset_x + (width - text.len()) / 2;
-    write_move_to(out, row, col);
+    write_move_to(out, col, row);
     let _ = write!(out, "{text}");
 }
 

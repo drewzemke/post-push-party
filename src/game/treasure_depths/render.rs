@@ -154,7 +154,7 @@ impl Renderer {
 
 /// blanks out a full-width row (used to hide the hud)
 fn clear_row(buf: &mut String, offset: (usize, usize), width: usize) {
-    write_move_to(buf, offset.1, offset.0);
+    write_move_to(buf, offset.0, offset.1);
     write_bg_color(buf, (0, 0, 0).into());
     let _ = write!(buf, "{}", " ".repeat(width));
 }
@@ -162,7 +162,7 @@ fn clear_row(buf: &mut String, offset: (usize, usize), width: usize) {
 const TIME_START_X: usize = 28;
 
 fn render_top_ui(buf: &mut String, game: &Game, offset: (usize, usize), width: usize) {
-    write_move_to(buf, offset.1, offset.0);
+    write_move_to(buf, offset.0, offset.1);
 
     // fuel gauge
     let (fuel_gauge, fuel_gauge_len) = render_fuel_gauge(game.fuel_proportion());
@@ -202,7 +202,7 @@ fn render_top_ui(buf: &mut String, game: &Game, offset: (usize, usize), width: u
 }
 
 fn render_bottom_ui(buf: &mut String, game: &Game, offset: (usize, usize), width: usize) {
-    write_move_to(buf, offset.1, offset.0);
+    write_move_to(buf, offset.0, offset.1);
 
     // message
     write_fg_color(buf, (250, 250, 250).into());

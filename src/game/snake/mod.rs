@@ -23,7 +23,7 @@ const MAX_GAME_TICK_MS: u64 = 150;
 const MIN_GAME_TICK_MS: u64 = 30;
 
 const TARGET_FRAME_TIME: Duration = Duration::from_millis(30);
-const GAME_DIMS: (usize, usize) = (15, 60);
+const GAME_DIMS: (usize, usize) = (60, 15);
 const FADE_DUR: Duration = Duration::from_millis(500);
 const DEAD_DUR: Duration = Duration::from_secs(2);
 
@@ -82,10 +82,10 @@ impl Game for Snake {
         let cols = size.width as usize;
 
         // center the game area in the screen
-        let offset_x = (cols.saturating_sub(GAME_DIMS.1)) / 2;
-        let offset_y = (rows.saturating_sub(GAME_DIMS.0)) / 2;
+        let offset_x = (cols.saturating_sub(GAME_DIMS.0)) / 2;
+        let offset_y = (rows.saturating_sub(GAME_DIMS.1)) / 2;
 
-        let mut canvas = HalfCellCanvas::new(GAME_DIMS, (offset_y, offset_x));
+        let mut canvas = HalfCellCanvas::new(GAME_DIMS, (offset_x, offset_y));
 
         let height = canvas.height();
         let width = canvas.width();

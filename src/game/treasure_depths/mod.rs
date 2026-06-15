@@ -24,8 +24,8 @@ use menu::Menu;
 use render::Renderer;
 use store::Store;
 
-/// (rows, cols) in canvas cells
-const GAME_DIMS: (usize, usize) = (20, 60);
+/// (cols, rows) in canvas cells
+const GAME_DIMS: (usize, usize) = (60, 20);
 const TARGET_FRAME_TIME: Duration = Duration::from_millis(20);
 const TICK_TIME: Duration = Duration::from_millis(50);
 const FADE_DUR: Duration = Duration::from_millis(500);
@@ -102,11 +102,11 @@ impl Game for TreasureDepths {
         let cols = size.width as usize;
 
         // center the game area; keep a row above for the top hud
-        let offset_x = cols.saturating_sub(GAME_DIMS.1) / 2;
-        let offset_y = (rows.saturating_sub(GAME_DIMS.0) / 2).max(1);
+        let offset_x = cols.saturating_sub(GAME_DIMS.0) / 2;
+        let offset_y = (rows.saturating_sub(GAME_DIMS.1) / 2).max(1);
         let offset = (offset_x, offset_y);
 
-        let mut canvas = HalfCellCanvas::new(GAME_DIMS, (offset_y, offset_x));
+        let mut canvas = HalfCellCanvas::new(GAME_DIMS, (offset_x, offset_y));
         let mut renderer = Renderer::new();
         let menu = Menu::new((cols, rows));
 

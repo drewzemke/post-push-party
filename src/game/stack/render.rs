@@ -94,7 +94,7 @@ fn render_segment(
     let fract_l = left_q.fract();
     let fract_r = right_q.fract();
 
-    write_move_to(out, row, left_col);
+    write_move_to(out, left_col, row);
     write_fg_color(out, fg);
 
     if fract_l > 0. {
@@ -123,7 +123,7 @@ fn render_bg_row(
     color: (u8, u8, u8),
     fade: f64,
 ) {
-    write_move_to(out, row, 0);
+    write_move_to(out, 0, row);
     write_bg_color(out, fade_color(color, fade));
     write_fg_color(out, fade_color(BORDER_LINE_COLOR, fade));
     let to_first_border = bounds.0 - 1;
@@ -212,7 +212,7 @@ fn write_centered(
     fade: f64,
 ) {
     let col = cols.saturating_sub(text.chars().count()) / 2;
-    write_move_to(out, row, col);
+    write_move_to(out, col, row);
     write_bg_color(out, fade_color(bg, fade));
     write_fg_color(out, fade_color(fg, fade));
     let _ = write!(out, "{text}");
@@ -294,7 +294,7 @@ fn render_perfect_text(out: &mut String, game: &StackGame, action_row: usize, ro
     let text_color = lerp_rgb(bg_color, TEXT_COLOR, fade);
     let col = bar.quantized_right() as usize + 1;
 
-    write_move_to(out, row, col);
+    write_move_to(out, col, row);
     write_fg_color(out, Color::from(text_color));
     write_bg_color(out, Color::from(bg_color));
     let run_text = if game.perfect_run > 1 {
@@ -312,7 +312,7 @@ fn render_top_line(out: &mut String, game: &StackGame, cols: usize, rows: usize,
 
 fn render_score_line(out: &mut String, game: &StackGame, rows: usize) {
     let bg = get_bg_color(game.stack.len(), 1, rows);
-    write_move_to(out, 1, 2);
+    write_move_to(out, 2, 1);
     write_bg_color(out, Color::from(bg));
     write_fg_color(out, Color::from(TEXT_COLOR));
     let _ = write!(

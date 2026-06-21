@@ -24,6 +24,8 @@ pub fn run(mut parties: Vec<Box<dyn FullscreenPartyRenderer>>) -> anyhow::Result
     // sort renderers by increasing z-index
     parties.sort_by_key(|party| party.z_index());
 
+    let mut buf = String::new();
+
     let mut time = std::time::Instant::now();
     loop {
         // bail on any key press
@@ -44,12 +46,10 @@ pub fn run(mut parties: Vec<Box<dyn FullscreenPartyRenderer>>) -> anyhow::Result
             all_done = all_done && !still_going;
         }
 
-        // create an output string, render each party to it, and print
-        // that to the screen
-        let mut buf = String::new();
-
         execute!(std::io::stdout(), BeginSynchronizedUpdate)?;
 
+        // render each party to it to the output string, and print that to the screen,
+        // then clear the string buffer
         for party in &mut parties {
             party.render(&mut buf);
         }
@@ -58,6 +58,8 @@ pub fn run(mut parties: Vec<Box<dyn FullscreenPartyRenderer>>) -> anyhow::Result
         std::io::stdout().flush()?;
 
         execute!(std::io::stdout(), EndSynchronizedUpdate)?;
+
+        buf.clear();
 
         // bail if every party is done animating
         if all_done {

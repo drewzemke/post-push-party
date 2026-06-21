@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.12](https://github.com/drewzemke/post-push-party/compare/v0.1.11...v0.1.12) - 2026-06-21
+
+### Fixed
+
+- *(party)* fix flickering in full-screen parties
+
+### Other
+
+- *(deps)* tixel v0.3.1
+- *(party)* more fireworks
+- *(party)* reuse string buffer in full-screen compositor
+
 ## [0.1.11](https://github.com/drewzemke/post-push-party/compare/v0.1.10...v0.1.11) - 2026-06-15
 
 ### Added

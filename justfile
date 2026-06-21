@@ -4,7 +4,7 @@ cheat n:
 
 # simulates pushing n commits with m lines each
 push n m="10":
-    @cargo run --quiet --features dev -- push {{n}} --lines {{m}}
+    @cargo run --release --quiet --features dev -- push {{n}} --lines {{m}}
 
 # resets local game state
 reset:

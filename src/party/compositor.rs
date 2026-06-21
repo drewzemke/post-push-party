@@ -54,10 +54,10 @@ pub fn run(mut parties: Vec<Box<dyn FullscreenPartyRenderer>>) -> anyhow::Result
             party.render(&mut buf);
         }
 
-        execute!(std::io::stdout(), EndSynchronizedUpdate)?;
-
         std::io::stdout().write_all(buf.as_bytes())?;
         std::io::stdout().flush()?;
+
+        execute!(std::io::stdout(), EndSynchronizedUpdate)?;
 
         // bail if every party is done animating
         if all_done {

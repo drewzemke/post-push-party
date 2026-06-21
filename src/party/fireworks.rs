@@ -68,7 +68,7 @@ impl FullscreenPartyRenderer for FireworksRenderer {
 }
 
 const GRAVITY: f64 = -60.;
-const NUM_ROCKETS: usize = 7;
+const NUM_ROCKETS: usize = 10;
 
 const VEL_X_VARIANCE: f64 = 10.;
 const VEL_Y_VARIANCE_RATIO: f64 = 0.2;

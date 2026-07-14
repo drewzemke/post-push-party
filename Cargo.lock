@@ -1833,9 +1833,9 @@ checksum = "7694e1cfe791f8d31026952abf09c69ca6f6fa4e1a1229e18988f06a04a12dca"
 
 [[package]]
 name = "tixel"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1efc94ca848552f1599e01b4fc49691e65b30cac534c0053c80a44be4048aa7"
+checksum = "a091af8dad45844199a05a38970410a808a5d25142971ccb2a97d7342d5cac35"
 
 [[package]]
 name = "tui-scrollview"

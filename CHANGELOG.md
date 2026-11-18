@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.14](https://github.com/drewzemke/post-push-party/compare/v0.1.13...v0.1.14) - 2026-11-18
+
+### Other
+
+- add nix things
+
 ## [0.1.13](https://github.com/drewzemke/post-push-party/compare/v0.1.12...v0.1.13) - 2026-07-14
 
 ### Other
